@@ -163,6 +163,7 @@ using namespace std;
 void printUsage()
 {
 	cout << "Usage:" << endl;
+	cout << "\tlpm init" << endl;
 	cout << "\tlpm update" << endl;
 	cout << "\tlpm install <package name>" << endl;
 	cout << "\tlpm remove <package name>" << endl;
@@ -179,12 +180,19 @@ int main(int argc, char* argv[])
 		printUsage();
 		return 0;
 	}
-	readConfig();
-	checkPath();
+	if (readConfig())
+		checkPath();
 	readSource();
 
 	string cmd(argv[1]);
-	if (cmd == "install")
+	if (cmd == "init")
+	{
+		localPath = "./local";
+		dataPath = "./data";
+		writeConfig();
+		writeSource();
+	}
+	else if (cmd == "install")
 	{
 		if (argc < 3)
 		{
