@@ -494,9 +494,9 @@ int main(int argc, char* argv[])
 			}
 			writeSource();
 			if (found)
-				cout << "E:Source not found" << endl;
-			else
 				cout << "I:Deleted" << endl;
+			else
+				cout << "E:Source not found" << endl;
 		}
 	}
 
