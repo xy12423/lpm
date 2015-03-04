@@ -212,21 +212,23 @@ bool printInfoFromFile(const std::string &name)
 	return true;
 }
 
-void printAvaliable(source *src)
+void printAvaliable(source *src, bool ignoreInstalled = true)
 {
 	if (src == NULL)
 		return;
 	std::vector<package*>::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
 	for (; p != pEnd; p++)
-		printInfo(*p);
+		if (!is_installed((*p)->getName()))
+			printInfo(*p);
 }
-void printAvaliableShort(source *src)
+void printAvaliableShort(source *src, bool ignoreInstalled = true)
 {
 	if (src == NULL)
 		return;
 	std::vector<package*>::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
 	for (; p != pEnd; p++)
-		std::cout << (*p)->getName() << std::endl;
+		if (!is_installed((*p)->getName()))
+			std::cout << (*p)->getName() << std::endl;
 }
 
 bool check(std::string name)
@@ -237,6 +239,14 @@ bool check(std::string name)
 	if (pkg == NULL)
 		throw("E:Package not found");
 	return pkg->check();
+}
+
+void init()
+{
+	localPath = "./local";
+	dataPath = "./data";
+	writeConfig();
+	writeSource();
 }
 
 using namespace std;
@@ -270,15 +280,17 @@ int main(int argc, char* argv[])
 	string cmd(argv[1]);
 	if (cmd == "init")
 	{
-		localPath = "./local";
-		dataPath = "./data";
-		writeConfig();
-		writeSource();
+		init();
 	}
 	else
 	{
 		if (readConfig())
 			checkPath();
+		else
+		{
+			init();
+			checkPath();
+		}
 		readSource();
 		if (cmd == "install")
 		{
