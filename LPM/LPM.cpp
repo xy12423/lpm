@@ -52,7 +52,7 @@ bool readSource()
 		std::getline(finCfg, eatCRLF);
 
 		tmpPkgList.clear();
-		std::string name, tmpName;
+		std::string name, fname, tmpName;
 		std::string author, info;
 		version ver;
 		depListTp depList, confList;
@@ -64,6 +64,7 @@ bool readSource()
 			finCfg >> ver.major >> ver.minor >> ver.revision;
 			finCfg >> depCount >> confCount;
 			std::getline(finCfg, eatCRLF);
+			std::getline(finCfg, fname);
 			std::getline(finCfg, author);
 			std::getline(finCfg, info);
 			
@@ -77,7 +78,7 @@ bool readSource()
 				std::getline(finCfg, tmpName);
 				confList.push_back(tmpName);
 			}
-			tmpPkgList.push_back(new package(tmpPath, name, ver, depList, confList, pakExtInfo(author, info)));
+			tmpPkgList.push_back(new package(tmpPath, name, ver, depList, confList, pakExtInfo(fname, author, info)));
 		}
 		
 		src->loadLocal(tmpPkgList);
@@ -104,7 +105,7 @@ void writeSource()
 			foutCfg << (*pP)->name << std::endl;
 			foutCfg << (*pP)->ver.major << ' ' << (*pP)->ver.minor << ' ' << (*pP)->ver.revision << std::endl;
 			foutCfg << (*pP)->depList.size() << ' ' << (*pP)->confList.size() << std::endl;
-			foutCfg << (*pP)->extInfo.author << std::endl << (*pP)->extInfo.info << std::endl;
+			foutCfg << (*pP)->extInfo.fname << (*pP)->extInfo.author << std::endl << (*pP)->extInfo.info << std::endl;
 
 			for (pD = (*pP)->depList.cbegin(), pDEnd = (*pP)->depList.cend(); pD != pDEnd; pD++)
 			{
@@ -117,20 +118,6 @@ void writeSource()
 		}
 	}
 	foutCfg.close();
-}
-
-errInfo update()
-{
-	std::vector<source*>::const_iterator p, pEnd = sourceList.cend();
-	for (p = sourceList.cbegin(); p != pEnd; p++)
-	{
-		infoStream << "I:Updating source " << (*p)->getAdd() << std::endl;
-		errInfo err = (*p)->loadRemote();
-		if (err.err)
-			return err;
-	}
-	writeSource();
-	return errInfo();
 }
 
 void checkPath()
@@ -158,6 +145,100 @@ void checkPath()
 	}
 }
 
+errInfo update()
+{
+	std::vector<source*>::const_iterator p, pEnd = sourceList.cend();
+	for (p = sourceList.cbegin(); p != pEnd; p++)
+	{
+		infoStream << "I:Updating source " << (*p)->getAdd() << std::endl;
+		errInfo err = (*p)->loadRemote();
+		if (err.err)
+			return err;
+	}
+	writeSource();
+	return errInfo();
+}
+
+void printInfo(package *pkg)
+{
+	if (pkg == NULL)
+		return;
+	std::cout << "Name:" << pkg->extInfo.fname << std::endl;
+	std::cout << "Package:" << pkg->name << std::endl;
+	std::cout << "Description:" << pkg->extInfo.info << std::endl;
+	std::cout << "Author:" << pkg->extInfo.author << std::endl;
+	std::cout << "Version:" << pkg->ver.major << '.' << pkg->ver.minor << '.' << pkg->ver.revision << std::endl;
+	std::cout << "Required:";
+	std::for_each(pkg->depList.begin(), pkg->depList.end(), [](std::string pkgName){
+		std::cout << pkgName << ';';
+	});
+	std::cout << std::endl << "Conflict:";
+	std::for_each(pkg->confList.begin(), pkg->confList.end(), [](std::string pkgName){
+		std::cout << pkgName << ';';
+	});
+	std::cout << std::endl;
+	std::cout << "Is installed:";
+	if (is_installed(pkg->name))
+		std::cout << "Y";
+	else
+		std::cout << "N";
+	std::cout << std::endl;
+}
+
+bool printInfoFromFile(const std::string &name)
+{
+	if (!is_installed(name))
+		return false;
+	std::ifstream infoIn((dataPath / name / FILENAME_INFO).string());
+	std::string line;
+
+	std::getline(infoIn, line);
+	std::cout << "Name:" << line << std::endl;
+	std::getline(infoIn, line);
+	std::cout << "Package:" << line << std::endl;
+	std::getline(infoIn, line);
+	std::cout << "Description:" << line << std::endl;
+	std::getline(infoIn, line);
+	std::cout << "Author:" << line << std::endl;
+	std::getline(infoIn, line);
+	std::cout << "Version:" << line << std::endl;
+	std::getline(infoIn, line);
+	std::cout << "Required:" << line << std::endl;
+	std::getline(infoIn, line);
+	std::cout << "Conflict:" << line << std::endl;
+	std::cout << "Is installed:Y" << std::endl;
+
+	infoIn.close();
+	return true;
+}
+
+void printAvaliable(source *src)
+{
+	if (src == NULL)
+		return;
+	std::vector<package*>::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
+	for (; p != pEnd; p++)
+		printInfo(*p);
+}
+void printAvaliableShort(source *src)
+{
+	if (src == NULL)
+		return;
+	std::vector<package*>::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
+	for (; p != pEnd; p++)
+		std::cout << (*p)->getName() << std::endl;
+}
+
+bool check(std::string name)
+{
+	if (is_installed(name))
+		return true;
+	package *pkg = find_package(name);
+	if (pkg == NULL)
+		throw("E:Package not found");
+	return pkg->check();
+}
+
 using namespace std;
 
 void printUsage()
@@ -167,7 +248,12 @@ void printUsage()
 	cout << "\tlpm update" << endl;
 	cout << "\tlpm install <package name>" << endl;
 	cout << "\tlpm remove <package name>" << endl;
+	cout << "\tlpm info <package name>" << endl;
+	cout << "\tlpm check <package name>" << endl;
 	cout << "\tlpm list" << endl;
+	cout << "\tlpm list-short" << endl;
+	cout << "\tlpm avaliable" << endl;
+	cout << "\tlpm avaliable-short" << endl;
 	cout << "\tlpm listsrc" << endl;
 	cout << "\tlpm addsrc <source address>" << endl;
 	cout << "\tlpm delsrc <source address>" << endl;
@@ -180,10 +266,7 @@ int main(int argc, char* argv[])
 		printUsage();
 		return 0;
 	}
-	if (readConfig())
-		checkPath();
-	readSource();
-
+	
 	string cmd(argv[1]);
 	if (cmd == "init")
 	{
@@ -192,96 +275,175 @@ int main(int argc, char* argv[])
 		writeConfig();
 		writeSource();
 	}
-	else if (cmd == "install")
+	else
 	{
-		if (argc < 3)
+		if (readConfig())
+			checkPath();
+		readSource();
+		if (cmd == "install")
 		{
-			printUsage();
-			return 0;
-		}
-		errInfo err = install(argv[2]);
-		if (err.err)
-		{
-			cout << err.info << endl;
-			return 0;
-		}
-	}
-	else if (cmd == "remove")
-	{
-		if (argc < 3)
-		{
-			printUsage();
-			return 0;
-		}
-		errInfo err = uninstall(argv[2]);
-		if (err.err)
-		{
-			cout << err.info << endl;
-			return 0;
-		}
-	}
-	else if (cmd == "update")
-	{
-		errInfo err = update();
-		if (err.err)
-		{
-			cout << err.info << endl;
-			return 0;
-		}
-	}
-	else if (cmd == "list")
-	{
-		directory_iterator p(dataPath), pEnd;
-		string name;
-		for (; p != pEnd; p++)
-		{
-			name = p->path().filename().string();
-			if (name.front() != '$')
-				cout << name << endl;
-		}
-	}
-	else if (cmd == "listsrc")
-	{
-		vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
-		for (; p != pEnd; p++)
-			cout << (*p)->getAdd() << endl;
-	}
-	else if (cmd == "addsrc")
-	{
-		if (argc < 3)
-		{
-			printUsage();
-			return 0;
-		}
-		source *newSrc = new source(argv[2]);
-		newSrc->loadRemote();
-		sourceList.push_back(newSrc);
-		writeSource();
-	}
-	else if (cmd == "delsrc")
-	{
-		if (argc < 3)
-		{
-			printUsage();
-			return 0;
-		}
-		string name(argv[2]);
-		vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
-		bool found = false;
-		for (; p != pEnd; p++)
-		{
-			if ((*p)->getAdd() == name)
+			if (argc < 3)
 			{
-				found = true;
-				sourceList.erase(p);
-				break;
+				printUsage();
+				return 0;
+			}
+			errInfo err = install(argv[2]);
+			if (err.err)
+			{
+				cout << err.info << endl;
+				return 0;
 			}
 		}
-		writeSource();
-		if (found)
-			cout << "E:Source not found" << endl;
-		else
-			cout << "I:Deleted" << endl;
+		else if (cmd == "remove")
+		{
+			if (argc < 3)
+			{
+				printUsage();
+				return 0;
+			}
+			errInfo err = uninstall(argv[2]);
+			if (err.err)
+			{
+				cout << err.info << endl;
+				return 0;
+			}
+		}
+		else if (cmd == "info")
+		{
+			if (argc < 3)
+			{
+				printUsage();
+				return 0;
+			}
+			string name = std::string(argv[2]);
+			if (is_installed(name))
+				printInfoFromFile(name);
+			else
+			{
+				package *pkg = find_package(name);
+				if (pkg == NULL)
+				{
+					cout << "E:Package not found" << endl;
+					return 0;
+				}
+				printInfo(pkg);
+			}
+		}
+		else if (cmd == "check")
+		{
+			if (argc < 3)
+			{
+				printUsage();
+				return 0;
+			}
+			try
+			{
+				if (check(argv[2]))
+					cout << "OK" << endl;
+				else
+					cout << "NO" << endl;
+			}
+			catch (const char* err)
+			{
+				cout << err << endl;
+			}
+			catch (...)
+			{
+				throw;
+			}
+		}
+		else if (cmd == "update")
+		{
+			errInfo err = update();
+			if (err.err)
+			{
+				cout << err.info << endl;
+				return 0;
+			}
+		}
+		else if (cmd == "list")
+		{
+			directory_iterator p(dataPath), pEnd;
+			string name;
+			for (; p != pEnd; p++)
+			{
+				name = p->path().filename().string();
+				if (name.front() != '$')
+					printInfoFromFile(name);
+			}
+		}
+		else if (cmd == "list-short")
+		{
+			directory_iterator p(dataPath), pEnd;
+			string name;
+			for (; p != pEnd; p++)
+			{
+				name = p->path().filename().string();
+				if (name.front() != '$')
+					cout << name << endl;
+			}
+		}
+		else if (cmd == "avaliable")
+		{
+			std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
+			for (; pSrc != pSrcEnd; pSrc++)
+			{
+				source* src = *pSrc;
+				printAvaliable(*pSrc);
+			}
+		}
+		else if (cmd == "avaliable-short")
+		{
+			std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
+			for (; pSrc != pSrcEnd; pSrc++)
+			{
+				source* src = *pSrc;
+				printAvaliableShort(*pSrc);
+			}
+		}
+		else if (cmd == "listsrc")
+		{
+			vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
+			for (; p != pEnd; p++)
+				cout << (*p)->getAdd() << endl;
+		}
+		else if (cmd == "addsrc")
+		{
+			if (argc < 3)
+			{
+				printUsage();
+				return 0;
+			}
+			source *newSrc = new source(argv[2]);
+			newSrc->loadRemote();
+			sourceList.push_back(newSrc);
+			writeSource();
+		}
+		else if (cmd == "delsrc")
+		{
+			if (argc < 3)
+			{
+				printUsage();
+				return 0;
+			}
+			string name(argv[2]);
+			vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
+			bool found = false;
+			for (; p != pEnd; p++)
+			{
+				if ((*p)->getAdd() == name)
+				{
+					found = true;
+					sourceList.erase(p);
+					break;
+				}
+			}
+			writeSource();
+			if (found)
+				cout << "E:Source not found" << endl;
+			else
+				cout << "I:Deleted" << endl;
+		}
 	}
 
 	return 0;

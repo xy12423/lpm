@@ -67,9 +67,19 @@ errInfo package::inst()
 	depListTp::const_iterator pDep, pDepEnd;
 	pDep = confList.begin();
 	pDepEnd = confList.end();
+	std::list<std::string> confNList;
+	infoStream << "I:Checking requirement..." << std::endl;
 	for (; pDep != pDepEnd; pDep++)
 		if (is_installed(*pDep))
-			return errInfo(std::string("E:Confliction between package ") + name + " and " + *pDep);
+			confNList.push_back(*pDep);
+	if (!confNList.empty())
+	{
+		infoStream << "W:Installing Dependent package" << *pDep << std::endl;
+		while (!confNList.empty())
+		{
+			
+		}
+	}
 	pDep = depList.begin();
 	pDepEnd = depList.end();
 	for (; pDep != pDepEnd; pDep++)
@@ -121,7 +131,7 @@ errInfo package::inst()
 				if (fs::is_regular_file(p->path()))
 					fs::copy_file(p->path(), pakPath);
 				else
-					return errInfo(std::string("E:Illegal package:dir in $info"));
+					throw("E:Illegal package:dir in $info");
 			}
 			fs::remove_all(tmpPath / DIRNAME_INFO);
 		}
@@ -148,6 +158,22 @@ errInfo package::inst()
 			system(scriptPath.string().c_str());
 			infoStream << "I:Done" << std::endl;
 		}
+
+		infOut.open((pakPath / FILENAME_INFO).string());
+		infOut << extInfo.fname << std::endl;
+		infOut << name << std::endl;
+		infOut << extInfo.info << std::endl;
+		infOut << extInfo.author << std::endl;
+		infOut << ver.major << '.' << ver.minor << '.' << ver.revision << std::endl;
+		std::for_each(depList.begin(), depList.end(), [this, &infOut](std::string pkgName){
+			infOut << pkgName << ';';
+		});
+		infOut << std::endl;
+		std::for_each(confList.begin(), confList.end(), [this, &infOut](std::string pkgName){
+			infOut << pkgName << ';';
+		});
+		infOut << std::endl;
+		infOut.close();
 
 		pDep = depList.begin();
 		pDepEnd = depList.end();
@@ -204,7 +230,7 @@ bool is_installed(std::string name)
 	return fs::exists(dataPath / name);
 }
 
-package* find_package(std::string &name)
+package* find_package(const std::string &name)
 {
 	std::vector<source*>::const_iterator p, pEnd = sourceList.cend();
 	package *pak;
@@ -222,9 +248,11 @@ errInfo install(std::string name)
 	if (is_installed(name))
 		return errInfo(std::string("E:Already installed"));
 
+	infoStream << "I:Searching package..." << std::endl;
 	package *pak = find_package(name);
 	if (pak == NULL)
 		return errInfo(std::string("E:Package not found"));
+	infoStream << "I:Package found:" << std::endl;
 
 	return pak->inst();
 }

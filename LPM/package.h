@@ -15,8 +15,8 @@ typedef unsigned char BYTE;
 struct pakExtInfo
 {
 	pakExtInfo(){};
-	pakExtInfo(std::string &_author, std::string &_info){ author = _author; info = _info; };
-	std::string author, info;
+	pakExtInfo(std::string &_fname, std::string &_author, std::string &_info){ fname = _fname; author = _author; info = _info; };
+	std::string fname, author, info;
 };
 
 struct version
@@ -38,6 +38,7 @@ public:
 	bool check();
 
 	friend void writeSource();
+	friend void printInfo(package *pkg);
 private:
 	std::string source;
 	std::string name;
@@ -47,7 +48,7 @@ private:
 	depListTp confList;
 };
 
-package* find_package(std::string &name);
+package* find_package(const std::string &name);
 bool is_installed(std::string name);
 errInfo install(std::string name);
 errInfo uninstall(std::string name);

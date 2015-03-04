@@ -15,6 +15,8 @@ public:
 	package* find_package(std::string name);
 
 	friend void writeSource();
+	friend void printAvaliable(source *src);
+	friend void printAvaliableShort(source *src);
 private:
 	std::string add;
 	std::vector<package*> pkgList;

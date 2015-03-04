@@ -4,6 +4,15 @@
 
 std::vector<source*> sourceList;
 
+const int LINE_FNAME = 0;
+const int LINE_NAME = 1;
+const int LINE_VER = 2;
+const int LINE_AUTHOR = 3;
+const int LINE_INFO = 4;
+const int LINE_DEP = 5;
+const int LINE_CONF = 6;
+const int LINE_END = 7;
+
 size_t write_data_src(void *buffer, size_t size, size_t nmemb, void *userp)
 {
 	std::string *myBuf = static_cast<std::string*>(userp);
@@ -66,14 +75,14 @@ errInfo source::loadRemote()
 				p++;
 				
 				state++;
-				if (state == 6)
+				if (state == LINE_END)
 				{
 					version ver;
 					pakExtInfo extInfo;
 					depListTp depList, confList;
 
-					p2 = data[1].cbegin();
-					pEnd2 = data[1].cend();
+					p2 = data[LINE_VER].cbegin();
+					pEnd2 = data[LINE_VER].cend();
 					for (; p2 != pEnd2; p2++)
 					{
 						if (*p2 == '.')
@@ -104,7 +113,7 @@ errInfo source::loadRemote()
 					}
 
 					std::string name;
-					for (p2 = data[4].cbegin(), pEnd2 = data[4].cend(); p2 != pEnd2; p2++)
+					for (p2 = data[LINE_DEP].cbegin(), pEnd2 = data[LINE_DEP].cend(); p2 != pEnd2; p2++)
 					{
 						if (*p2 == ';')
 						{
@@ -118,7 +127,7 @@ errInfo source::loadRemote()
 						depList.push_back(name);
 					name.clear();
 
-					for (p2 = data[5].cbegin(), pEnd2 = data[5].cend(); p2 != pEnd2; p2++)
+					for (p2 = data[LINE_CONF].cbegin(), pEnd2 = data[LINE_CONF].cend(); p2 != pEnd2; p2++)
 					{
 						if (*p2 == ';')
 						{
@@ -132,7 +141,7 @@ errInfo source::loadRemote()
 						confList.push_back(name);
 					name.clear();
 
-					newPkgList.push_back(new package(add, data[0], ver, depList, confList, pakExtInfo(data[2], data[3])));
+					newPkgList.push_back(new package(add, data[LINE_NAME], ver, depList, confList, pakExtInfo(data[LINE_FNAME], data[LINE_AUTHOR], data[LINE_INFO])));
 
 					for (int i = 0; i < 6; i++)
 						data[i].clear();
