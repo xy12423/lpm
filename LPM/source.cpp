@@ -77,40 +77,9 @@ errInfo source::loadRemote()
 				state++;
 				if (state == LINE_END)
 				{
-					version ver;
+					version ver(data[LINE_VER]);
 					pakExtInfo extInfo;
 					depListTp depList, confList;
-
-					p2 = data[LINE_VER].cbegin();
-					pEnd2 = data[LINE_VER].cend();
-					for (; p2 != pEnd2; p2++)
-					{
-						if (*p2 == '.')
-						{
-							p2++;
-							break;
-						}
-						if (!isdigit(*p2))
-							return errInfo(std::string("E:") + "Invalid version on pack " + data[0]);
-						ver.major = ver.major * 10 + static_cast<UINT>((*p2) - '0');
-					}
-					for (; p2 != pEnd2; p2++)
-					{
-						if (*p2 == '.')
-						{
-							p2++;
-							break;
-						}
-						if (!isdigit(*p2))
-							return errInfo(std::string("E:") + "Invalid version on pack " + data[0]);
-						ver.minor = ver.minor * 10 + static_cast<UINT>((*p2) - '0');
-					}
-					for (; p2 != pEnd2; p2++)
-					{
-						if (!isdigit(*p2))
-							return errInfo(std::string("E:") + "Invalid version on pack " + data[0]);
-						ver.revision = ver.revision * 10 + static_cast<UINT>((*p2) - '0');
-					}
 
 					std::string name;
 					for (p2 = data[LINE_DEP].cbegin(), pEnd2 = data[LINE_DEP].cend(); p2 != pEnd2; p2++)
@@ -169,4 +138,19 @@ package* source::find_package(std::string name)
 	if (p == pkgMap.end())
 		return NULL;
 	return pkgList[p->second];
+}
+
+errInfo source::upgradeAll()
+{
+	std::vector<package*>::const_iterator p = pkgList.cbegin(), pEnd = pkgList.cend();
+	for (; p != pEnd; p++)
+	{
+		if (is_installed((*p)->getName()))
+		{
+			errInfo err = (*p)->upgrade();
+			if (err.err && err.info.front() != 'W')
+				return err;
+		}
+	}
+	return errInfo();
 }

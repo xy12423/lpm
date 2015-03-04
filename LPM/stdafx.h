@@ -32,3 +32,11 @@
 #pragma comment (lib, "ws2_32.lib")
 #pragma comment (lib, "winmm.lib")
 #pragma comment (lib, "wldap32.lib")
+
+#if (!defined(WIN32)) && (defined(_WIN32) || defined(_WIN32_WINNT))
+#define WIN32
+#endif
+
+#if (!defined(__linux__)) && (defined(__linux))
+#define __linux__
+#endif

@@ -29,6 +29,38 @@ void writeConfig()
 	foutCfg.close();
 }
 
+void checkPath()
+{
+	if (!exists(dataPath))
+		create_directory(dataPath);
+	else if (!is_directory(dataPath))
+	{
+		remove(dataPath);
+		create_directory(dataPath);
+	}
+	if (!exists(dataPath / DIRNAME_TEMP))
+		create_directory(dataPath / DIRNAME_TEMP);
+	else if (!is_directory(dataPath / DIRNAME_TEMP))
+	{
+		remove(dataPath / DIRNAME_TEMP);
+		create_directory(dataPath / DIRNAME_TEMP);
+	}
+	if (!exists(dataPath / DIRNAME_NATIVE))
+		create_directory(dataPath / DIRNAME_NATIVE);
+	else if (!is_directory(dataPath / DIRNAME_NATIVE))
+	{
+		remove(dataPath / DIRNAME_NATIVE);
+		create_directory(dataPath / DIRNAME_NATIVE);
+	}
+	if (!exists(dataPath / DIRNAME_UPGRADE))
+		create_directory(dataPath / DIRNAME_UPGRADE);
+	else if (!is_directory(dataPath / DIRNAME_UPGRADE))
+	{
+		remove(dataPath / DIRNAME_UPGRADE);
+		create_directory(dataPath / DIRNAME_UPGRADE);
+	}
+}
+
 bool readSource()
 {
 	if (!exists(".source"))
@@ -120,45 +152,6 @@ void writeSource()
 	foutCfg.close();
 }
 
-void checkPath()
-{
-	if (!exists(dataPath))
-		create_directory(dataPath);
-	else if (!is_directory(dataPath))
-	{
-		remove(dataPath);
-		create_directory(dataPath);
-	}
-	if (!exists(dataPath / DIRNAME_TEMP))
-		create_directory(dataPath / DIRNAME_TEMP);
-	else if (!is_directory(dataPath / DIRNAME_TEMP))
-	{
-		remove(dataPath / DIRNAME_TEMP);
-		create_directory(dataPath / DIRNAME_TEMP);
-	}
-	if (!exists(dataPath / DIRNAME_NATIVE))
-		create_directory(dataPath / DIRNAME_NATIVE);
-	else if (!is_directory(dataPath / DIRNAME_NATIVE))
-	{
-		remove(dataPath / DIRNAME_NATIVE);
-		create_directory(dataPath / DIRNAME_NATIVE);
-	}
-}
-
-errInfo update()
-{
-	std::vector<source*>::const_iterator p, pEnd = sourceList.cend();
-	for (p = sourceList.cbegin(); p != pEnd; p++)
-	{
-		infoStream << "I:Updating source " << (*p)->getAdd() << std::endl;
-		errInfo err = (*p)->loadRemote();
-		if (err.err)
-			return err;
-	}
-	writeSource();
-	return errInfo();
-}
-
 void printInfo(package *pkg)
 {
 	if (pkg == NULL)
@@ -212,6 +205,39 @@ bool printInfoFromFile(const std::string &name)
 	return true;
 }
 
+errInfo update()
+{
+	std::vector<source*>::const_iterator p, pEnd = sourceList.cend();
+	for (p = sourceList.cbegin(); p != pEnd; p++)
+	{
+		infoStream << "I:Updating source " << (*p)->getAdd() << std::endl;
+		errInfo err = (*p)->loadRemote();
+		if (err.err)
+			return err;
+	}
+	writeSource();
+	return errInfo();
+}
+
+errInfo upgrade(std::string name)
+{
+	package *pkg = find_package(name);
+	if (pkg == NULL)
+		return errInfo("E:Package not found");
+	return pkg->upgrade();
+}
+
+errInfo upgrade()
+{
+	std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
+	errInfo err;
+	for (; pSrc != pSrcEnd; pSrc++)
+	{
+		(*pSrc)->upgradeAll();
+	}
+	return errInfo();
+}
+
 void printAvaliable(source *src, bool ignoreInstalled = true)
 {
 	if (src == NULL)
@@ -258,6 +284,7 @@ void printUsage()
 	cout << "\tlpm update" << endl;
 	cout << "\tlpm install <package name>" << endl;
 	cout << "\tlpm remove <package name>" << endl;
+	cout << "\tlpm upgrade [package name]" << endl;
 	cout << "\tlpm info <package name>" << endl;
 	cout << "\tlpm check <package name>" << endl;
 	cout << "\tlpm list" << endl;
@@ -318,6 +345,27 @@ int main(int argc, char* argv[])
 			{
 				cout << err.info << endl;
 				return 0;
+			}
+		}
+		else if (cmd == "upgrade")
+		{
+			if (argc < 3)
+			{
+				errInfo err = upgrade();
+				if (err.err)
+				{
+					cout << err.info << endl;
+					return 0;
+				}
+			}
+			else
+			{
+				errInfo err = upgrade(argv[2]);
+				if (err.err)
+				{
+					cout << err.info << endl;
+					return 0;
+				}
 			}
 		}
 		else if (cmd == "info")
@@ -399,19 +447,13 @@ int main(int argc, char* argv[])
 		{
 			std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
 			for (; pSrc != pSrcEnd; pSrc++)
-			{
-				source* src = *pSrc;
 				printAvaliable(*pSrc);
-			}
 		}
 		else if (cmd == "avaliable-short")
 		{
 			std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
 			for (; pSrc != pSrcEnd; pSrc++)
-			{
-				source* src = *pSrc;
 				printAvaliableShort(*pSrc);
-			}
 		}
 		else if (cmd == "listsrc")
 		{

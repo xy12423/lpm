@@ -52,6 +52,48 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 	}
 }
 
+version::version(const std::string &str)
+{
+	std::string::const_iterator p = str.cbegin(), pEnd = str.cend();
+	for (; p != pEnd; p++)
+	{
+		if (*p == '.')
+		{
+			p++;
+			break;
+		}
+		if (!isdigit(*p))
+		{
+			major = minor = revision = 0;
+			return;
+		}
+		major = major * 10 + static_cast<UINT>((*p) - '0');
+	}
+	for (; p != pEnd; p++)
+	{
+		if (*p == '.')
+		{
+			p++;
+			break;
+		}
+		if (!isdigit(*p))
+		{
+			major = minor = revision = 0;
+			return;
+		}
+		minor = minor * 10 + static_cast<UINT>((*p) - '0');
+	}
+	for (; p != pEnd; p++)
+	{
+		if (!isdigit(*p))
+		{
+			major = minor = revision = 0;
+			return;
+		}
+		revision = revision * 10 + static_cast<UINT>((*p) - '0');
+	}
+}
+
 package::package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo)
 {
 	source = _source;
@@ -62,7 +104,7 @@ package::package(std::string _source, std::string &_name, version _ver, depListT
 	extInfo = _extInfo;
 }
 
-errInfo package::inst()
+errInfo package::inst(bool upgrade)
 {
 	depListTp::const_iterator pDep, pDepEnd;
 	pDep = confList.begin();
@@ -74,11 +116,13 @@ errInfo package::inst()
 			confNList.push_back(*pDep);
 	if (!confNList.empty())
 	{
-		infoStream << "W:Installing Dependent package" << *pDep << std::endl;
+		infoStream << "W:Conflict Package" << std::endl;
 		while (!confNList.empty())
 		{
-			
+			infoStream << "\t" << confNList.front() << std::endl;
+			confNList.pop_front();
 		}
+		return errInfo("E:Confliction found");
 	}
 	pDep = depList.begin();
 	pDepEnd = depList.end();
@@ -144,21 +188,6 @@ errInfo package::inst()
 
 		fs::remove_all(tmpPath);
 
-		fs::path scriptPath =
-#ifdef WIN32
-			pakPath / "install.bat"
-#endif
-#ifdef __linux__
-			pakPath / "install.sh"
-#endif
-			;
-		if (exists(scriptPath))
-		{
-			infoStream << "I:Running installation script" << std::endl;
-			system(scriptPath.string().c_str());
-			infoStream << "I:Done" << std::endl;
-		}
-
 		infOut.open((pakPath / FILENAME_INFO).string());
 		infOut << extInfo.fname << std::endl;
 		infOut << name << std::endl;
@@ -189,6 +218,26 @@ errInfo package::inst()
 		for (; pDep != pDepEnd; pDep++)
 			depOut << *pDep << std::endl;
 		depOut.close();
+		if (upgrade)
+			fs::copy_file(dataPath / DIRNAME_UPGRADE / (name + ".inf"), pakPath / FILENAME_BEDEP);
+
+		fs::path scriptPath = pakPath / SCRIPT_INST;
+		if (exists(scriptPath))
+		{
+			infoStream << "I:Running installation script" << std::endl;
+			system(scriptPath.string().c_str());
+			infoStream << "I:Done" << std::endl;
+		}
+		if (!upgrade)
+		{
+			scriptPath = pakPath / SCRIPT_INIT;
+			if (exists(scriptPath))
+			{
+				infoStream << "I:Running initialization script" << std::endl;
+				system(scriptPath.string().c_str());
+				infoStream << "I:Done" << std::endl;
+			}
+		}
 	}
 	catch (fs::filesystem_error err)
 	{
@@ -211,6 +260,34 @@ errInfo package::inst()
 		throw;
 	}
 	infoStream << "I:Package installed" << std::endl;
+	return errInfo();
+}
+
+errInfo package::upgrade()
+{
+	if (!is_installed(name))
+		return errInfo("E:Not installed");
+
+	std::string line;
+	std::ifstream infoIn((dataPath / name / FILENAME_INFO).string());
+	std::getline(infoIn, line);
+	std::getline(infoIn, line);
+	std::getline(infoIn, line);
+	std::getline(infoIn, line);
+	std::getline(infoIn, line);
+	infoIn.close();
+	version oldver(line);
+	if (oldver <= getVer())
+		return errInfo("W:Needn't upgrade");
+
+	infoStream << "I:Removing..." << std::endl;
+	errInfo err = uninstall(name, true);
+	if (err.err)
+		return err;
+	infoStream << "I:Reinstalling..." << std::endl;
+	err = inst(true);
+	if (err.err)
+		return err;
 	return errInfo();
 }
 
@@ -253,11 +330,11 @@ errInfo install(std::string name)
 	if (pak == NULL)
 		return errInfo(std::string("E:Package not found"));
 	infoStream << "I:Package found:" << std::endl;
-
+	
 	return pak->inst();
 }
 
-errInfo uninstall(std::string name)
+errInfo uninstall(std::string name, bool upgrade)
 {
 	if (!is_installed(name))
 		return errInfo(std::string("E:Not installed"));
@@ -267,14 +344,21 @@ errInfo uninstall(std::string name)
 	std::string line;
 	if (fs::exists(pakPath / FILENAME_BEDEP))
 	{
-		infoStream << "W:This package is depended by:" << std::endl;
-		depIn.open((pakPath / FILENAME_BEDEP).string());
-		while (!depIn.eof())
+		if (upgrade)
 		{
-			std::getline(depIn, line);
-			infoStream << "\t" << line << std::endl;
+			fs::copy_file(pakPath / FILENAME_BEDEP, dataPath / DIRNAME_UPGRADE / (name + ".inf"));
 		}
-		return errInfo("E:This package is depended by other package");
+		else
+		{
+			infoStream << "W:This package is depended by:" << std::endl;
+			depIn.open((pakPath / FILENAME_BEDEP).string());
+			while (!depIn.eof())
+			{
+				std::getline(depIn, line);
+				infoStream << "\t" << line << std::endl;
+			}
+			return errInfo("E:This package is depended by other package");
+		}
 	}
 
 	{
@@ -318,20 +402,24 @@ errInfo uninstall(std::string name)
 		depIn.close();
 	}
 
-	fs::path logPath = pakPath / "install.ini";
-	fs::path scriptPath =
-#ifdef WIN32
-		pakPath / "uninstall.bat"
-#endif
-#ifdef __linux__
-		pakPath / "uninstall.sh"
-#endif
-		;
+	fs::path scriptPath;
+	if (!upgrade)
+	{
+		scriptPath = pakPath / SCRIPT_PURGE;
+		if (exists(scriptPath))
+		{
+			infoStream << "I:Running purge script" << std::endl;
+			system(scriptPath.string().c_str());
+		}
+	}
+	scriptPath = pakPath / SCRIPT_REMOVE;
 	if (exists(scriptPath))
 	{
 		infoStream << "I:Running removal script" << std::endl;
 		system(scriptPath.string().c_str());
 	}
+
+	fs::path logPath = pakPath / "install.ini";
 	std::ifstream logIn(logPath.string());
 	std::string tmpPath;
 

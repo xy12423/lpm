@@ -23,6 +23,11 @@ struct version
 {
 	version(){ major = 0; minor = 0; revision = 0; };
 	version(UINT _major, USHORT _minor, USHORT _revision){ major = _major; minor = _minor; revision = _revision; };
+	version(const std::string &str);
+	bool operator>(const version &b){ return major == b.major ? (minor == b.minor ? (revision == b.revision ? false : revision > b.revision) : minor > b.minor) : major > b.major; };
+	bool operator>=(const version &b){ return major == b.major ? (minor == b.minor ? (revision == b.revision ? true : revision > b.revision) : minor > b.minor) : major > b.major; };
+	bool operator<(const version &b){ return major == b.major ? (minor == b.minor ? (revision == b.revision ? false : revision < b.revision) : minor < b.minor) : major < b.major; };
+	bool operator<=(const version &b){ return major == b.major ? (minor == b.minor ? (revision == b.revision ? true : revision < b.revision) : minor < b.minor) : major < b.major; };
 	UINT major;
 	USHORT minor, revision;
 };
@@ -34,7 +39,9 @@ class package
 public:
 	package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo);
 	std::string getName(){ return name; };
-	errInfo inst();
+	version getVer(){ return ver; };
+	errInfo inst(bool upgrade = false);
+	errInfo upgrade();
 	bool check();
 
 	friend void writeSource();
@@ -51,6 +58,6 @@ private:
 package* find_package(const std::string &name);
 bool is_installed(std::string name);
 errInfo install(std::string name);
-errInfo uninstall(std::string name);
+errInfo uninstall(std::string name, bool upgrade = false);
 
 #endif

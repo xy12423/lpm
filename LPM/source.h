@@ -13,6 +13,7 @@ public:
 	errInfo loadRemote();
 	void loadLocal(std::vector<package*> &_pkgList);
 	package* find_package(std::string name);
+	errInfo upgradeAll();
 
 	friend void writeSource();
 	friend void printAvaliable(source *src, bool ignoreInstalled);
