@@ -62,7 +62,7 @@ errInfo source::loadRemote()
 
 	std::string::const_iterator p, pEnd = buf.cend();
 	std::string::const_iterator p2, pEnd2;
-	std::string data[6];
+	std::string data[LINE_END];
 	int state = 0;
 	for (p = buf.cbegin(); p != pEnd;)
 	{
@@ -128,7 +128,7 @@ errInfo source::loadRemote()
 		return errInfo(std::string("E:") + "Incorrect pack info from source");
 	loadLocal(newPkgList);
 
-	infoStream << "I:Package List of source" << add << "refreshed" << std::endl;
+	infoStream << "I:Package List of source " << add << " refreshed" << std::endl;
 	return errInfo();
 }
 
