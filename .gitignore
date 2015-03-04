@@ -189,3 +189,5 @@ _Pvt_Extensions/
 ModelManifest.xml
 /LPM/.config
 /LPM/.source
+/LPM/local
+/LPM/data

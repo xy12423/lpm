@@ -125,7 +125,7 @@ errInfo source::loadRemote()
 	}
 
 	if (state != 0)
-		return errInfo(std::string("E:") + "Incorrect pack info from source");
+		return errInfo("E:Incorrect pack info from source");
 	loadLocal(newPkgList);
 
 	infoStream << "I:Package List of source " << add << " refreshed" << std::endl;

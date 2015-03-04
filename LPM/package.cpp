@@ -54,6 +54,7 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 
 version::version(const std::string &str)
 {
+	major = minor = revision = 0;
 	std::string::const_iterator p = str.cbegin(), pEnd = str.cend();
 	for (; p != pEnd; p++)
 	{
@@ -130,7 +131,7 @@ errInfo package::inst(bool upgrade)
 	{
 		if (!is_installed(*pDep))
 		{
-			infoStream << "I:Installing Dependent package" << *pDep << std::endl;
+			infoStream << "I:Installing Dependent package " << *pDep << std::endl;
 			errInfo err = install(*pDep);
 			if (err.err)
 				return err;
@@ -155,18 +156,18 @@ errInfo package::inst(bool upgrade)
 	infoStream << "I:Data downloaded" << std::endl;
 
 	fs::path tmpPath = dataPath / DIRNAME_TEMP / name, pakPath = dataPath / name;
-	bool flag1 = false, flag2 = false;
+	bool flag1 = false, flag2 = false, flag3 = false;
 	try
 	{
 		fs::create_directory(tmpPath);
 		flag1 = true;
 		fs::create_directory(pakPath);
 		flag2 = true;
-		infoStream << "I:Decompressing package" << *pDep << std::endl;
+		infoStream << "I:Decompressing package" << std::endl;
 		errInfo err = unzip(buf.begin(), buf.end(), tmpPath);
 		if (err.err)
 			return err;
-		infoStream << "I:Decompressed" << *pDep << std::endl;
+		infoStream << "I:Decompressed" << std::endl;
 
 		if (fs::exists(tmpPath / DIRNAME_INFO))
 		{
@@ -181,16 +182,16 @@ errInfo package::inst(bool upgrade)
 		}
 
 		std::ofstream infOut((pakPath / FILENAME_INST).string());
-		infoStream << "I:Copying files" << *pDep << std::endl;
+		infoStream << "I:Copying files" << std::endl;
 		install_copy(tmpPath, fs::path(), infOut);
-		infoStream << "I:File copied" << *pDep << std::endl;
+		infoStream << "I:File copied" << std::endl;
 		infOut.close();
+		flag3 = true;
 
 		fs::remove_all(tmpPath);
 
 		infOut.open((pakPath / FILENAME_INFO).string());
 		infOut << extInfo.fname << std::endl;
-		infOut << name << std::endl;
 		infOut << extInfo.info << std::endl;
 		infOut << extInfo.author << std::endl;
 		infOut << ver.major << '.' << ver.minor << '.' << ver.revision << std::endl;
@@ -218,8 +219,12 @@ errInfo package::inst(bool upgrade)
 		for (; pDep != pDepEnd; pDep++)
 			depOut << *pDep << std::endl;
 		depOut.close();
-		if (upgrade)
-			fs::copy_file(dataPath / DIRNAME_UPGRADE / (name + ".inf"), pakPath / FILENAME_BEDEP);
+		fs::path backupPath = dataPath / DIRNAME_UPGRADE / (name + ".inf");
+		if (upgrade && exists(backupPath))
+		{
+			fs::copy_file(backupPath, pakPath / FILENAME_BEDEP);
+			fs::remove(backupPath);
+		}
 
 		fs::path scriptPath = pakPath / SCRIPT_INST, currentPath = fs::current_path();
 		if (exists(scriptPath))
@@ -244,18 +249,40 @@ errInfo package::inst(bool upgrade)
 	}
 	catch (fs::filesystem_error err)
 	{
-		if (flag1)
-			fs::remove_all(tmpPath);
+		if (flag3)
+		{
+			std::ifstream infIn((pakPath / FILENAME_INST).string());
+			std::string tmpPath;
+			while (!infIn.eof())
+			{
+				std::getline(infIn, tmpPath);
+				if (!tmpPath.empty())
+					fs::remove(tmpPath);
+			}
+		}
 		if (flag2)
 			fs::remove_all(pakPath);
+		if (flag1)
+			fs::remove_all(tmpPath);
 		return errInfo(std::string("E:filesystem:") + err.what());
 	}
 	catch (const char* err)
 	{
-		if (flag1)
-			fs::remove_all(tmpPath);
+		if (flag3)
+		{
+			std::ifstream infIn((pakPath / FILENAME_INST).string());
+			std::string tmpPath;
+			while (!infIn.eof())
+			{
+				std::getline(infIn, tmpPath);
+				if (!tmpPath.empty())
+					fs::remove(tmpPath);
+			}
+		}
 		if (flag2)
 			fs::remove_all(pakPath);
+		if (flag1)
+			fs::remove_all(tmpPath);
 		return errInfo(std::string(err));
 	}
 	catch (...)
@@ -277,10 +304,9 @@ errInfo package::upgrade()
 	std::getline(infoIn, line);
 	std::getline(infoIn, line);
 	std::getline(infoIn, line);
-	std::getline(infoIn, line);
 	infoIn.close();
 	version oldver(line);
-	if (oldver <= getVer())
+	if (oldver >= ver)
 		return errInfo("W:Needn't upgrade");
 
 	infoStream << "I:Removing..." << std::endl;
@@ -332,7 +358,7 @@ errInfo install(std::string name)
 	package *pak = find_package(name);
 	if (pak == NULL)
 		return errInfo(std::string("E:Package not found"));
-	infoStream << "I:Package found:" << std::endl;
+	infoStream << "I:Package found:" << name << std::endl;
 	
 	return pak->inst();
 }
@@ -360,6 +386,7 @@ errInfo uninstall(std::string name, bool upgrade)
 				std::getline(depIn, line);
 				infoStream << "\t" << line << std::endl;
 			}
+			depIn.close();
 			return errInfo("E:This package is depended by other package");
 		}
 	}
@@ -374,32 +401,36 @@ errInfo uninstall(std::string name, bool upgrade)
 		while (!depIn.eof())
 		{
 			std::getline(depIn, bedepFile);
-			bedepFile = (dataPath / bedepFile / FILENAME_BEDEP).string();
-			bedepFS.open(bedepFile, std::ios::in);
-			while (!bedepFS.eof())
+			if (!bedepFile.empty())
 			{
-				std::getline(bedepFS, line);
-				if (line == name)
-					break;
-				bedepTmp.push_back(line);
-			}
-			while (!bedepFS.eof())
-			{
-				std::getline(bedepFS, line);
-				bedepTmp.push_back(line);
-			}
-			bedepFS.close();
-			if (bedepTmp.empty())
-				fs::remove(bedepFile);
-			else
-			{
-				bedepFS.open(bedepFile, std::ios::out);
-				while (!bedepTmp.empty())
+				bedepFile = (dataPath / bedepFile / FILENAME_BEDEP).string();
+				bedepFS.open(bedepFile, std::ios::in);
+				while (!bedepFS.eof())
 				{
-					bedepFS << bedepTmp.front() << std::endl;
-					bedepTmp.pop_front();
+					std::getline(bedepFS, line);
+					if (line == name)
+						break;
+					bedepTmp.push_back(line);
+				}
+				while (!bedepFS.eof())
+				{
+					std::getline(bedepFS, line);
+					if (!line.empty())
+					bedepTmp.push_back(line);
 				}
 				bedepFS.close();
+				if (bedepTmp.empty())
+					fs::remove(bedepFile);
+				else
+				{
+					bedepFS.open(bedepFile, std::ios::out);
+					while (!bedepTmp.empty())
+					{
+						bedepFS << bedepTmp.front() << std::endl;
+						bedepTmp.pop_front();
+					}
+					bedepFS.close();
+				}
 			}
 		}
 		depIn.close();
@@ -427,7 +458,7 @@ errInfo uninstall(std::string name, bool upgrade)
 	}
 	fs::current_path(currentPath);
 
-	fs::path logPath = pakPath / "install.ini";
+	fs::path logPath = pakPath / FILENAME_INST;
 	std::ifstream logIn(logPath.string());
 	std::string tmpPath;
 

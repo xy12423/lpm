@@ -24,12 +24,12 @@ struct version
 	version(){ major = 0; minor = 0; revision = 0; };
 	version(UINT _major, USHORT _minor, USHORT _revision){ major = _major; minor = _minor; revision = _revision; };
 	version(const std::string &str);
-	bool operator>(const version &b){ return major == b.major ? (minor == b.minor ? (revision == b.revision ? false : revision > b.revision) : minor > b.minor) : major > b.major; };
-	bool operator>=(const version &b){ return major == b.major ? (minor == b.minor ? (revision == b.revision ? true : revision > b.revision) : minor > b.minor) : major > b.major; };
-	bool operator<(const version &b){ return major == b.major ? (minor == b.minor ? (revision == b.revision ? false : revision < b.revision) : minor < b.minor) : major < b.major; };
-	bool operator<=(const version &b){ return major == b.major ? (minor == b.minor ? (revision == b.revision ? true : revision < b.revision) : minor < b.minor) : major < b.major; };
 	UINT major;
 	USHORT minor, revision;
+	friend inline bool operator>(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? false : a.revision > b.revision) : a.minor > b.minor) : a.major > b.major; };
+	friend inline bool operator>=(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? true : a.revision > b.revision) : a.minor > b.minor) : a.major > b.major; };
+	friend inline bool operator<(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? false : a.revision < b.revision) : a.minor < b.minor) : a.major < b.major; };
+	friend inline bool operator<=(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? true : a.revision < b.revision) : a.minor < b.minor) : a.major < b.major; };
 };
 
 typedef std::list<std::string> depListTp;

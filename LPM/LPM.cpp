@@ -137,7 +137,7 @@ void writeSource()
 			foutCfg << (*pP)->name << std::endl;
 			foutCfg << (*pP)->ver.major << ' ' << (*pP)->ver.minor << ' ' << (*pP)->ver.revision << std::endl;
 			foutCfg << (*pP)->depList.size() << ' ' << (*pP)->confList.size() << std::endl;
-			foutCfg << (*pP)->extInfo.fname << (*pP)->extInfo.author << std::endl << (*pP)->extInfo.info << std::endl;
+			foutCfg << (*pP)->extInfo.fname << std::endl << (*pP)->extInfo.author << std::endl << (*pP)->extInfo.info << std::endl;
 
 			for (pD = (*pP)->depList.cbegin(), pDEnd = (*pP)->depList.cend(); pD != pDEnd; pD++)
 			{
@@ -176,6 +176,7 @@ void printInfo(package *pkg)
 	else
 		std::cout << "N";
 	std::cout << std::endl;
+	std::cout << std::endl;
 }
 
 bool printInfoFromFile(const std::string &name)
@@ -187,8 +188,7 @@ bool printInfoFromFile(const std::string &name)
 
 	std::getline(infoIn, line);
 	std::cout << "Name:" << line << std::endl;
-	std::getline(infoIn, line);
-	std::cout << "Package:" << line << std::endl;
+	std::cout << "Package:" << name << std::endl;
 	std::getline(infoIn, line);
 	std::cout << "Description:" << line << std::endl;
 	std::getline(infoIn, line);
@@ -200,6 +200,7 @@ bool printInfoFromFile(const std::string &name)
 	std::getline(infoIn, line);
 	std::cout << "Conflict:" << line << std::endl;
 	std::cout << "Is installed:Y" << std::endl;
+	std::cout << std::endl;
 
 	infoIn.close();
 	return true;
@@ -238,23 +239,21 @@ errInfo upgrade()
 	return errInfo();
 }
 
-void printAvaliable(source *src, bool ignoreInstalled = true)
+void printAvailable(source *src, bool ignoreInstalled = true)
 {
 	if (src == NULL)
 		return;
 	std::vector<package*>::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
 	for (; p != pEnd; p++)
-		if (!is_installed((*p)->getName()))
-			printInfo(*p);
+		printInfo(*p);
 }
-void printAvaliableShort(source *src, bool ignoreInstalled = true)
+void printAvailableShort(source *src, bool ignoreInstalled = true)
 {
 	if (src == NULL)
 		return;
 	std::vector<package*>::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
 	for (; p != pEnd; p++)
-		if (!is_installed((*p)->getName()))
-			std::cout << (*p)->getName() << std::endl;
+		std::cout << (*p)->getName() << std::endl;
 }
 
 bool check(std::string name)
@@ -289,8 +288,8 @@ void printUsage()
 	cout << "\tlpm check <package name>" << endl;
 	cout << "\tlpm list" << endl;
 	cout << "\tlpm list-short" << endl;
-	cout << "\tlpm avaliable" << endl;
-	cout << "\tlpm avaliable-short" << endl;
+	cout << "\tlpm available" << endl;
+	cout << "\tlpm available-short" << endl;
 	cout << "\tlpm listsrc" << endl;
 	cout << "\tlpm addsrc <source address>" << endl;
 	cout << "\tlpm delsrc <source address>" << endl;
@@ -304,200 +303,221 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	
-	string cmd(argv[1]);
-	if (cmd == "init")
+	try
 	{
-		init();
-	}
-	else
-	{
-		if (readConfig())
-			checkPath();
-		else
+		string cmd(argv[1]);
+		if (cmd == "init")
 		{
 			init();
-			checkPath();
 		}
-		readSource();
-		if (cmd == "install")
+		else
 		{
-			if (argc < 3)
+			if (readConfig())
+				checkPath();
+			else
 			{
-				printUsage();
-				return 0;
+				init();
+				checkPath();
 			}
-			errInfo err = install(argv[2]);
-			if (err.err)
+			readSource();
+			if (cmd == "install")
 			{
-				cout << err.info << endl;
-				return 0;
-			}
-		}
-		else if (cmd == "remove")
-		{
-			if (argc < 3)
-			{
-				printUsage();
-				return 0;
-			}
-			errInfo err = uninstall(argv[2]);
-			if (err.err)
-			{
-				cout << err.info << endl;
-				return 0;
-			}
-		}
-		else if (cmd == "upgrade")
-		{
-			if (argc < 3)
-			{
-				errInfo err = upgrade();
+				if (argc < 3)
+				{
+					printUsage();
+					return 0;
+				}
+				errInfo err = install(argv[2]);
 				if (err.err)
 				{
 					cout << err.info << endl;
 					return 0;
 				}
 			}
-			else
+			else if (cmd == "remove")
 			{
-				errInfo err = upgrade(argv[2]);
+				if (argc < 3)
+				{
+					printUsage();
+					return 0;
+				}
+				errInfo err = uninstall(argv[2]);
 				if (err.err)
 				{
 					cout << err.info << endl;
 					return 0;
 				}
 			}
-		}
-		else if (cmd == "info")
-		{
-			if (argc < 3)
+			else if (cmd == "upgrade")
 			{
-				printUsage();
-				return 0;
-			}
-			string name = std::string(argv[2]);
-			if (is_installed(name))
-				printInfoFromFile(name);
-			else
-			{
-				package *pkg = find_package(name);
-				if (pkg == NULL)
+				if (argc < 3)
 				{
-					cout << "E:Package not found" << endl;
-					return 0;
+					errInfo err = upgrade();
+					if (err.err)
+					{
+						cout << err.info << endl;
+						return 0;
+					}
 				}
-				printInfo(pkg);
-			}
-		}
-		else if (cmd == "check")
-		{
-			if (argc < 3)
-			{
-				printUsage();
-				return 0;
-			}
-			try
-			{
-				if (check(argv[2]))
-					cout << "OK" << endl;
 				else
-					cout << "NO" << endl;
-			}
-			catch (const char* err)
-			{
-				cout << err << endl;
-			}
-			catch (...)
-			{
-				throw;
-			}
-		}
-		else if (cmd == "update")
-		{
-			errInfo err = update();
-			if (err.err)
-			{
-				cout << err.info << endl;
-				return 0;
-			}
-		}
-		else if (cmd == "list")
-		{
-			directory_iterator p(dataPath), pEnd;
-			string name;
-			for (; p != pEnd; p++)
-			{
-				name = p->path().filename().string();
-				if (name.front() != '$')
-					printInfoFromFile(name);
-			}
-		}
-		else if (cmd == "list-short")
-		{
-			directory_iterator p(dataPath), pEnd;
-			string name;
-			for (; p != pEnd; p++)
-			{
-				name = p->path().filename().string();
-				if (name.front() != '$')
-					cout << name << endl;
-			}
-		}
-		else if (cmd == "avaliable")
-		{
-			std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
-			for (; pSrc != pSrcEnd; pSrc++)
-				printAvaliable(*pSrc);
-		}
-		else if (cmd == "avaliable-short")
-		{
-			std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
-			for (; pSrc != pSrcEnd; pSrc++)
-				printAvaliableShort(*pSrc);
-		}
-		else if (cmd == "listsrc")
-		{
-			vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
-			for (; p != pEnd; p++)
-				cout << (*p)->getAdd() << endl;
-		}
-		else if (cmd == "addsrc")
-		{
-			if (argc < 3)
-			{
-				printUsage();
-				return 0;
-			}
-			source *newSrc = new source(argv[2]);
-			newSrc->loadRemote();
-			sourceList.push_back(newSrc);
-			writeSource();
-		}
-		else if (cmd == "delsrc")
-		{
-			if (argc < 3)
-			{
-				printUsage();
-				return 0;
-			}
-			string name(argv[2]);
-			vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
-			bool found = false;
-			for (; p != pEnd; p++)
-			{
-				if ((*p)->getAdd() == name)
 				{
-					found = true;
-					sourceList.erase(p);
-					break;
+					errInfo err = upgrade(argv[2]);
+					if (err.err)
+					{
+						cout << err.info << endl;
+						return 0;
+					}
 				}
 			}
-			writeSource();
-			if (found)
-				cout << "I:Deleted" << endl;
+			else if (cmd == "info")
+			{
+				if (argc < 3)
+				{
+					printUsage();
+					return 0;
+				}
+				string name = std::string(argv[2]);
+				if (is_installed(name))
+					printInfoFromFile(name);
+				else
+				{
+					package *pkg = find_package(name);
+					if (pkg == NULL)
+					{
+						cout << "E:Package not found" << endl;
+						return 0;
+					}
+					printInfo(pkg);
+				}
+			}
+			else if (cmd == "check")
+			{
+				if (argc < 3)
+				{
+					printUsage();
+					return 0;
+				}
+				try
+				{
+					if (check(argv[2]))
+						cout << "OK" << endl;
+					else
+						cout << "NO" << endl;
+				}
+				catch (const char* err)
+				{
+					cout << err << endl;
+				}
+				catch (...)
+				{
+					throw;
+				}
+			}
+			else if (cmd == "update")
+			{
+				errInfo err = update();
+				if (err.err)
+				{
+					cout << err.info << endl;
+					return 0;
+				}
+			}
+			else if (cmd == "list")
+			{
+				directory_iterator p(dataPath), pEnd;
+				string name;
+				for (; p != pEnd; p++)
+				{
+					name = p->path().filename().string();
+					if (name.front() != '$')
+						printInfoFromFile(name);
+				}
+			}
+			else if (cmd == "list-short")
+			{
+				directory_iterator p(dataPath), pEnd;
+				string name;
+				for (; p != pEnd; p++)
+				{
+					name = p->path().filename().string();
+					if (name.front() != '$')
+						cout << name << endl;
+				}
+			}
+			else if (cmd == "available")
+			{
+				std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
+				for (; pSrc != pSrcEnd; pSrc++)
+					printAvailable(*pSrc);
+			}
+			else if (cmd == "available-short")
+			{
+				std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
+				for (; pSrc != pSrcEnd; pSrc++)
+					printAvailableShort(*pSrc);
+			}
+			else if (cmd == "listsrc")
+			{
+				vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
+				for (; p != pEnd; p++)
+					cout << (*p)->getAdd() << endl;
+			}
+			else if (cmd == "addsrc")
+			{
+				if (argc < 3)
+				{
+					printUsage();
+					return 0;
+				}
+				string name(argv[2]);
+				vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
+				for (; p != pEnd; p++)
+				{
+					if ((*p)->getAdd() == name)
+					{
+						cout << "E:Source already added" << endl;
+						return 0;
+					}
+				}
+				source *newSrc = new source(name);
+				newSrc->loadRemote();
+				sourceList.push_back(newSrc);
+				writeSource();
+			}
+			else if (cmd == "delsrc")
+			{
+				if (argc < 3)
+				{
+					printUsage();
+					return 0;
+				}
+				string name(argv[2]);
+				vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
+				bool found = false;
+				for (; p != pEnd; p++)
+				{
+					if ((*p)->getAdd() == name)
+					{
+						found = true;
+						sourceList.erase(p);
+						break;
+					}
+				}
+				writeSource();
+				if (found)
+					cout << "I:Deleted" << endl;
+				else
+					cout << "E:Source not found" << endl;
+			}
 			else
-				cout << "E:Source not found" << endl;
+			{
+				cout << "E:Command incorrect" << endl;
+			}
 		}
+	}
+	catch (exception ex)
+	{
+		cout << "E:" << ex.what() << endl;
 	}
 
 	return 0;

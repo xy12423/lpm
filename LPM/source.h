@@ -16,8 +16,8 @@ public:
 	errInfo upgradeAll();
 
 	friend void writeSource();
-	friend void printAvaliable(source *src, bool ignoreInstalled);
-	friend void printAvaliableShort(source *src, bool ignoreInstalled);
+	friend void printAvailable(source *src, bool ignoreInstalled);
+	friend void printAvailableShort(source *src, bool ignoreInstalled);
 private:
 	std::string add;
 	std::vector<package*> pkgList;
