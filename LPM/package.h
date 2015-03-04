@@ -29,17 +29,13 @@ struct version
 
 typedef std::list<std::string> depListTp;
 
-const int PKG_INSTALL_FAILED = -1;
-
-const int PKG_UNINSTALL_FAILED = -1;
-
 class package
 {
 public:
 	package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo);
 	std::string getName(){ return name; };
-	void rename(std::string &newName){ name = newName; };
 	errInfo inst();
+	bool check();
 
 	friend void writeSource();
 private:
@@ -51,8 +47,9 @@ private:
 	depListTp confList;
 };
 
+package* find_package(std::string &name);
+bool is_installed(std::string name);
 errInfo install(std::string name);
 errInfo uninstall(std::string name);
-bool is_installed(std::string name);
 
 #endif

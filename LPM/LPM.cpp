@@ -13,9 +13,9 @@ bool readConfig()
 	}
 	std::ifstream finCfg(".config");
 	std::string tmpPath;
-	getline(finCfg, tmpPath);
+	std::getline(finCfg, tmpPath);
 	localPath = tmpPath;
-	getline(finCfg, tmpPath);
+	std::getline(finCfg, tmpPath);
 	dataPath = tmpPath;
 	finCfg.close();
 	return true;
@@ -39,17 +39,17 @@ bool readSource()
 	std::string tmpPath, eatCRLF;
 	int sourceCount;
 	finCfg >> sourceCount;
-	getline(finCfg, eatCRLF);
+	std::getline(finCfg, eatCRLF);
 	sourceList.clear();
 	int i, j, k;
 	std::vector<package*> tmpPkgList;
 	for (i = 0; i < sourceCount; i++)
 	{
-		getline(finCfg, tmpPath);
+		std::getline(finCfg, tmpPath);
 		source* src = new source(tmpPath);
 		int pkgCount;
 		finCfg >> pkgCount;
-		getline(finCfg, eatCRLF);
+		std::getline(finCfg, eatCRLF);
 
 		tmpPkgList.clear();
 		std::string name, tmpName;
@@ -60,21 +60,21 @@ bool readSource()
 
 		for (j = 0; j < pkgCount; j++)
 		{
-			getline(finCfg, name);
+			std::getline(finCfg, name);
 			finCfg >> ver.major >> ver.minor >> ver.revision;
 			finCfg >> depCount >> confCount;
-			getline(finCfg, eatCRLF);
-			getline(finCfg, author);
-			getline(finCfg, info);
+			std::getline(finCfg, eatCRLF);
+			std::getline(finCfg, author);
+			std::getline(finCfg, info);
 			
 			for (k = 0; k < depCount; k++)
 			{
-				getline(finCfg, tmpName);
+				std::getline(finCfg, tmpName);
 				depList.push_back(tmpName);
 			}
 			for (k = 0; k < confCount; k++)
 			{
-				getline(finCfg, tmpName);
+				std::getline(finCfg, tmpName);
 				confList.push_back(tmpName);
 			}
 			tmpPkgList.push_back(new package(tmpPath, name, ver, depList, confList, pakExtInfo(author, info)));
@@ -142,19 +142,19 @@ void checkPath()
 		remove(dataPath);
 		create_directory(dataPath);
 	}
-	if (!exists(dataPath / "$temp"))
-		create_directory(dataPath / "$temp");
-	else if (!is_directory(dataPath / "$temp"))
+	if (!exists(dataPath / DIRNAME_TEMP))
+		create_directory(dataPath / DIRNAME_TEMP);
+	else if (!is_directory(dataPath / DIRNAME_TEMP))
 	{
-		remove(dataPath / "$temp");
-		create_directory(dataPath / "$temp");
+		remove(dataPath / DIRNAME_TEMP);
+		create_directory(dataPath / DIRNAME_TEMP);
 	}
-	if (!exists(dataPath / "$native"))
-		create_directory(dataPath / "$native");
-	else if (!is_directory(dataPath / "$native"))
+	if (!exists(dataPath / DIRNAME_NATIVE))
+		create_directory(dataPath / DIRNAME_NATIVE);
+	else if (!is_directory(dataPath / DIRNAME_NATIVE))
 	{
-		remove(dataPath / "$native");
-		create_directory(dataPath / "$native");
+		remove(dataPath / DIRNAME_NATIVE);
+		create_directory(dataPath / DIRNAME_NATIVE);
 	}
 }
 

@@ -20,7 +20,7 @@ size_t write_data_pkg(void *buffer, size_t size, size_t nmemb, void *userp)
 
 void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &logOut)
 {
-	fs::path nativePath = dataPath / "$native";
+	fs::path nativePath = dataPath / DIRNAME_NATIVE;
 	for (fs::directory_iterator p(tmpPath), pEnd; p != pEnd; p++)
 	{
 		fs::path sourcePath = p->path(), newRelaPath = relaPath / sourcePath.filename(), targetPath = localPath / newRelaPath;
@@ -65,7 +65,6 @@ package::package(std::string _source, std::string &_name, version _ver, depListT
 errInfo package::inst()
 {
 	depListTp::const_iterator pDep, pDepEnd;
-
 	pDep = confList.begin();
 	pDepEnd = confList.end();
 	for (; pDep != pDepEnd; pDep++)
@@ -74,6 +73,7 @@ errInfo package::inst()
 	pDep = depList.begin();
 	pDepEnd = depList.end();
 	for (; pDep != pDepEnd; pDep++)
+	{
 		if (!is_installed(*pDep))
 		{
 			infoStream << "I:Installing Dependent package" << *pDep << std::endl;
@@ -81,6 +81,7 @@ errInfo package::inst()
 			if (err.err)
 				return err;
 		}
+	}
 
 	CURL *handle = curl_easy_init();
 	char *addCStr = str2cstr(source + "/" + name + ".lpm");
@@ -99,7 +100,7 @@ errInfo package::inst()
 	curl_easy_cleanup(handle);
 	infoStream << "I:Data downloaded" << std::endl;
 
-	fs::path tmpPath = dataPath / "$temp" / name, pakPath = dataPath / name;
+	fs::path tmpPath = dataPath / DIRNAME_TEMP / name, pakPath = dataPath / name;
 	bool flag1 = false, flag2 = false;
 	try
 	{
@@ -113,23 +114,23 @@ errInfo package::inst()
 			return err;
 		infoStream << "I:Decompressed" << *pDep << std::endl;
 
-		if (fs::exists(tmpPath / "$info"))
+		if (fs::exists(tmpPath / DIRNAME_INFO))
 		{
-			for (fs::directory_iterator p(tmpPath / "$info"), pEnd; p != pEnd; p++)
+			for (fs::directory_iterator p(tmpPath / DIRNAME_INFO), pEnd; p != pEnd; p++)
 			{
 				if (fs::is_regular_file(p->path()))
 					fs::copy_file(p->path(), pakPath);
 				else
 					return errInfo(std::string("E:Illegal package:dir in $info"));
 			}
-			fs::remove_all(tmpPath / "$info");
+			fs::remove_all(tmpPath / DIRNAME_INFO);
 		}
 
-		std::ofstream iniOut((pakPath / "install.ini").string());
+		std::ofstream infOut((pakPath / FILENAME_INST).string());
 		infoStream << "I:Copying files" << *pDep << std::endl;
-		install_copy(tmpPath, fs::path(), iniOut);
+		install_copy(tmpPath, fs::path(), infOut);
 		infoStream << "I:File copied" << *pDep << std::endl;
-		iniOut.close();
+		infOut.close();
 
 		fs::remove_all(tmpPath);
 
@@ -147,6 +148,21 @@ errInfo package::inst()
 			system(scriptPath.string().c_str());
 			infoStream << "I:Done" << std::endl;
 		}
+
+		pDep = depList.begin();
+		pDepEnd = depList.end();
+		std::ofstream depOut;
+		for (; pDep != pDepEnd; pDep++)
+		{
+			depOut.open((dataPath / *pDep / FILENAME_BEDEP).string(), std::ios::out | std::ios::app);
+			depOut << name << std::endl;
+			depOut.close();
+		}
+		pDep = depList.begin();
+		depOut.open((pakPath / FILENAME_DEP).string());
+		for (; pDep != pDepEnd; pDep++)
+			depOut << *pDep << std::endl;
+		depOut.close();
 	}
 	catch (fs::filesystem_error err)
 	{
@@ -172,9 +188,33 @@ errInfo package::inst()
 	return errInfo();
 }
 
+bool package::check()
+{
+	depListTp::const_iterator pDep, pDepEnd;
+	pDep = depList.begin();
+	pDepEnd = depList.end();
+	for (; pDep != pDepEnd; pDep++)
+		if (!is_installed(*pDep))
+			return false;
+	return true;
+}
+
 bool is_installed(std::string name)
 {
 	return fs::exists(dataPath / name);
+}
+
+package* find_package(std::string &name)
+{
+	std::vector<source*>::const_iterator p, pEnd = sourceList.cend();
+	package *pak;
+	for (p = sourceList.cbegin(); p != pEnd; p++)
+	{
+		pak = (*p)->find_package(name);
+		if (pak != NULL)
+			return pak;
+	}
+	return NULL;
 }
 
 errInfo install(std::string name)
@@ -182,14 +222,7 @@ errInfo install(std::string name)
 	if (is_installed(name))
 		return errInfo(std::string("E:Already installed"));
 
-	std::vector<source*>::const_iterator p, pEnd = sourceList.cend();
-	package *pak = NULL;
-	for (p = sourceList.cbegin(); p != pEnd; p++)
-	{
-		pak = (*p)->find_package(name);
-		if (pak != NULL)
-			break;
-	}
+	package *pak = find_package(name);
 	if (pak == NULL)
 		return errInfo(std::string("E:Package not found"));
 
@@ -201,6 +234,62 @@ errInfo uninstall(std::string name)
 	if (!is_installed(name))
 		return errInfo(std::string("E:Not installed"));
 	fs::path pakPath = dataPath / name;
+
+	std::ifstream depIn;
+	std::string line;
+	if (fs::exists(pakPath / FILENAME_BEDEP))
+	{
+		infoStream << "W:This package is depended by:" << std::endl;
+		depIn.open((pakPath / FILENAME_BEDEP).string());
+		while (!depIn.eof())
+		{
+			std::getline(depIn, line);
+			infoStream << "\t" << line << std::endl;
+		}
+		return errInfo("E:This package is depended by other package");
+	}
+
+	{
+		if (!fs::exists(pakPath / FILENAME_DEP))
+			return errInfo("E:Dependence info not found");
+		depIn.open((pakPath / FILENAME_DEP).string());
+		std::list<std::string> bedepTmp;
+		std::string bedepFile;
+		std::fstream bedepFS;
+		while (!depIn.eof())
+		{
+			std::getline(depIn, bedepFile);
+			bedepFile = (dataPath / bedepFile / FILENAME_BEDEP).string();
+			bedepFS.open(bedepFile, std::ios::in);
+			while (!bedepFS.eof())
+			{
+				std::getline(bedepFS, line);
+				if (line == name)
+					break;
+				bedepTmp.push_back(line);
+			}
+			while (!bedepFS.eof())
+			{
+				std::getline(bedepFS, line);
+				bedepTmp.push_back(line);
+			}
+			bedepFS.close();
+			if (bedepTmp.empty())
+				fs::remove(bedepFile);
+			else
+			{
+				bedepFS.open(bedepFile, std::ios::out);
+				while (!bedepTmp.empty())
+				{
+					bedepFS << bedepTmp.front() << std::endl;
+					bedepTmp.pop_front();
+				}
+				bedepFS.close();
+			}
+		}
+		depIn.close();
+	}
+
 	fs::path logPath = pakPath / "install.ini";
 	fs::path scriptPath =
 #ifdef WIN32
