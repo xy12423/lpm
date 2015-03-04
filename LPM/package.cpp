@@ -221,10 +221,11 @@ errInfo package::inst(bool upgrade)
 		if (upgrade)
 			fs::copy_file(dataPath / DIRNAME_UPGRADE / (name + ".inf"), pakPath / FILENAME_BEDEP);
 
-		fs::path scriptPath = pakPath / SCRIPT_INST;
+		fs::path scriptPath = pakPath / SCRIPT_INST, currentPath = fs::current_path();
 		if (exists(scriptPath))
 		{
 			infoStream << "I:Running installation script" << std::endl;
+			fs::current_path(localPath);
 			system(scriptPath.string().c_str());
 			infoStream << "I:Done" << std::endl;
 		}
@@ -234,10 +235,12 @@ errInfo package::inst(bool upgrade)
 			if (exists(scriptPath))
 			{
 				infoStream << "I:Running initialization script" << std::endl;
+				fs::current_path(localPath);
 				system(scriptPath.string().c_str());
 				infoStream << "I:Done" << std::endl;
 			}
 		}
+		fs::current_path(currentPath);
 	}
 	catch (fs::filesystem_error err)
 	{
@@ -304,7 +307,7 @@ bool package::check()
 
 bool is_installed(std::string name)
 {
-	return fs::exists(dataPath / name);
+	return fs::exists(dataPath / name) && fs::is_directory(dataPath / name);
 }
 
 package* find_package(const std::string &name)
@@ -402,22 +405,27 @@ errInfo uninstall(std::string name, bool upgrade)
 		depIn.close();
 	}
 
-	fs::path scriptPath;
+	fs::path scriptPath, currentPath = fs::current_path();
 	if (!upgrade)
 	{
 		scriptPath = pakPath / SCRIPT_PURGE;
 		if (exists(scriptPath))
 		{
 			infoStream << "I:Running purge script" << std::endl;
+			fs::current_path(localPath);
 			system(scriptPath.string().c_str());
+			infoStream << "I:Done" << std::endl;
 		}
 	}
 	scriptPath = pakPath / SCRIPT_REMOVE;
 	if (exists(scriptPath))
 	{
 		infoStream << "I:Running removal script" << std::endl;
+		fs::current_path(localPath);
 		system(scriptPath.string().c_str());
+		infoStream << "I:Done" << std::endl;
 	}
+	fs::current_path(currentPath);
 
 	fs::path logPath = pakPath / "install.ini";
 	std::ifstream logIn(logPath.string());
