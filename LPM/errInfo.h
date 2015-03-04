@@ -6,7 +6,7 @@
 struct errInfo
 {
 	errInfo(){ err = false; }
-	errInfo(std::string &_info){ err = true; info = _info; }
+	errInfo(std::string _info){ err = true; info = _info; }
 	errInfo(const char *_info){ err = true; info = _info; }
 	bool err;
 	std::string info;

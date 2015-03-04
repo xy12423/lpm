@@ -27,4 +27,10 @@ const std::string SCRIPT_PURGE = "purge.sh";
 const std::string SCRIPT_REMOVE = "remove.sh";
 #endif
 
+typedef unsigned short int USHORT;
+typedef unsigned int UINT;
+typedef unsigned long ULONG;
+typedef unsigned long long ULONGLONG;
+typedef unsigned char BYTE;
+
 #endif

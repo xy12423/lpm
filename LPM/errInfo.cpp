@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "errinfo.h"
+#include "errInfo.h"
 
 char* str2cstr(std::string arg)
 {

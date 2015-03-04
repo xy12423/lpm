@@ -231,7 +231,9 @@ errInfo package::inst(bool upgrade)
 		{
 			infoStream << "I:Running installation script" << std::endl;
 			fs::current_path(localPath);
-			system(scriptPath.string().c_str());
+			int ret = system(scriptPath.string().c_str());
+			if (ret != 0)
+				throw(std::string("Installation script exited with code") + num2str(ret));
 			infoStream << "I:Done" << std::endl;
 		}
 		if (!upgrade)
@@ -241,7 +243,9 @@ errInfo package::inst(bool upgrade)
 			{
 				infoStream << "I:Running initialization script" << std::endl;
 				fs::current_path(localPath);
-				system(scriptPath.string().c_str());
+				int ret = system(scriptPath.string().c_str());
+				if (ret != 0)
+					throw(std::string("Initialization script exited with code") + num2str(ret));
 				infoStream << "I:Done" << std::endl;
 			}
 		}
@@ -285,6 +289,25 @@ errInfo package::inst(bool upgrade)
 			fs::remove_all(tmpPath);
 		return errInfo(std::string(err));
 	}
+	catch (std::string err)
+	{
+		if (flag3)
+		{
+			std::ifstream infIn((pakPath / FILENAME_INST).string());
+			std::string tmpPath;
+			while (!infIn.eof())
+			{
+				std::getline(infIn, tmpPath);
+				if (!tmpPath.empty())
+					fs::remove(tmpPath);
+			}
+		}
+		if (flag2)
+			fs::remove_all(pakPath);
+		if (flag1)
+			fs::remove_all(tmpPath);
+		return errInfo(err);
+	}
 	catch (...)
 	{
 		throw;
@@ -323,6 +346,11 @@ errInfo package::upgrade()
 bool package::check()
 {
 	depListTp::const_iterator pDep, pDepEnd;
+	pDep = confList.begin();
+	pDepEnd = confList.end();
+	for (; pDep != pDepEnd; pDep++)
+		if (is_installed(*pDep))
+			return false;
 	pDep = depList.begin();
 	pDepEnd = depList.end();
 	for (; pDep != pDepEnd; pDep++)
@@ -444,7 +472,9 @@ errInfo uninstall(std::string name, bool upgrade)
 		{
 			infoStream << "I:Running purge script" << std::endl;
 			fs::current_path(localPath);
-			system(scriptPath.string().c_str());
+			int ret = system(scriptPath.string().c_str());
+			if (ret != 0)
+				throw(std::string("Purge script exited with code") + num2str(ret));
 			infoStream << "I:Done" << std::endl;
 		}
 	}
@@ -453,7 +483,9 @@ errInfo uninstall(std::string name, bool upgrade)
 	{
 		infoStream << "I:Running removal script" << std::endl;
 		fs::current_path(localPath);
-		system(scriptPath.string().c_str());
+		int ret = system(scriptPath.string().c_str());
+		if (ret != 0)
+			throw(std::string("Removal script exited with code") + num2str(ret));
 		infoStream << "I:Done" << std::endl;
 	}
 	fs::current_path(currentPath);

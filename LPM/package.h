@@ -6,12 +6,6 @@
 #include "errInfo.h"
 #include "globalVar.h"
 
-typedef unsigned short int USHORT;
-typedef unsigned int UINT;
-typedef unsigned long ULONG;
-typedef unsigned long long ULONGLONG;
-typedef unsigned char BYTE;
-
 struct pakExtInfo
 {
 	pakExtInfo(){};

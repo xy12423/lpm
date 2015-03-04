@@ -492,7 +492,7 @@ int main(int argc, char* argv[])
 					return 0;
 				}
 				string name(argv[2]);
-				vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
+				vector<source*>::iterator p = sourceList.begin(), pEnd = sourceList.end();
 				bool found = false;
 				for (; p != pEnd; p++)
 				{
