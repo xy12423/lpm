@@ -283,6 +283,7 @@ void printUsage()
 	cout << "\tlpm update" << endl;
 	cout << "\tlpm install <package name>" << endl;
 	cout << "\tlpm remove <package name>" << endl;
+	cout << "\tlpm dataclear <package name>" << endl;
 	cout << "\tlpm upgrade [package name]" << endl;
 	cout << "\tlpm info <package name>" << endl;
 	cout << "\tlpm check <package name>" << endl;
@@ -367,6 +368,33 @@ int main(int argc, char* argv[])
 						cout << err.info << endl;
 						return 0;
 					}
+				}
+			}
+			else if (cmd == "dataclear")
+			{
+				if (argc < 3)
+				{
+					printUsage();
+					return 0;
+				}
+				string name = std::string(argv[2]);
+				if (!is_installed(name))
+				{
+					cout << "E:Package not installed" << endl;
+					return 0;
+				}
+				path scriptPath = dataPath / name / SCRIPT_PURGE;
+				if (exists(scriptPath))
+				{
+					path currentPath = current_path();
+					infoStream << "I:Running purge script" << std::endl;
+					current_path(localPath);
+					int ret = system(scriptPath.string().c_str());
+					if (ret != 0)
+						cout << "E:Installation script exited with code" << num2str(ret) << endl;
+					else
+						infoStream << "I:Done" << std::endl;
+					current_path(currentPath);
 				}
 			}
 			else if (cmd == "info")

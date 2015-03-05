@@ -174,7 +174,7 @@ errInfo package::inst(bool upgrade)
 			for (fs::directory_iterator p(tmpPath / DIRNAME_INFO), pEnd; p != pEnd; p++)
 			{
 				if (fs::is_regular_file(p->path()))
-					fs::copy_file(p->path(), pakPath);
+					fs::copy_file(p->path(), pakPath / p->path().filename());
 				else
 					throw("E:Illegal package:dir in $info");
 			}
@@ -220,7 +220,7 @@ errInfo package::inst(bool upgrade)
 			depOut << *pDep << std::endl;
 		depOut.close();
 		fs::path backupPath = dataPath / DIRNAME_UPGRADE / (name + ".inf");
-		if (upgrade && exists(backupPath))
+		if (exists(backupPath))
 		{
 			fs::copy_file(backupPath, pakPath / FILENAME_BEDEP);
 			fs::remove(backupPath);
@@ -233,7 +233,7 @@ errInfo package::inst(bool upgrade)
 			fs::current_path(localPath);
 			int ret = system(scriptPath.string().c_str());
 			if (ret != 0)
-				throw(std::string("Installation script exited with code") + num2str(ret));
+				throw(std::string("E:Installation script exited with code") + num2str(ret));
 			infoStream << "I:Done" << std::endl;
 		}
 		if (!upgrade)
@@ -245,7 +245,7 @@ errInfo package::inst(bool upgrade)
 				fs::current_path(localPath);
 				int ret = system(scriptPath.string().c_str());
 				if (ret != 0)
-					throw(std::string("Initialization script exited with code") + num2str(ret));
+					throw(std::string("E:Initialization script exited with code") + num2str(ret));
 				infoStream << "I:Done" << std::endl;
 			}
 		}
@@ -319,7 +319,7 @@ errInfo package::inst(bool upgrade)
 errInfo package::upgrade()
 {
 	if (!is_installed(name))
-		return errInfo("E:Not installed");
+		return errInfo("E:Package not installed");
 
 	std::string line;
 	std::ifstream infoIn((dataPath / name / FILENAME_INFO).string());
@@ -380,7 +380,7 @@ package* find_package(const std::string &name)
 errInfo install(std::string name)
 {
 	if (is_installed(name))
-		return errInfo(std::string("E:Already installed"));
+		return errInfo(std::string("E:Package already installed"));
 
 	infoStream << "I:Searching package..." << std::endl;
 	package *pak = find_package(name);
@@ -474,7 +474,7 @@ errInfo uninstall(std::string name, bool upgrade)
 			fs::current_path(localPath);
 			int ret = system(scriptPath.string().c_str());
 			if (ret != 0)
-				throw(std::string("Purge script exited with code") + num2str(ret));
+				throw(std::string("E:Purge script exited with code") + num2str(ret));
 			infoStream << "I:Done" << std::endl;
 		}
 	}
@@ -485,7 +485,7 @@ errInfo uninstall(std::string name, bool upgrade)
 		fs::current_path(localPath);
 		int ret = system(scriptPath.string().c_str());
 		if (ret != 0)
-			throw(std::string("Removal script exited with code") + num2str(ret));
+			throw(std::string("E:Removal script exited with code") + num2str(ret));
 		infoStream << "I:Done" << std::endl;
 	}
 	fs::current_path(currentPath);

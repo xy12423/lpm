@@ -17,13 +17,13 @@ const std::string FILENAME_DEP = "dep.inf";
 #ifdef WIN32
 const std::string SCRIPT_INST = "inst.bat";
 const std::string SCRIPT_INIT = "init.bat";
-const std::string SCRIPT_PURGE = "purge.bat";
+const std::string SCRIPT_PURGE = "clear.bat";
 const std::string SCRIPT_REMOVE = "remove.bat";
 #endif
 #ifdef __linux__
 const std::string SCRIPT_INST = "inst.sh";
 const std::string SCRIPT_INIT = "init.sh";
-const std::string SCRIPT_PURGE = "purge.sh";
+const std::string SCRIPT_PURGE = "clear.sh";
 const std::string SCRIPT_REMOVE = "remove.sh";
 #endif
 
