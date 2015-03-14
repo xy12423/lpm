@@ -27,6 +27,7 @@ struct version
 };
 
 typedef std::list<std::string> depListTp;
+typedef std::unordered_set<std::string> depMapTp;
 
 class package
 {
@@ -34,13 +35,14 @@ public:
 	package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo);
 	std::string getName(){ return name; };
 	version getVer(){ return ver; };
-	errInfo inst(bool upgrade = false);
 	errInfo upgrade();
 	bool check();
 
 	friend void writeSource();
 	friend void printInfo(package *pkg);
+	friend errInfo install(std::string name);
 private:
+	errInfo inst(bool upgrade = false);
 	std::string source;
 	std::string name;
 	version ver;

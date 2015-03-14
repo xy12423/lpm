@@ -107,37 +107,6 @@ package::package(std::string _source, std::string &_name, version _ver, depListT
 
 errInfo package::inst(bool upgrade)
 {
-	depListTp::const_iterator pDep, pDepEnd;
-	pDep = confList.begin();
-	pDepEnd = confList.end();
-	std::list<std::string> confNList;
-	infoStream << "I:Checking requirement..." << std::endl;
-	for (; pDep != pDepEnd; pDep++)
-		if (is_installed(*pDep))
-			confNList.push_back(*pDep);
-	if (!confNList.empty())
-	{
-		infoStream << "W:Conflict Package" << std::endl;
-		while (!confNList.empty())
-		{
-			infoStream << "\t" << confNList.front() << std::endl;
-			confNList.pop_front();
-		}
-		return errInfo("E:Confliction found");
-	}
-	pDep = depList.begin();
-	pDepEnd = depList.end();
-	for (; pDep != pDepEnd; pDep++)
-	{
-		if (!is_installed(*pDep))
-		{
-			infoStream << "I:Installing Dependent package " << *pDep << std::endl;
-			errInfo err = install(*pDep);
-			if (err.err)
-				return err;
-		}
-	}
-
 	CURL *handle = curl_easy_init();
 	char *addCStr = str2cstr(source + "/" + name + ".lpm");
 	dataBuf buf;
@@ -205,8 +174,7 @@ errInfo package::inst(bool upgrade)
 		infOut << std::endl;
 		infOut.close();
 
-		pDep = depList.begin();
-		pDepEnd = depList.end();
+		depListTp::const_iterator pDep = depList.begin(), pDepEnd = depList.end();
 		std::ofstream depOut;
 		for (; pDep != pDepEnd; pDep++)
 		{
@@ -387,8 +355,82 @@ errInfo install(std::string name)
 	if (pak == NULL)
 		return errInfo(std::string("E:Package not found"));
 	infoStream << "I:Package found:" << name << std::endl;
-	
-	return pak->inst();
+
+	depListTp::const_iterator pDep, pDepEnd;
+	pDep = pak->confList.begin();
+	pDepEnd = pak->confList.end();
+	depListTp pakList;
+	infoStream << "I:Checking requirement..." << std::endl;
+	for (; pDep != pDepEnd; pDep++)
+		if (is_installed(*pDep))
+			pakList.push_back(*pDep);
+	if (!pakList.empty())
+	{
+		infoStream << "W:Conflict Package" << std::endl;
+		while (!pakList.empty())
+		{
+			infoStream << "\t" << pakList.front() << std::endl;
+			pakList.pop_front();
+		}
+		return errInfo("E:Confliction found");
+	}
+
+	std::list<package *> depList;
+	depListTp pakQue;
+	depMapTp pakHash;
+	depList.push_front(pak);
+	pakHash.emplace(name);
+
+	pDep = pak->depList.begin();
+	pDepEnd = pak->depList.end();
+	for (; pDep != pDepEnd; pDep++)
+	{
+		if (!is_installed(*pDep))
+		{
+			package *depPak = find_package(*pDep);
+			if (depPak == NULL)
+				return errInfo(std::string("E:Package not found:") + *pDep);
+			depList.push_front(depPak);
+			pakQue.push_back(*pDep);
+			pakHash.emplace(*pDep);
+		}
+	}
+
+	while (!pakQue.empty())
+	{
+		package *depPak = find_package(pakQue.front());
+		pakQue.pop_front();
+		if (depPak == NULL)
+			return errInfo(std::string("E:Package not found:") + pakQue.front());
+		pDep = depPak->depList.begin();
+		pDepEnd = depPak->depList.end();
+		for (; pDep != pDepEnd; pDep++)
+		{
+			if (is_installed(*pDep) == false && pakHash.find(*pDep) != pakHash.end())
+			{
+				depList.push_front(depPak);
+				pakQue.push_back(*pDep);
+				pakHash.emplace(*pDep);
+			}
+		}
+	}
+
+	std::list<package *>::iterator depItr, depEnd;
+	infoStream << "I:Will install these packages:" << std::endl;
+	depItr = depList.begin();
+	depEnd = depList.end();
+	for (; depItr != depEnd; depItr++)
+		infoStream << "\t" << (*depItr)->name << std::endl;
+	depItr = depList.begin();
+	for (; depItr != depEnd; depItr++)
+	{
+		infoStream << "I:Installing package " << (*depItr)->name << std::endl;
+		errInfo err = (*depItr)->inst();
+		if (err.err)
+			return err;
+	}
+
+	return errInfo();
 }
 
 errInfo uninstall(std::string name, bool upgrade)
