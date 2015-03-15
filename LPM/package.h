@@ -42,7 +42,8 @@ public:
 	friend void printInfo(package *pkg);
 	friend errInfo install(std::string name);
 private:
-	errInfo inst(bool upgrade = false);
+	errInfo inst();
+	int instScript(bool upgrade = false);
 	std::string source;
 	std::string name;
 	version ver;

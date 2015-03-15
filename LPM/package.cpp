@@ -105,7 +105,7 @@ package::package(std::string _source, std::string &_name, version _ver, depListT
 	extInfo = _extInfo;
 }
 
-errInfo package::inst(bool upgrade)
+errInfo package::inst()
 {
 	CURL *handle = curl_easy_init();
 	char *addCStr = str2cstr(source + "/" + name + ".lpm");
@@ -193,31 +193,6 @@ errInfo package::inst(bool upgrade)
 			fs::copy_file(backupPath, pakPath / FILENAME_BEDEP);
 			fs::remove(backupPath);
 		}
-
-		fs::path scriptPath = pakPath / SCRIPT_INST, currentPath = fs::current_path();
-		if (exists(scriptPath))
-		{
-			infoStream << "I:Running installation script" << std::endl;
-			fs::current_path(localPath);
-			int ret = system(scriptPath.string().c_str());
-			if (ret != 0)
-				throw(std::string("E:Installation script exited with code") + num2str(ret));
-			infoStream << "I:Done" << std::endl;
-		}
-		if (!upgrade)
-		{
-			scriptPath = pakPath / SCRIPT_INIT;
-			if (exists(scriptPath))
-			{
-				infoStream << "I:Running initialization script" << std::endl;
-				fs::current_path(localPath);
-				int ret = system(scriptPath.string().c_str());
-				if (ret != 0)
-					throw(std::string("E:Initialization script exited with code") + num2str(ret));
-				infoStream << "I:Done" << std::endl;
-			}
-		}
-		fs::current_path(currentPath);
 	}
 	catch (fs::filesystem_error err)
 	{
@@ -284,6 +259,38 @@ errInfo package::inst(bool upgrade)
 	return errInfo();
 }
 
+int package::instScript(bool upgrade)
+{
+	fs::path pakPath = dataPath / name, scriptPath = pakPath / SCRIPT_INST, currentPath = fs::current_path();
+	if (exists(scriptPath))
+	{
+		infoStream << "I:Running installation script for package " << name << std::endl;
+		scriptPath = fs::system_complete(scriptPath);
+		fs::current_path(localPath);
+		int ret = system(("\"" + scriptPath.string() + "\"").c_str());
+		fs::current_path(currentPath);
+		if (ret != EXIT_SUCCESS)
+			return ret;
+		infoStream << "I:Done" << std::endl;
+	}
+	if (!upgrade)
+	{
+		scriptPath = pakPath / SCRIPT_INIT;
+		if (exists(scriptPath))
+		{
+			infoStream << "I:Running initialization script for package " << name << std::endl;
+			scriptPath = fs::system_complete(scriptPath);
+			fs::current_path(localPath);
+			int ret = system(scriptPath.string().c_str());
+			fs::current_path(currentPath);
+			if (ret != EXIT_SUCCESS)
+				return ret;
+			infoStream << "I:Done" << std::endl;
+		}
+	}
+	return 0;
+}
+
 errInfo package::upgrade()
 {
 	if (!is_installed(name))
@@ -305,9 +312,12 @@ errInfo package::upgrade()
 	if (err.err)
 		return err;
 	infoStream << "I:Reinstalling..." << std::endl;
-	err = inst(true);
+	err = install(name);
 	if (err.err)
 		return err;
+	int ret = instScript(true);
+	if (ret != EXIT_SUCCESS)
+		return errInfo(std::string("E:Script exited with code ") + num2str(ret));
 	return errInfo();
 }
 
@@ -428,6 +438,28 @@ errInfo install(std::string name)
 		errInfo err = (*depItr)->inst();
 		if (err.err)
 			return err;
+	}
+	depItr = depList.begin();
+	for (; depItr != depEnd; depItr++)
+	{
+		int ret = (*depItr)->instScript();
+		if (ret != EXIT_SUCCESS)
+		{
+			infoStream << "W:Script exited with code " << ret << ",rolling back" << std::endl;
+			depEnd = depList.begin();
+			for (; depItr != depEnd; depItr--)
+			{
+				infoStream << "I:Removing package " << (*depItr)->name << std::endl;
+				errInfo err = uninstall((*depItr)->name);
+				if (err.err)
+					return err;
+			}
+			infoStream << "I:Removing package " << (*depEnd)->name << std::endl;
+			errInfo err = uninstall((*depEnd)->name);
+			if (err.err)
+				return err;
+			return errInfo(std::string("E:Script exited with code ") + num2str(ret));
+		}
 	}
 
 	return errInfo();
