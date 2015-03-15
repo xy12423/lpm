@@ -448,7 +448,7 @@ errInfo install(std::string name)
 			infoStream << "W:Script exited with code " << ret << ", rolling back" << std::endl;
 			std::list<package *>::reverse_iterator rbItr, rbEnd = depList.rend();
 			rbItr = depList.rbegin();
-			for (; rbItr != rbEnd; depItr--)
+			for (; rbItr != rbEnd; rbItr--)
 			{
 				infoStream << "I:Removing package " << (*rbItr)->name << std::endl;
 				errInfo err = uninstall((*rbItr)->name);
