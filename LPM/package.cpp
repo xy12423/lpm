@@ -445,23 +445,21 @@ errInfo install(std::string name)
 		int ret = (*depItr)->instScript();
 		if (ret != EXIT_SUCCESS)
 		{
-			infoStream << "W:Script exited with code " << ret << ",rolling back" << std::endl;
-			depEnd = depList.begin();
-			for (; depItr != depEnd; depItr--)
+			infoStream << "W:Script exited with code " << ret << ", rolling back" << std::endl;
+			std::list<package *>::reverse_iterator rbItr, rbEnd = depList.rend();
+			rbItr = depList.rbegin();
+			for (; rbItr != rbEnd; depItr--)
 			{
-				infoStream << "I:Removing package " << (*depItr)->name << std::endl;
-				errInfo err = uninstall((*depItr)->name);
+				infoStream << "I:Removing package " << (*rbItr)->name << std::endl;
+				errInfo err = uninstall((*rbItr)->name);
 				if (err.err)
 					return err;
 			}
-			infoStream << "I:Removing package " << (*depEnd)->name << std::endl;
-			errInfo err = uninstall((*depEnd)->name);
-			if (err.err)
-				return err;
 			return errInfo(std::string("E:Script exited with code ") + num2str(ret));
 		}
 	}
 
+	infoStream << "I:Package(s) installed" << std::endl;
 	return errInfo();
 }
 
