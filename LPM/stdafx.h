@@ -18,6 +18,7 @@
 #include <curl/curl.h>
 #include <zlib.h>
 
+#ifdef _MSC_VER
 #ifdef _DEBUG
 #pragma comment (lib, "libcurld.lib")
 #pragma comment (lib, "libeay32d.lib")
@@ -32,6 +33,7 @@
 #pragma comment (lib, "ws2_32.lib")
 #pragma comment (lib, "winmm.lib")
 #pragma comment (lib, "wldap32.lib")
+#endif
 
 #if (!defined(WIN32)) && (defined(_WIN32) || defined(_WIN32_WINNT))
 #define WIN32

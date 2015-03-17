@@ -53,10 +53,10 @@
     <ClCompile Include="errInfo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="LPM.cpp">
+    <ClCompile Include="globalVar.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="globalVar.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

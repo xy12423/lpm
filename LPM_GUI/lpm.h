@@ -1,0 +1,1 @@
+#include "../LPM/stdafx.h"
