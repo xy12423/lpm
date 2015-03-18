@@ -5,25 +5,33 @@
 
 #include "errInfo.h"
 
+typedef std::vector<package*> pakListTp;
+
 class source
 {
 public:
 	source(std::string _add){ add = _add; if (add.back() == '/') add.pop_back(); };
 	std::string getAdd(){ return add; };
 	errInfo loadRemote();
-	void loadLocal(std::vector<package*> &_pkgList);
+	void loadLocal(pakListTp &_pkgList);
 	package* find_package(std::string name);
 	errInfo upgradeAll();
 
 	friend void writeSource();
+#ifdef _LPM_GUI
+	friend void getSrcNameList(wxArrayString &ret);
+	friend void getPakNameList(source *src, wxArrayString &ret);
+#else
 	friend void printAvailable(source *src, bool ignoreInstalled);
 	friend void printAvailableShort(source *src, bool ignoreInstalled);
+#endif
 private:
 	std::string add;
-	std::vector<package*> pkgList;
+	pakListTp pkgList;
 	std::unordered_map<std::string, int> pkgMap;
 };
 
-extern std::vector<source*> sourceList;
+typedef std::vector<source*> srcListTp;
+extern srcListTp sourceList;
 
 #endif

@@ -162,6 +162,7 @@
     <ClInclude Include="errInfo.h" />
     <ClInclude Include="globalVar.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="main_GUI.h" />
     <ClInclude Include="package.h" />
     <ClInclude Include="source.h" />
     <ClInclude Include="stdafx.h" />

@@ -2,7 +2,7 @@
 #include "package.h"
 #include "source.h"
 
-std::vector<source*> sourceList;
+srcListTp sourceList;
 
 const int LINE_FNAME = 0;
 const int LINE_NAME = 1;
@@ -26,7 +26,7 @@ size_t write_data_src(void *buffer, size_t size, size_t nmemb, void *userp)
 	return sizeAll;
 }
 
-void source::loadLocal(std::vector<package*> &_pkgList)
+void source::loadLocal(pakListTp &_pkgList)
 {
 	pkgMap.clear(); 
 	std::for_each(pkgList.begin(), pkgList.end(), [this](package* arg){
@@ -58,7 +58,7 @@ errInfo source::loadRemote()
 	curl_easy_cleanup(handle);
 	infoStream << "I:Data downloaded" << std::endl;
 
-	std::vector<package*> newPkgList;
+	pakListTp newPkgList;
 
 	std::string::const_iterator p, pEnd = buf.cend();
 	std::string::const_iterator p2, pEnd2;
@@ -142,7 +142,7 @@ package* source::find_package(std::string name)
 
 errInfo source::upgradeAll()
 {
-	std::vector<package*>::const_iterator p = pkgList.cbegin(), pEnd = pkgList.cend();
+	pakListTp::const_iterator p = pkgList.cbegin(), pEnd = pkgList.cend();
 	for (; p != pEnd; p++)
 	{
 		if (is_installed((*p)->getName()))

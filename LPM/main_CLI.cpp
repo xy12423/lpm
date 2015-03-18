@@ -63,7 +63,7 @@ void printAvailable(source *src, bool ignoreInstalled = true)
 {
 	if (src == NULL)
 		return;
-	std::vector<package*>::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
+	pakListTp::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
 	for (; p != pEnd; p++)
 		printInfo(*p);
 }
@@ -71,7 +71,7 @@ void printAvailableShort(source *src, bool ignoreInstalled = true)
 {
 	if (src == NULL)
 		return;
-	std::vector<package*>::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
+	pakListTp::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
 	for (; p != pEnd; p++)
 		std::cout << (*p)->getName() << std::endl;
 }
@@ -274,13 +274,13 @@ int main(int argc, char* argv[])
 			}
 			else if (cmd == "available")
 			{
-				std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
+				srcListTp::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
 				for (; pSrc != pSrcEnd; pSrc++)
 					printAvailable(*pSrc);
 			}
 			else if (cmd == "available-short")
 			{
-				std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
+				srcListTp::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
 				for (; pSrc != pSrcEnd; pSrc++)
 					printAvailableShort(*pSrc);
 			}

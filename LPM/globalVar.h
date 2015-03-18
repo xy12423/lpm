@@ -4,7 +4,11 @@
 #define _H_VAR
 
 extern boost::filesystem::path localPath, dataPath;
+#ifdef _LPM_GUI
+extern std::stringstream infoStream;
+#else
 extern std::ostream &infoStream;
+#endif
 
 const std::string DIRNAME_TEMP = "$temp";
 const std::string DIRNAME_NATIVE = "$native";

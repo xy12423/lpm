@@ -71,7 +71,7 @@ bool readSource()
 	std::getline(finCfg, eatCRLF);
 	sourceList.clear();
 	int i, j, k;
-	std::vector<package*> tmpPkgList;
+	pakListTp tmpPkgList;
 	for (i = 0; i < sourceCount; i++)
 	{
 		std::getline(finCfg, tmpPath);
@@ -121,8 +121,8 @@ void writeSource()
 {
 	std::ofstream foutCfg(".source");
 	foutCfg << sourceList.size() << std::endl;
-	std::vector<source*>::const_iterator p, pEnd = sourceList.cend();
-	std::vector<package*>::const_iterator pP, pPEnd;
+	srcListTp::const_iterator p, pEnd = sourceList.cend();
+	pakListTp::const_iterator pP, pPEnd;
 	depListTp::const_iterator pD, pDEnd;
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
@@ -151,7 +151,7 @@ void writeSource()
 
 errInfo update()
 {
-	std::vector<source*>::const_iterator p, pEnd = sourceList.cend();
+	srcListTp::const_iterator p, pEnd = sourceList.cend();
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
 		infoStream << "I:Updating source " << (*p)->getAdd() << std::endl;
@@ -173,7 +173,7 @@ errInfo upgrade(std::string name)
 
 errInfo upgrade()
 {
-	std::vector<source*>::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
+	srcListTp::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
 	errInfo err;
 	for (; pSrc != pSrcEnd; pSrc++)
 	{

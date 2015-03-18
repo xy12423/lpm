@@ -39,8 +39,12 @@ public:
 	bool check();
 
 	friend void writeSource();
-	friend void printInfo(package *pkg);
 	friend errInfo install(std::string name);
+#ifdef _LPM_GUI
+	
+#else
+	friend void printInfo(package *pkg);
+#endif
 private:
 	errInfo inst();
 	int instScript(bool upgrade = false);

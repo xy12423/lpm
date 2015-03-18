@@ -344,7 +344,7 @@ bool is_installed(std::string name)
 
 package* find_package(const std::string &name)
 {
-	std::vector<source*>::const_iterator p, pEnd = sourceList.cend();
+	srcListTp::const_iterator p, pEnd = sourceList.cend();
 	package *pak;
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
