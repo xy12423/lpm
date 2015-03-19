@@ -5,7 +5,7 @@
 
 extern boost::filesystem::path localPath, dataPath;
 #ifdef _LPM_GUI
-extern std::ostringstream infoStream;
+extern std::stringstream infoStream;
 #else
 extern std::ostream &infoStream;
 #endif

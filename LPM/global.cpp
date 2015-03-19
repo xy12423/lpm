@@ -3,7 +3,7 @@
 
 boost::filesystem::path localPath, dataPath;
 #ifdef _LPM_GUI
-std::ostringstream infoStream;
+std::stringstream infoStream;
 #else
 std::ostream &infoStream = std::cout;
 std::ostream& myEndl(std::ostream& os)

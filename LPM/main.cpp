@@ -154,7 +154,7 @@ errInfo update()
 	srcListTp::const_iterator p, pEnd = sourceList.cend();
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
-		infoStream << "I:Updating source " << (*p)->getAdd() << std::endl;
+		infoStream << "I:Updating source " << (*p)->getAdd() << myEndl;
 		errInfo err = (*p)->loadRemote();
 		if (err.err)
 			return err;

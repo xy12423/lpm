@@ -12,8 +12,23 @@ EVT_BUTTON(ID_BUTTONDELSRC, mainFrame::buttonDelSrc_Click)
 EVT_BUTTON(ID_BUTTONUPDSRC, mainFrame::buttonUpdSrc_Click)
 wxEND_EVENT_TABLE()
 
-std::stringstream outstream;
 pakListTp pakList;
+wxTextCtrl *infoOut;
+
+std::ostream& myEndl(std::ostream& os)
+{
+	os << std::flush;
+	std::stringstream *ss = static_cast<std::stringstream*>(&os);
+	std::string str = ss->str();
+	while (!ss->eof())
+	{
+		std::getline(*ss, str);
+		str.push_back('\n');
+		infoOut->AppendText(str);
+	}
+	ss->clear();
+	return os;
+}
 
 void getSrcNameList(wxArrayString &ret)
 {
@@ -70,8 +85,6 @@ mainFrame::mainFrame(const wxString& title)
 		wxSize(372, 417)
 		);
 
-	std::cout.rdbuf(outstream.rdbuf());
-
 	listPak = new wxCheckListBox(staticPak, ID_LISTPAK,
 		wxPoint(6, 20),
 		wxSize(358, 260)
@@ -108,6 +121,7 @@ mainFrame::mainFrame(const wxString& title)
 		wxSize(586, 128),
 		wxTE_MULTILINE | wxTE_READONLY
 		);
+	infoOut = textInfo;
 }
 
 void mainFrame::listSrc_ItemCheck(wxCommandEvent& event)
@@ -148,15 +162,8 @@ void mainFrame::buttonDelSrc_Click(wxCommandEvent& event)
 
 void mainFrame::buttonUpdSrc_Click(wxCommandEvent& event)
 {
+	textInfo->Clear();
 	update();
-	std::string buf;
-	while (!outstream.eof())
-	{
-		std::getline(outstream, buf);
-		buf.push_back('\n');
-		textInfo->AppendText(buf);
-	}
-	outstream.clear();
 }
 
 IMPLEMENT_APP(MyApp)

@@ -187,13 +187,13 @@ int main(int argc, char* argv[])
 				if (exists(scriptPath))
 				{
 					path currentPath = current_path();
-					infoStream << "I:Running purge script" << std::endl;
+					cout << "I:Running purge script" << endl;
 					current_path(localPath);
 					int ret = system(scriptPath.string().c_str());
 					if (ret != 0)
 						cout << "E:Installation script exited with code" << num2str(ret) << endl;
 					else
-						infoStream << "I:Done" << std::endl;
+						cout << "I:Done" << endl;
 					current_path(currentPath);
 				}
 			}
