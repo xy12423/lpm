@@ -33,13 +33,13 @@
     <ClInclude Include="errInfo.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="globalVar.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="main.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="main_GUI.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="global.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -59,9 +59,6 @@
     <ClCompile Include="errInfo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="globalVar.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -69,6 +66,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="main_CLI.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="global.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

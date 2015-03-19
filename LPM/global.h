@@ -1,14 +1,15 @@
 #pragma once
 
-#ifndef _H_VAR
-#define _H_VAR
+#ifndef _H_GLOBAL
+#define _H_GLOBAL
 
 extern boost::filesystem::path localPath, dataPath;
 #ifdef _LPM_GUI
-extern std::stringstream infoStream;
+extern std::ostringstream infoStream;
 #else
 extern std::ostream &infoStream;
 #endif
+std::ostream& myEndl(std::ostream& os);
 
 const std::string DIRNAME_TEMP = "$temp";
 const std::string DIRNAME_NATIVE = "$native";

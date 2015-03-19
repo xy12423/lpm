@@ -160,7 +160,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="errInfo.h" />
-    <ClInclude Include="globalVar.h" />
+    <ClInclude Include="global.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="main_GUI.h" />
     <ClInclude Include="package.h" />
@@ -170,7 +170,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="errInfo.cpp" />
-    <ClCompile Include="globalVar.cpp" />
+    <ClCompile Include="global.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="main_CLI.cpp" />
     <ClCompile Include="main_GUI.cpp" />

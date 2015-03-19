@@ -20,7 +20,7 @@ public:
 	friend void writeSource();
 #ifdef _LPM_GUI
 	friend void getSrcNameList(wxArrayString &ret);
-	friend void getPakNameList(source *src, wxArrayString &ret);
+	friend void getPakList(source *src, pakListTp &ret);
 #else
 	friend void printAvailable(source *src, bool ignoreInstalled);
 	friend void printAvailableShort(source *src, bool ignoreInstalled);

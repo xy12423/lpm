@@ -4,7 +4,7 @@
 #define _H_PKG
 
 #include "errInfo.h"
-#include "globalVar.h"
+#include "global.h"
 
 struct pakExtInfo
 {
@@ -35,6 +35,8 @@ public:
 	package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo);
 	std::string getName(){ return name; };
 	version getVer(){ return ver; };
+	errInfo instFull();
+	bool needUpgrade();
 	errInfo upgrade();
 	bool check();
 

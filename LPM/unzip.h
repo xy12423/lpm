@@ -4,7 +4,7 @@
 #define _H_ZIP
 
 #include "errInfo.h"
-#include "globalVar.h"
+#include "global.h"
 
 typedef std::vector<BYTE> dataBuf;
 errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd, boost::filesystem::path path);

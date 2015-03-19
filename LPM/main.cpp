@@ -192,6 +192,23 @@ bool check(std::string name)
 	return pkg->check();
 }
 
+int getState(std::string name)
+{
+	int state = PAK_STATE_DEFAULT;
+	if (is_installed(name))
+		state |= PAK_STATE_INSTALLED;
+	else
+		state |= PAK_STATE_NOT_INSTALLED;
+	package *pak = find_package(name);
+	if (pak != NULL)
+	{
+		state |= PAK_STATE_IN_SOURCE;
+		if (pak->needUpgrade())
+			state |= PAK_STATE_NEED_UPGRADE;
+	}
+	return state;
+}
+
 void init()
 {
 	localPath = "./local";

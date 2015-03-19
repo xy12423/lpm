@@ -291,6 +291,123 @@ int package::instScript(bool upgrade)
 	return 0;
 }
 
+errInfo package::instFull()
+{
+	depListTp::const_iterator pDep, pDepEnd;
+	pDep = confList.begin();
+	pDepEnd = confList.end();
+	depListTp pakList;
+	infoStream << "I:Checking requirement..." << std::endl;
+	for (; pDep != pDepEnd; pDep++)
+		if (is_installed(*pDep))
+			pakList.push_back(*pDep);
+	if (!pakList.empty())
+	{
+		infoStream << "W:Conflict Package" << std::endl;
+		while (!pakList.empty())
+		{
+			infoStream << "\t" << pakList.front() << std::endl;
+			pakList.pop_front();
+		}
+		return errInfo("E:Confliction found");
+	}
+
+	std::list<package *> depPakList;
+	depListTp pakQue;
+	depMapTp pakHash;
+	depPakList.push_front(this);
+	pakHash.emplace(name);
+
+	pDep = depList.begin();
+	pDepEnd = depList.end();
+	for (; pDep != pDepEnd; pDep++)
+	{
+		if (!is_installed(*pDep))
+		{
+			package *depPak = find_package(*pDep);
+			if (depPak == NULL)
+				return errInfo(std::string("E:Package not found:") + *pDep);
+			depPakList.push_front(depPak);
+			pakQue.push_back(*pDep);
+			pakHash.emplace(*pDep);
+		}
+	}
+
+	while (!pakQue.empty())
+	{
+		package *depPak = find_package(pakQue.front());
+		pakQue.pop_front();
+		if (depPak == NULL)
+			return errInfo(std::string("E:Package not found:") + pakQue.front());
+		pDep = depPak->depList.begin();
+		pDepEnd = depPak->depList.end();
+		for (; pDep != pDepEnd; pDep++)
+		{
+			if (is_installed(*pDep) == false && pakHash.find(*pDep) != pakHash.end())
+			{
+				depPakList.push_front(depPak);
+				pakQue.push_back(*pDep);
+				pakHash.emplace(*pDep);
+			}
+		}
+	}
+
+	std::list<package *>::iterator depItr, depEnd;
+	infoStream << "I:Will install these packages:" << std::endl;
+	depItr = depPakList.begin();
+	depEnd = depPakList.end();
+	for (; depItr != depEnd; depItr++)
+		infoStream << "\t" << (*depItr)->name << std::endl;
+	depItr = depPakList.begin();
+	for (; depItr != depEnd; depItr++)
+	{
+		infoStream << "I:Installing package " << (*depItr)->name << std::endl;
+		errInfo err = (*depItr)->inst();
+		if (err.err)
+			return err;
+	}
+	depItr = depPakList.begin();
+	for (; depItr != depEnd; depItr++)
+	{
+		int ret = (*depItr)->instScript();
+		if (ret != EXIT_SUCCESS)
+		{
+			infoStream << "W:Script exited with code " << ret << ", rolling back" << std::endl;
+			std::list<package *>::reverse_iterator rbItr, rbEnd = depPakList.rend();
+			rbItr = depPakList.rbegin();
+			for (; rbItr != rbEnd; rbItr++)
+			{
+				infoStream << "I:Removing package " << (*rbItr)->name << std::endl;
+				errInfo err = uninstall((*rbItr)->name);
+				if (err.err)
+					return err;
+			}
+			return errInfo(std::string("E:Script exited with code ") + num2str(ret));
+		}
+	}
+
+	infoStream << "I:Package(s) installed" << std::endl;
+}
+
+bool package::needUpgrade()
+{
+	if (!is_installed(name))
+		return false;
+
+	std::string line;
+	std::ifstream infoIn((dataPath / name / FILENAME_INFO).string());
+	std::getline(infoIn, line);
+	std::getline(infoIn, line);
+	std::getline(infoIn, line);
+	std::getline(infoIn, line);
+	infoIn.close();
+	version oldver(line);
+	if (oldver >= ver)
+		return false;
+
+	return true;
+}
+
 errInfo package::upgrade()
 {
 	if (!is_installed(name))
@@ -365,102 +482,8 @@ errInfo install(std::string name)
 	if (pak == NULL)
 		return errInfo(std::string("E:Package not found"));
 	infoStream << "I:Package found:" << name << std::endl;
-
-	depListTp::const_iterator pDep, pDepEnd;
-	pDep = pak->confList.begin();
-	pDepEnd = pak->confList.end();
-	depListTp pakList;
-	infoStream << "I:Checking requirement..." << std::endl;
-	for (; pDep != pDepEnd; pDep++)
-		if (is_installed(*pDep))
-			pakList.push_back(*pDep);
-	if (!pakList.empty())
-	{
-		infoStream << "W:Conflict Package" << std::endl;
-		while (!pakList.empty())
-		{
-			infoStream << "\t" << pakList.front() << std::endl;
-			pakList.pop_front();
-		}
-		return errInfo("E:Confliction found");
-	}
-
-	std::list<package *> depList;
-	depListTp pakQue;
-	depMapTp pakHash;
-	depList.push_front(pak);
-	pakHash.emplace(name);
-
-	pDep = pak->depList.begin();
-	pDepEnd = pak->depList.end();
-	for (; pDep != pDepEnd; pDep++)
-	{
-		if (!is_installed(*pDep))
-		{
-			package *depPak = find_package(*pDep);
-			if (depPak == NULL)
-				return errInfo(std::string("E:Package not found:") + *pDep);
-			depList.push_front(depPak);
-			pakQue.push_back(*pDep);
-			pakHash.emplace(*pDep);
-		}
-	}
-
-	while (!pakQue.empty())
-	{
-		package *depPak = find_package(pakQue.front());
-		pakQue.pop_front();
-		if (depPak == NULL)
-			return errInfo(std::string("E:Package not found:") + pakQue.front());
-		pDep = depPak->depList.begin();
-		pDepEnd = depPak->depList.end();
-		for (; pDep != pDepEnd; pDep++)
-		{
-			if (is_installed(*pDep) == false && pakHash.find(*pDep) != pakHash.end())
-			{
-				depList.push_front(depPak);
-				pakQue.push_back(*pDep);
-				pakHash.emplace(*pDep);
-			}
-		}
-	}
-
-	std::list<package *>::iterator depItr, depEnd;
-	infoStream << "I:Will install these packages:" << std::endl;
-	depItr = depList.begin();
-	depEnd = depList.end();
-	for (; depItr != depEnd; depItr++)
-		infoStream << "\t" << (*depItr)->name << std::endl;
-	depItr = depList.begin();
-	for (; depItr != depEnd; depItr++)
-	{
-		infoStream << "I:Installing package " << (*depItr)->name << std::endl;
-		errInfo err = (*depItr)->inst();
-		if (err.err)
-			return err;
-	}
-	depItr = depList.begin();
-	for (; depItr != depEnd; depItr++)
-	{
-		int ret = (*depItr)->instScript();
-		if (ret != EXIT_SUCCESS)
-		{
-			infoStream << "W:Script exited with code " << ret << ", rolling back" << std::endl;
-			std::list<package *>::reverse_iterator rbItr, rbEnd = depList.rend();
-			rbItr = depList.rbegin();
-			for (; rbItr != rbEnd; rbItr++)
-			{
-				infoStream << "I:Removing package " << (*rbItr)->name << std::endl;
-				errInfo err = uninstall((*rbItr)->name);
-				if (err.err)
-					return err;
-			}
-			return errInfo(std::string("E:Script exited with code ") + num2str(ret));
-		}
-	}
-
-	infoStream << "I:Package(s) installed" << std::endl;
-	return errInfo();
+	
+	return pak->instFull();
 }
 
 errInfo uninstall(std::string name, bool upgrade)
