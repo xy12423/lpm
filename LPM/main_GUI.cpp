@@ -6,6 +6,7 @@
 #include "main_GUI.h"
 
 wxBEGIN_EVENT_TABLE(mainFrame, wxFrame)
+
 EVT_CHECKLISTBOX(ID_LISTSRC, mainFrame::listSrc_ItemCheck)
 EVT_BUTTON(ID_BUTTONADDSRC, mainFrame::buttonAddSrc_Click)
 EVT_BUTTON(ID_BUTTONDELSRC, mainFrame::buttonDelSrc_Click)
@@ -18,7 +19,6 @@ EVT_BUTTON(ID_BUTTONADDPAK, mainFrame::buttonAddPak_Click)
 EVT_BUTTON(ID_BUTTONDELPAK, mainFrame::buttonDelPak_Click)
 EVT_BUTTON(ID_BUTTONUPGPAK, mainFrame::buttonUpgPak_Click)
 EVT_BUTTON(ID_BUTTONUPGALL, mainFrame::buttonUpgAll_Click)
-
 
 wxEND_EVENT_TABLE()
 
