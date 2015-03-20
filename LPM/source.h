@@ -11,6 +11,7 @@ class source
 {
 public:
 	source(std::string _add){ add = _add; if (add.back() == '/') add.pop_back(); };
+	~source(){ std::for_each(pkgList.begin(), pkgList.end(), [this](package* arg){ delete arg; }); };
 	std::string getAdd(){ return add; };
 	errInfo loadRemote();
 	void loadLocal(pakListTp &_pkgList);

@@ -33,20 +33,16 @@ class package
 {
 public:
 	package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo);
-	std::string getName(){ return name; };
+	const std::string &getName(){ return name; };
 	version getVer(){ return ver; };
 	errInfo instFull();
 	bool needUpgrade();
-	errInfo upgrade();
+	errInfo upgrade(bool checked = false);
 	bool check();
 
 	friend void writeSource();
 	friend errInfo install(std::string name);
-#ifdef _LPM_GUI
-	
-#else
 	friend void printInfo(package *pkg);
-#endif
 private:
 	errInfo inst();
 	int instScript(bool upgrade = false);

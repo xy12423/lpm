@@ -145,10 +145,10 @@ errInfo source::upgradeAll()
 	pakListTp::const_iterator p = pkgList.cbegin(), pEnd = pkgList.cend();
 	for (; p != pEnd; p++)
 	{
-		if (is_installed((*p)->getName()))
+		if (is_installed((*p)->getName()) && (*p)->needUpgrade())
 		{
-			errInfo err = (*p)->upgrade();
-			if (err.err && err.info.front() != 'W')
+			errInfo err = (*p)->upgrade(true);
+			if (err.err)
 				return err;
 		}
 	}

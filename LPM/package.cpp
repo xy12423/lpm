@@ -409,21 +409,12 @@ bool package::needUpgrade()
 	return true;
 }
 
-errInfo package::upgrade()
+errInfo package::upgrade(bool checked)
 {
 	if (!is_installed(name))
 		return errInfo("E:Package not installed");
-
-	std::string line;
-	std::ifstream infoIn((dataPath / name / FILENAME_INFO).string());
-	std::getline(infoIn, line);
-	std::getline(infoIn, line);
-	std::getline(infoIn, line);
-	std::getline(infoIn, line);
-	infoIn.close();
-	version oldver(line);
-	if (oldver >= ver)
-		return errInfo("W:Needn't upgrade");
+	if (!checked && !needUpgrade())
+		return errInfo("E:Needn't upgrade");
 
 	infoStream << "I:Removing..." << myEndl;
 	errInfo err = uninstall(name, true);

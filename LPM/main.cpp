@@ -197,8 +197,6 @@ int getState(std::string name)
 	int state = PAK_STATE_DEFAULT;
 	if (is_installed(name))
 		state |= PAK_STATE_INSTALLED;
-	else
-		state |= PAK_STATE_NOT_INSTALLED;
 	package *pak = find_package(name);
 	if (pak != NULL)
 	{
