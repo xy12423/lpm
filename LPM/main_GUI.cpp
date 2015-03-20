@@ -340,10 +340,7 @@ IMPLEMENT_APP(MyApp)
 bool MyApp::OnInit()
 {
 	if (readConfig() == false)
-	{
-		MessageBox(NULL, _T("Failed to load config"), _T("ERROR"), MB_OK | MB_ICONERROR);
-		return false;
-	}
+		init();
 	checkPath();
 	if (readSource() == false)
 	{
