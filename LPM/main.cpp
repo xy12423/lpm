@@ -97,11 +97,13 @@ bool readSource()
 			std::getline(finCfg, author);
 			std::getline(finCfg, info);
 			
+			depList.clear();
 			for (k = 0; k < depCount; k++)
 			{
 				std::getline(finCfg, tmpName);
 				depList.push_back(tmpName);
 			}
+			confList.clear();
 			for (k = 0; k < confCount; k++)
 			{
 				std::getline(finCfg, tmpName);

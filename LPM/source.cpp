@@ -112,7 +112,7 @@ errInfo source::loadRemote()
 
 					newPkgList.push_back(new package(add, data[LINE_NAME], ver, depList, confList, pakExtInfo(data[LINE_FNAME], data[LINE_AUTHOR], data[LINE_INFO])));
 
-					for (int i = 0; i < 6; i++)
+					for (int i = 0; i < LINE_END; i++)
 						data[i].clear();
 					state = 0;
 				}
