@@ -14,6 +14,8 @@ EVT_BUTTON(ID_BUTTONUPDSRC, mainFrame::buttonUpdSrc_Click)
 
 EVT_CHECKBOX(ID_CHECKUPD, mainFrame::checkUpd_CheckedChanged)
 EVT_CHECKBOX(ID_CHECKINST, mainFrame::checkInst_CheckedChanged)
+EVT_TEXT(ID_TEXTSEARCH, mainFrame::textSearch_TextChanged)
+
 EVT_LISTBOX(ID_LISTPAK, mainFrame::listPak_SelectedIndexChanged)
 EVT_BUTTON(ID_BUTTONADDPAK, mainFrame::buttonAddPak_Click)
 EVT_BUTTON(ID_BUTTONDELPAK, mainFrame::buttonDelPak_Click)
@@ -24,22 +26,8 @@ wxEND_EVENT_TABLE()
 
 pakListTp pakList;
 mainFrame *form;
+std::streambuf *coutBuf = std::cout.rdbuf();
 int pakMask;
-
-std::ostream& myEndl(std::ostream& os)
-{
-	os << std::flush;
-	std::stringstream *ss = static_cast<std::stringstream*>(&os);
-	std::string str = ss->str();
-	while (!ss->eof())
-	{
-		std::getline(*ss, str);
-		str.push_back('\n');
-		form->textInfo->AppendText(str);
-	}
-	ss->clear();
-	return os;
-}
 
 void printInfo(package *pkg)
 {
@@ -135,6 +123,17 @@ mainFrame::mainFrame(const wxString& title)
 		wxPoint(108, 20),
 		wxSize(96, 16)
 		);
+	labelSearch = new wxStaticText(staticPak, ID_LABELSEARCH,
+		wxT("搜索"),
+		wxPoint(210, 20),
+		wxSize(29, 16)
+		);
+	textSearch = new wxTextCtrl(staticPak, ID_TEXTSEARCH,
+		wxEmptyString,
+		wxPoint(245, 18),
+		wxSize(119, 21)
+		);
+
 	listPak = new wxCheckListBox(staticPak, ID_LISTPAK,
 		wxPoint(6, 42),
 		wxSize(358, 196)
@@ -176,6 +175,7 @@ mainFrame::mainFrame(const wxString& title)
 		wxSize(586, 128),
 		wxTE_MULTILINE | wxTE_READONLY
 		);
+	std::cout.rdbuf(textInfo);
 }
 
 void mainFrame::refreshPakList()
@@ -187,10 +187,12 @@ void mainFrame::refreshPakList()
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 		getPakList(sourceList[*pItr], pakList);
 	pakListTp::const_iterator itrPak = pakList.cbegin(), itrPakEnd = pakList.cend();
-	for (; itrPak != itrPakEnd;)
+	std::string maskName = textSearch->GetLineText(0);
+	bool enableSearch = !maskName.empty();
+	for (std::string name; itrPak != itrPakEnd;)
 	{
-		int state = getState((*itrPak)->getName());
-		if ((state & pakMask) != pakMask)
+		name = (*itrPak)->getName();
+		if ((getState(name) & pakMask) != pakMask || (enableSearch && name.find(maskName) == std::string::npos))
 		{
 			itrPak = pakList.erase(itrPak);
 			itrPakEnd = pakList.cend();
@@ -214,7 +216,7 @@ void mainFrame::buttonAddSrc_Click(wxCommandEvent& event)
 	wxTextEntryDialog inputDlg(this, wxT("输入源地址"), wxT("添加源"));
 	inputDlg.ShowModal();
 	wxString src = inputDlg.GetValue();
-	if (src != wxT(""))
+	if (src != wxEmptyString)
 	{
 		listSrc->AppendString(src);
 		sourceList.push_back(new source(src.ToStdString()));
@@ -260,6 +262,11 @@ void mainFrame::checkInst_CheckedChanged(wxCommandEvent& event)
 	refreshPakList();
 }
 
+void mainFrame::textSearch_TextChanged(wxCommandEvent& event)
+{
+	refreshPakList();
+}
+
 void mainFrame::listPak_SelectedIndexChanged(wxCommandEvent& event)
 {
 	printInfo(pakList[listPak->GetSelection()]);
@@ -273,10 +280,10 @@ void mainFrame::buttonAddPak_Click(wxCommandEvent& event)
 	wxArrayInt::iterator pItr, pEnd = sel.end();
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 	{
-		infoStream << "I:Installing " << pakList[*pItr]->getName() << myEndl;
+		infoStream << "I:Installing " << pakList[*pItr]->getName() << std::endl;
 		errInfo err = pakList[*pItr]->instFull();
 		if (err.err)
-			infoStream << err.info << myEndl;
+			infoStream << err.info << std::endl;
 	}
 	if (checkInst->GetValue())
 		refreshPakList();
@@ -292,10 +299,10 @@ void mainFrame::buttonDelPak_Click(wxCommandEvent& event)
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 	{
 		name = pakList[*pItr]->getName();
-		infoStream << "I:Removing " << name << myEndl;
+		infoStream << "I:Removing " << name << std::endl;
 		errInfo err = uninstall(name);
 		if (err.err)
-			infoStream << err.info << myEndl;
+			infoStream << err.info << std::endl;
 	}
 	if (checkInst->GetValue())
 		refreshPakList();
@@ -311,10 +318,10 @@ void mainFrame::buttonUpgPak_Click(wxCommandEvent& event)
 	{
 		if (pakList[*pItr]->needUpgrade())
 		{
-			infoStream << "I:Upgrading " << pakList[*pItr]->getName() << myEndl;
+			infoStream << "I:Upgrading " << pakList[*pItr]->getName() << std::endl;
 			errInfo err = pakList[*pItr]->upgrade(true);
 			if (err.err)
-				infoStream << err.info << myEndl;
+				infoStream << err.info << std::endl;
 		}
 	}
 }
@@ -327,10 +334,10 @@ void mainFrame::buttonUpgAll_Click(wxCommandEvent& event)
 	{
 		if ((*itrPak)->needUpgrade())
 		{
-			infoStream << "I:Upgrading " << (*itrPak)->getName() << myEndl;
+			infoStream << "I:Upgrading " << (*itrPak)->getName() << std::endl;
 			errInfo err = (*itrPak)->upgrade(true);
 			if (err.err)
-				infoStream << err.info << myEndl;
+				infoStream << err.info << std::endl;
 		}
 	}
 }
@@ -359,6 +366,7 @@ int MyApp::OnExit()
 	srcListTp::const_iterator itrSrc = sourceList.cbegin(), itrSrcEnd = sourceList.cend();
 	for (; itrSrc != itrSrcEnd; itrSrc++)
 		delete *itrSrc;
+	std::cout.rdbuf(coutBuf);
 
 	return EXIT_SUCCESS;
 }

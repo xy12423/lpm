@@ -4,12 +4,7 @@
 #define _H_GLOBAL
 
 extern boost::filesystem::path localPath, dataPath;
-#ifdef _LPM_GUI
-extern std::stringstream infoStream;
-#else
 extern std::ostream &infoStream;
-#endif
-std::ostream& myEndl(std::ostream& os);
 
 const std::string DIRNAME_TEMP = "$temp";
 const std::string DIRNAME_NATIVE = "$native";

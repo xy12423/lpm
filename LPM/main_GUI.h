@@ -9,7 +9,7 @@ public:
 	mainFrame(const wxString& title);
 	enum itemID{
 		ID_STATICSRC, ID_LISTSRC, ID_BUTTONADDSRC, ID_BUTTONDELSRC, ID_BUTTONUPDSRC,
-		ID_STATICPAK, ID_CHECKUPD, ID_CHECKINST, ID_LISTPAK, ID_BUTTONADDPAK, ID_BUTTONDELPAK, ID_BUTTONUPGPAK, ID_BUTTONUPGALL, ID_LABELINFO,
+		ID_STATICPAK, ID_CHECKUPD, ID_CHECKINST, ID_LABELSEARCH, ID_TEXTSEARCH, ID_LISTPAK, ID_BUTTONADDPAK, ID_BUTTONDELPAK, ID_BUTTONUPGPAK, ID_BUTTONUPGALL, ID_LABELINFO,
 		ID_STATICINFO, ID_TEXTINFO
 	};
 	void refreshPakList();
@@ -28,11 +28,15 @@ public:
 	wxStaticBox *staticPak;
 
 	wxCheckBox *checkUpd, *checkInst;
+	wxStaticText *labelSearch;
+	wxTextCtrl *textSearch;
+	void checkUpd_CheckedChanged(wxCommandEvent& event);
+	void checkInst_CheckedChanged(wxCommandEvent& event);
+	void textSearch_TextChanged(wxCommandEvent& event);
+
 	wxCheckListBox *listPak;
 	wxButton *buttonAddPak, *buttonRemPak, *buttonUpgPak, *buttonUpgAll;
 	wxStaticText *labelInfo;
-	void checkUpd_CheckedChanged(wxCommandEvent& event);
-	void checkInst_CheckedChanged(wxCommandEvent& event);
 	void listPak_SelectedIndexChanged(wxCommandEvent& event);
 	void buttonAddPak_Click(wxCommandEvent& event);
 	void buttonDelPak_Click(wxCommandEvent& event);
@@ -42,7 +46,6 @@ public:
 	wxStaticBox *staticInfo;
 	wxTextCtrl *textInfo;
 
-	friend std::ostream& myEndl(std::ostream& os);
 	friend void printInfo(package *pkg);
 
 	wxDECLARE_EVENT_TABLE();

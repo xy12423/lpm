@@ -49,14 +49,14 @@ errInfo source::loadRemote()
 	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_data_src);
 	curl_easy_setopt(handle, CURLOPT_WRITEDATA, &buf);
 	curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errBuf);
-	infoStream << "I:Connecting" << myEndl;
+	infoStream << "I:Connecting" << std::endl;
 	CURLcode success = curl_easy_perform(handle);
 	if (success != CURLcode::CURLE_OK)
 	{
 		return errInfo(std::string("E:network:") + errBuf);
 	}
 	curl_easy_cleanup(handle);
-	infoStream << "I:Data downloaded" << myEndl;
+	infoStream << "I:Data downloaded" << std::endl;
 
 	pakListTp newPkgList;
 
@@ -128,7 +128,7 @@ errInfo source::loadRemote()
 		return errInfo("E:Incorrect pack info from source");
 	loadLocal(newPkgList);
 
-	infoStream << "I:Package List of source " << add << " refreshed" << myEndl;
+	infoStream << "I:Package List of source " << add << " refreshed" << std::endl;
 	return errInfo();
 }
 
