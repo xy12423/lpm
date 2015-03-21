@@ -91,6 +91,9 @@ mainFrame::mainFrame(const wxString& title)
 		wxSize(212, 364),
 		srcList
 		);
+	int count = sourceList.size();
+	for (int i = 0; i < count; i++)
+		listSrc->Check(i);
 	buttonAddSrc = new wxButton(staticSrc, ID_BUTTONADDSRC,
 		wxT("Ìí¼Ó"),
 		wxPoint(6, 387),
@@ -175,7 +178,9 @@ mainFrame::mainFrame(const wxString& title)
 		wxSize(586, 128),
 		wxTE_MULTILINE | wxTE_READONLY
 		);
+
 	std::cout.rdbuf(textInfo);
+	refreshPakList();
 }
 
 void mainFrame::refreshPakList()
@@ -219,7 +224,11 @@ void mainFrame::buttonAddSrc_Click(wxCommandEvent& event)
 	if (src != wxEmptyString)
 	{
 		listSrc->AppendString(src);
-		sourceList.push_back(new source(src.ToStdString()));
+		source *newSrc = new source(src.ToStdString());
+		newSrc->loadRemote();
+		sourceList.push_back(newSrc);
+		listSrc->Check(listSrc->GetCount() - 1);
+		refreshPakList();
 	}
 	writeSource();
 }
