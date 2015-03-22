@@ -4,6 +4,7 @@
 
 #include "main.h"
 #include "main_GUI.h"
+#include "unzip.h"
 
 wxBEGIN_EVENT_TABLE(mainFrame, wxFrame)
 
@@ -56,6 +57,12 @@ void printInfo(package *pkg)
 	sstream << std::endl;
 	sstream << std::endl;
 	form->labelInfo->SetLabelText(sstream.str());
+}
+
+void reportProgress(int progress)
+{
+	infoStream << progress << '%' << std::endl;
+	return ;
 }
 
 void getSrcNameList(wxArrayString &ret)
@@ -180,6 +187,7 @@ mainFrame::mainFrame(const wxString& title)
 		);
 
 	std::cout.rdbuf(textInfo);
+	prCallbackP = reportProgress;
 	refreshPakList();
 }
 

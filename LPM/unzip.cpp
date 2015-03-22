@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "unzip.h"
 
-#define skip(n)	for (i = 0; i < n; i++)                 \
+#define skip(n)	for (i = 0; i < (n); i++)                 \
 				{                                       \
 					dataBegin++;                        \
 					if (dataBegin == dataEnd)           \
@@ -22,10 +22,44 @@
 							dataBegin++;                                                 \
 						}
 
+fProgressReportCallback prCallbackP = NULL;
+
 errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd, boost::filesystem::path path)
 {
 	UINT i;
 	std::ofstream fout;
+	ULONGLONG sizeReportUnit = 0, sizeInflated = 0;
+	bool flagReport100 = false;
+	int progress = 0;
+	if (prCallbackP != NULL)
+	{
+		dataBuf::const_iterator dataPtr = dataBegin;
+		while (dataBegin != dataEnd)
+		{
+			UINT head = 0;
+			readUINT(head);
+			if (head != 0x04034b50)
+				break;
+			skip(14);
+			UINT fileSize, fileOriginSize;
+			readUINT(fileSize);
+			readUINT(fileOriginSize);
+			sizeReportUnit += fileOriginSize;
+			USHORT nameLen, extLen;
+			readBYTE(nameLen);
+			readBYTE(extLen);
+			ULONGLONG skipLen = static_cast<ULONGLONG>(fileSize) + nameLen + extLen;
+			skip(skipLen);
+		}
+		if (sizeReportUnit >= 100)
+			sizeReportUnit /= 100;
+		else
+		{
+			sizeReportUnit = 1;
+			flagReport100 = true;
+		}
+		dataBegin = dataPtr;
+	}
 	while (dataBegin != dataEnd)
 	{
 		UINT head = 0;
@@ -63,15 +97,90 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 			switch (compMethod)
 			{
 				case 0:
-					for (i = 0; i < fileSize; i++)
+					if (prCallbackP != NULL)	//Need report
 					{
-						if (dataBegin == dataEnd)
-							return errInfo("E:unzip:Broken File");
-						fout.put(*dataBegin);
-						dataBegin++;
+						if (sizeReportUnit > fileSize) //If bigger than sizeReportUnit
+						{
+							ULONGLONG tmp = sizeReportUnit - sizeInflated;
+							if (fileSize < tmp)	//If not big enough to make progress++
+							{
+								for (i = 0; i < fileSize; i++)
+								{
+									if (dataBegin == dataEnd)
+										return errInfo("E:unzip:Broken File");
+									fout.put(*dataBegin);
+									dataBegin++;
+								}
+								sizeInflated += fileSize;
+							}
+							else
+							{
+								for (i = 0; i < tmp; i++)
+								{
+									if (dataBegin == dataEnd)
+										return errInfo("E:unzip:Broken File");
+									fout.put(*dataBegin);
+									dataBegin++;
+								}
+								sizeInflated = 0;
+								progress++;
+								(*prCallbackP)(progress);
+								for (; i < fileSize; i++)
+								{
+									if (dataBegin == dataEnd)
+										return errInfo("E:unzip:Broken File");
+									fout.put(*dataBegin);
+									dataBegin++;
+								}
+							}
+						}
+						else
+						{
+							UINT fProgress = fileSize / sizeReportUnit;
+							UINT j;
+							for (i = 0; i < fProgress; i++)	//Split file to fProgress blocks and each block's size is sizeReportUnit
+							{
+								for (j = 0; j < sizeReportUnit; j++)
+								{
+									if (dataBegin == dataEnd)
+										return errInfo("E:unzip:Broken File");
+									fout.put(*dataBegin);
+									dataBegin++;
+								}
+								progress++;	//Just make 1% progress
+								fileSize -= sizeReportUnit;
+								(*prCallbackP)(progress);
+							}
+							for (i = 0; i < fileSize; i++)	//Read the rest of the file
+							{
+								if (dataBegin == dataEnd)
+									return errInfo("E:unzip:Broken File");
+								fout.put(*dataBegin);
+								dataBegin++;
+							}
+							sizeInflated += fileSize;
+							if (sizeInflated >= sizeReportUnit)
+							{
+								sizeInflated -= sizeReportUnit;
+								progress++;
+								(*prCallbackP)(progress);
+							}
+						}
+					}
+					else
+					{
+						for (i = 0; i < fileSize; i++)
+						{
+							if (dataBegin == dataEnd)
+								return errInfo("E:unzip:Broken File");
+							fout.put(*dataBegin);
+							dataBegin++;
+						}
 					}
 					break;
 				case 8:
+					const int blockSize = 0x10000000;
+
 					BYTE *dataBuf = new BYTE[fileSize];
 					BYTE *ptr = dataBuf;
 					for (i = 0; i < fileSize; i++)
@@ -86,10 +195,6 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 						dataBegin++;
 					}
 
-					const int blockSize = 0x10000000;
-					
-					BYTE *fileBuf = new BYTE[blockSize];
-
 					z_stream zstream;
 					zstream.zalloc = static_cast<alloc_func>(Z_NULL);
 					zstream.zfree = static_cast<free_func>(Z_NULL);
@@ -98,11 +203,15 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 					zstream.avail_in = 0;
 					int err = inflateInit2(&zstream, -8);
 					if (err != Z_OK)
+					{
+						delete[] dataBuf;
 						return errInfo("E:unzip:inflateInit2 failed with code " + num2str(err));
+					}
 					zstream.next_in = dataBuf;
 					zstream.avail_in = fileSize;
+					BYTE *fileBuf = new BYTE[blockSize];
 					zstream.next_out = fileBuf;
-					zstream.avail_out = fileOriginSize;
+					zstream.avail_out = blockSize;
 
 					while (true)
 					{
@@ -112,10 +221,21 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 						if (err == Z_OK || err == Z_STREAM_END)
 						{
 							ptr = fileBuf;
-							for (i = 0; i < blockSize - zstream.avail_out; i++)
+							UINT inflatedSize = blockSize - zstream.avail_out;
+							for (i = 0; i < inflatedSize; i++)
 							{
 								fout.put(*ptr);
 								ptr++;
+							}
+							if (prCallbackP != NULL)
+							{
+								sizeInflated += inflatedSize;
+								while (sizeInflated >= sizeReportUnit)
+								{
+									sizeInflated -= sizeReportUnit;
+									progress++;
+								}
+								(*prCallbackP)(progress);
 							}
 							if (err == Z_STREAM_END || (err == Z_OK && zstream.avail_in == 0))
 							{
@@ -161,5 +281,7 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 			fout.close();
 		}
 	}
+	if (flagReport100)
+		(*prCallbackP)(100);
 	return errInfo();
 }
