@@ -2,21 +2,9 @@
 #include "package.h"
 #include "source.h"
 #include "unzip.h"
+#include "download.h"
 
 namespace fs = boost::filesystem;
-
-size_t write_data_pkg(void *buffer, size_t size, size_t nmemb, void *userp)
-{
-	dataBuf *myBuf = static_cast<dataBuf*>(userp);
-	char *dataBuf = static_cast<char*>(buffer);
-	size_t sizeAll = size * nmemb;
-	for (size_t i = 0; i < sizeAll; i++)
-	{
-		myBuf->push_back(*dataBuf);
-		dataBuf++;
-	}
-	return sizeAll;
-}
 
 void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &logOut)
 {
@@ -108,21 +96,10 @@ package::package(std::string _source, std::string &_name, version _ver, depListT
 errInfo package::inst()
 {
 	CURL *handle = curl_easy_init();
-	char *addCStr = str2cstr(source + "/" + name + ".lpm");
 	dataBuf buf;
-	char *errBuf = new char[2048];
-	curl_easy_setopt(handle, CURLOPT_URL, addCStr);
-	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_data_pkg);
-	curl_easy_setopt(handle, CURLOPT_WRITEDATA, &buf);
-	curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errBuf);
-	infoStream << "I:Connecting" << std::endl;
-	CURLcode success = curl_easy_perform(handle);
-	if (success != CURLcode::CURLE_OK)
-	{
-		return errInfo(std::string("E:network:") + errBuf);
-	}
-	curl_easy_cleanup(handle);
-	infoStream << "I:Data downloaded" << std::endl;
+	errInfo err = download(source + "/" + name + ".lpm", &buf);
+	if (err.err)
+		return err;
 
 	fs::path tmpPath = dataPath / DIRNAME_TEMP / name, pakPath = dataPath / name;
 	bool flag1 = false, flag2 = false, flag3 = false;
@@ -588,7 +565,10 @@ errInfo uninstall(std::string name, bool upgrade)
 		{
 			std::getline(logIn, tmpPath);
 			if (!tmpPath.empty())
-				fs::remove(tmpPath);
+			{
+				if (!fs::is_directory(tmpPath) || fs::is_empty(tmpPath))
+					fs::remove(tmpPath);
+			}
 		}
 		logIn.close();
 		fs::remove_all(pakPath);

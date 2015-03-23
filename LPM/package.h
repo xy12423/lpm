@@ -34,6 +34,7 @@ class package
 public:
 	package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo);
 	const std::string &getName(){ return name; };
+	const pakExtInfo &getExtInfo(){ return extInfo; };
 	version getVer(){ return ver; };
 	errInfo instFull();
 	bool needUpgrade();

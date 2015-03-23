@@ -7,6 +7,17 @@
 using namespace boost::filesystem;
 using namespace std;
 
+int lastProgress = -1;
+void reportProgress(double progress)
+{
+	if (static_cast<int>(progress) != lastProgress)
+	{
+		std::cout << progress << '%' << std::endl;
+		lastProgress = static_cast<int>(progress);
+	}
+	return ;
+}
+
 void printInfo(package *pkg)
 {
 	if (pkg == NULL)
@@ -121,6 +132,7 @@ int main(int argc, char* argv[])
 				checkPath();
 			}
 			readSource();
+			prCallbackP = reportProgress;
 			if (cmd == "install")
 			{
 				if (argc < 3)

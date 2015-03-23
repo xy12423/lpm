@@ -10,7 +10,7 @@ public:
 	enum itemID{
 		ID_STATICSRC, ID_LISTSRC, ID_BUTTONADDSRC, ID_BUTTONDELSRC, ID_BUTTONUPDSRC,
 		ID_STATICPAK, ID_CHECKUPD, ID_CHECKINST, ID_LABELSEARCH, ID_TEXTSEARCH, ID_LISTPAK, ID_BUTTONADDPAK, ID_BUTTONDELPAK, ID_BUTTONUPGPAK, ID_BUTTONUPGALL, ID_LABELINFO,
-		ID_STATICINFO, ID_TEXTINFO
+		ID_STATICINFO, ID_TEXTINFO, ID_GAUGEPROGRESS
 	};
 	void refreshPakList();
 
@@ -45,8 +45,10 @@ public:
 
 	wxStaticBox *staticInfo;
 	wxTextCtrl *textInfo;
+	wxGauge *gaugeProgress;
 
 	friend void printInfo(package *pkg);
+	friend void reportProgress(double progress);
 
 	wxDECLARE_EVENT_TABLE();
 };

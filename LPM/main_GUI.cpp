@@ -64,7 +64,7 @@ void reportProgress(double progress)
 {
 	if (static_cast<int>(progress) != lastProgress)
 	{
-		infoStream << progress << '%' << std::endl;
+		form->gaugeProgress->SetValue(progress);
 		lastProgress = static_cast<int>(progress);
 	}
 	return ;
@@ -187,8 +187,13 @@ mainFrame::mainFrame(const wxString& title)
 	textInfo = new wxTextCtrl(staticInfo, ID_TEXTINFO,
 		wxEmptyString,
 		wxPoint(6, 20),
-		wxSize(586, 128),
+		wxSize(586, 105),
 		wxTE_MULTILINE | wxTE_READONLY
+		);
+	gaugeProgress = new wxGauge(staticInfo, ID_GAUGEPROGRESS,
+		100,
+		wxPoint(6, 131),
+		wxSize(586, 17)
 		);
 
 	std::cout.rdbuf(textInfo);
@@ -221,7 +226,7 @@ void mainFrame::refreshPakList()
 	itrPak = pakList.cbegin();
 	listPak->Clear();
 	for (; itrPak != itrPakEnd; itrPak++)
-		listPak->AppendString((*itrPak)->getName());
+		listPak->AppendString((*itrPak)->getExtInfo().fname);
 }
 
 void mainFrame::listSrc_ItemCheck(wxCommandEvent& event)

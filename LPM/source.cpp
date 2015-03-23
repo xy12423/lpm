@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "package.h"
 #include "source.h"
+#include "download.h"
 
 srcListTp sourceList;
 
@@ -12,19 +13,6 @@ const int LINE_INFO = 4;
 const int LINE_DEP = 5;
 const int LINE_CONF = 6;
 const int LINE_END = 7;
-
-size_t write_data_src(void *buffer, size_t size, size_t nmemb, void *userp)
-{
-	std::string *myBuf = static_cast<std::string*>(userp);
-	char *dataBuf = static_cast<char*>(buffer);
-	size_t sizeAll = size * nmemb;
-	for (size_t i = 0; i < sizeAll; i++)
-	{
-		myBuf->push_back(*dataBuf);
-		dataBuf++;
-	}
-	return sizeAll;
-}
 
 void source::loadLocal(pakListTp &_pkgList)
 {
@@ -42,25 +30,14 @@ void source::loadLocal(pakListTp &_pkgList)
 errInfo source::loadRemote()
 {
 	CURL *handle = curl_easy_init();
-	char *addCStr = str2cstr(add + "/_index");
-	std::string buf;
-	char *errBuf = new char[2048];
-	curl_easy_setopt(handle, CURLOPT_URL, addCStr);
-	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_data_src);
-	curl_easy_setopt(handle, CURLOPT_WRITEDATA, &buf);
-	curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errBuf);
-	infoStream << "I:Connecting" << std::endl;
-	CURLcode success = curl_easy_perform(handle);
-	if (success != CURLcode::CURLE_OK)
-	{
-		return errInfo(std::string("E:network:") + errBuf);
-	}
-	curl_easy_cleanup(handle);
-	infoStream << "I:Data downloaded" << std::endl;
+	dataBuf buf;
+	errInfo err = download(add + "/_index", &buf);
+	if (err.err)
+		return err;
 
 	pakListTp newPkgList;
 
-	std::string::const_iterator p, pEnd = buf.cend();
+	dataBuf::const_iterator p, pEnd = buf.cend();
 	std::string::const_iterator p2, pEnd2;
 	std::string data[LINE_END];
 	int state = 0;

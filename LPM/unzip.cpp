@@ -22,8 +22,6 @@
 							dataBegin++;                                                 \
 						}
 
-fProgressReportCallback prCallbackP = NULL;
-
 errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd, boost::filesystem::path path)
 {
 	UINT i;

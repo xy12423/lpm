@@ -6,6 +6,9 @@
 extern boost::filesystem::path localPath, dataPath;
 extern std::ostream &infoStream;
 
+typedef void(*fProgressReportCallback)(double progress);
+extern fProgressReportCallback prCallbackP;
+
 const std::string DIRNAME_TEMP = "$temp";
 const std::string DIRNAME_NATIVE = "$native";
 const std::string DIRNAME_UPGRADE = "$upgrade";
@@ -32,5 +35,7 @@ typedef unsigned int UINT;
 typedef unsigned long ULONG;
 typedef unsigned long long ULONGLONG;
 typedef unsigned char BYTE;
+
+typedef std::list<BYTE> dataBuf;
 
 #endif
