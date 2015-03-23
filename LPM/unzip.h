@@ -7,7 +7,7 @@
 #include "global.h"
 
 typedef std::vector<BYTE> dataBuf;
-typedef void(*fProgressReportCallback)(int progress);
+typedef void(*fProgressReportCallback)(double progress);
 extern fProgressReportCallback prCallbackP;
 errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd, boost::filesystem::path path);
 

@@ -59,9 +59,14 @@ void printInfo(package *pkg)
 	form->labelInfo->SetLabelText(sstream.str());
 }
 
-void reportProgress(int progress)
+int lastProgress = -1;
+void reportProgress(double progress)
 {
-	infoStream << progress << '%' << std::endl;
+	if (static_cast<int>(progress) != lastProgress)
+	{
+		infoStream << progress << '%' << std::endl;
+		lastProgress = static_cast<int>(progress);
+	}
 	return ;
 }
 
