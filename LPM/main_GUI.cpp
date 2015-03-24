@@ -1,4 +1,4 @@
-#include "stdafx.h"
+Ôªø#include "stdafx.h"
 
 #ifdef _LPM_GUI
 
@@ -24,6 +24,16 @@ EVT_BUTTON(ID_BUTTONUPGPAK, mainFrame::buttonUpgPak_Click)
 EVT_BUTTON(ID_BUTTONUPGALL, mainFrame::buttonUpgAll_Click)
 
 wxEND_EVENT_TABLE()
+
+#ifdef __WXMSW__
+#define _GUI_GAP 20
+#define _GUI_SIZE_X 640
+#define _GUI_SIZE_Y 640
+#else
+#define _GUI_GAP 0
+#define _GUI_SIZE_X 600
+#define _GUI_SIZE_Y 600
+#endif
 
 pakListTp pakList;
 mainFrame *form;
@@ -85,13 +95,13 @@ void getPakList(source *src, pakListTp &ret)
 }
 
 mainFrame::mainFrame(const wxString& title)
-	: wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(640, 640))
+	: wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(_GUI_SIZE_X, _GUI_SIZE_Y))
 {
 	Centre();
 	panel = new wxPanel(this);
 	
 	staticSrc = new wxStaticBox(panel, ID_STATICSRC,
-		wxT("‘¥"),
+		wxT("Ê∫ê"),
 		wxPoint(12, 12),
 		wxSize(224, 417)
 		);
@@ -99,7 +109,7 @@ mainFrame::mainFrame(const wxString& title)
 	wxArrayString srcList;
 	getSrcNameList(srcList);
 	listSrc = new wxCheckListBox(staticSrc, ID_LISTSRC,
-		wxPoint(6, 20),
+		wxPoint(6, _GUI_GAP),
 		wxSize(212, 364),
 		srcList
 		);
@@ -107,92 +117,92 @@ mainFrame::mainFrame(const wxString& title)
 	for (int i = 0; i < count; i++)
 		listSrc->Check(i);
 	buttonAddSrc = new wxButton(staticSrc, ID_BUTTONADDSRC,
-		wxT("ÃÌº”"),
-		wxPoint(6, 387),
+		wxT("Ê∑ªÂä†"),
+		wxPoint(6, 367 + _GUI_GAP),
 		wxSize(66, 24)
 		);
 	buttonDelSrc = new wxButton(staticSrc, ID_BUTTONDELSRC,
-		wxT("…æ≥˝"),
-		wxPoint(78, 387),
+		wxT("Âà†Èô§"),
+		wxPoint(78, 367 + _GUI_GAP),
 		wxSize(66, 24)
 		);
 	buttonUpdSrc = new wxButton(staticSrc, ID_BUTTONUPDSRC,
-		wxT("∏¸–¬"),
-		wxPoint(150, 387),
+		wxT("Êõ¥Êñ∞"),
+		wxPoint(150, 367 + _GUI_GAP),
 		wxSize(66, 24)
 		);
 
 	staticPak = new wxStaticBox(panel, ID_STATICPAK,
-		wxT("∞¸¡–±Ì"),
+		wxT("ÂåÖÂàóË°®"),
 		wxPoint(240, 12),
 		wxSize(372, 417)
 		);
 
 	checkUpd = new wxCheckBox(staticPak, ID_CHECKUPD,
-		wxT("÷ªœ‘ æø…∏¸–¬"),
-		wxPoint(6, 20),
+		wxT("Âè™ÊòæÁ§∫ÂèØÊõ¥Êñ∞"),
+		wxPoint(6, _GUI_GAP),
 		wxSize(96, 16)
 		);
 	checkInst = new wxCheckBox(staticPak, ID_CHECKINST,
-		wxT("÷ªœ‘ æ“—∞≤◊∞"),
-		wxPoint(108, 20),
+		wxT("Âè™ÊòæÁ§∫Â∑≤ÂÆâË£Ö"),
+		wxPoint(108, _GUI_GAP),
 		wxSize(96, 16)
 		);
 	labelSearch = new wxStaticText(staticPak, ID_LABELSEARCH,
-		wxT("À—À˜"),
-		wxPoint(210, 20),
+		wxT("ÊêúÁ¥¢"),
+		wxPoint(210, _GUI_GAP),
 		wxSize(29, 16)
 		);
 	textSearch = new wxTextCtrl(staticPak, ID_TEXTSEARCH,
 		wxEmptyString,
-		wxPoint(245, 18),
+		wxPoint(245, _GUI_GAP - 2),
 		wxSize(119, 21)
 		);
 
 	listPak = new wxCheckListBox(staticPak, ID_LISTPAK,
-		wxPoint(6, 42),
+		wxPoint(6, _GUI_GAP + 22),
 		wxSize(358, 196)
 		);
 	buttonAddPak = new wxButton(staticPak, ID_BUTTONADDPAK,
-		wxT("ÃÌº”"),
-		wxPoint(6, 249),
+		wxT("Ê∑ªÂä†"),
+		wxPoint(6, _GUI_GAP + 229),
 		wxSize(85, 24)
 		);
 	buttonRemPak = new wxButton(staticPak, ID_BUTTONDELPAK,
-		wxT("…æ≥˝"),
-		wxPoint(97, 249),
+		wxT("Âà†Èô§"),
+		wxPoint(97, _GUI_GAP + 229),
 		wxSize(85, 24)
 		);
 	buttonUpgPak = new wxButton(staticPak, ID_BUTTONUPGPAK,
-		wxT("∏¸–¬"),
-		wxPoint(188, 249),
+		wxT("Êõ¥Êñ∞"),
+		wxPoint(188, _GUI_GAP + 229),
 		wxSize(85, 24)
 		);
 	buttonUpgAll = new wxButton(staticPak, ID_BUTTONUPGALL,
-		wxT("»´≤ø∏¸–¬"),
-		wxPoint(279, 249),
+		wxT("ÂÖ®ÈÉ®Êõ¥Êñ∞"),
+		wxPoint(279, _GUI_GAP + 229),
 		wxSize(85, 24)
 		);
 	labelInfo = new wxStaticText(staticPak, ID_LABELINFO,
 		wxEmptyString,
-		wxPoint(6, 279),
+		wxPoint(6, _GUI_GAP + 259),
 		wxSize(358, 132)
 		);
 
 	staticInfo = new wxStaticBox(panel, ID_STATICINFO,
-		wxT("–≈œ¢"),
+		wxT("‰ø°ÊÅØ"),
 		wxPoint(12, 435),
 		wxSize(600, 154)
 		);
 	textInfo = new wxTextCtrl(staticInfo, ID_TEXTINFO,
 		wxEmptyString,
-		wxPoint(6, 20),
+		wxPoint(6, _GUI_GAP),
 		wxSize(586, 105),
 		wxTE_MULTILINE | wxTE_READONLY
 		);
 	gaugeProgress = new wxGauge(staticInfo, ID_GAUGEPROGRESS,
 		100,
-		wxPoint(6, 131),
+		wxPoint(6, _GUI_GAP + 111),
 		wxSize(586, 17)
 		);
 
@@ -209,7 +219,7 @@ void mainFrame::refreshPakList()
 	wxArrayInt::iterator pItr, pEnd = sel.end();
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 		getPakList(sourceList[*pItr], pakList);
-	pakListTp::const_iterator itrPak = pakList.cbegin(), itrPakEnd = pakList.cend();
+	pakListTp::iterator itrPak = pakList.begin(), itrPakEnd = pakList.end();
 	std::string maskName = textSearch->GetLineText(0);
 	bool enableSearch = !maskName.empty();
 	for (std::string name; itrPak != itrPakEnd;)
@@ -218,12 +228,12 @@ void mainFrame::refreshPakList()
 		if ((getState(name) & pakMask) != pakMask || (enableSearch && name.find(maskName) == std::string::npos))
 		{
 			itrPak = pakList.erase(itrPak);
-			itrPakEnd = pakList.cend();
+			itrPakEnd = pakList.end();
 		}
 		else
 			itrPak++;
 	}
-	itrPak = pakList.cbegin();
+	itrPak = pakList.begin();
 	listPak->Clear();
 	for (; itrPak != itrPakEnd; itrPak++)
 		listPak->AppendString((*itrPak)->getExtInfo().fname);
@@ -236,7 +246,7 @@ void mainFrame::listSrc_ItemCheck(wxCommandEvent& event)
 
 void mainFrame::buttonAddSrc_Click(wxCommandEvent& event)
 {
-	wxTextEntryDialog inputDlg(this, wxT(" ‰»Î‘¥µÿ÷∑"), wxT("ÃÌº”‘¥"));
+	wxTextEntryDialog inputDlg(this, wxT("ËæìÂÖ•Ê∫êÂú∞ÂùÄ"), wxT("Ê∑ªÂä†Ê∫ê"));
 	inputDlg.ShowModal();
 	wxString src = inputDlg.GetValue();
 	if (src != wxEmptyString)
@@ -254,7 +264,7 @@ void mainFrame::buttonAddSrc_Click(wxCommandEvent& event)
 void mainFrame::buttonDelSrc_Click(wxCommandEvent& event)
 {
 	int srcIndex = listSrc->GetSelection();
-	srcListTp::const_iterator pItr = sourceList.cbegin();
+	srcListTp::iterator pItr = sourceList.begin();
 	for (; srcIndex > 0; srcIndex--)
 		pItr++;
 	sourceList.erase(pItr);
@@ -378,7 +388,7 @@ bool MyApp::OnInit()
 	checkPath();
 	if (readSource() == false)
 	{
-		MessageBox(NULL, _T("Failed to load source info"), _T("ERROR"), MB_OK | MB_ICONERROR);
+		wxMessageBox(wxT("Failed to load source info"), wxT("ERROR"), wxOK | wxICON_ERROR);
 		return false;
 	}
 
