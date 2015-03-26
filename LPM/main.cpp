@@ -154,17 +154,24 @@ void writeSource()
 	foutCfg.close();
 }
 
+void loadDefaultLang()
+{
+	for (int i = 0; i < msgCount; i++)
+		msgData[i] = msgDataDefault[i];
+}
+
 bool readLang()
 {
+	if (!exists(langPath) || is_directory(langPath))
+		return false;
 	std::ifstream fin(langPath.string());
-	std::string tmp;
+	if (!fin.is_open())
+		return false;
 	for (int i = 0; i < msgCount; i++)
 	{
 		if (fin.eof())
 			return false;
 		std::getline(fin, msgData[i]);
-		if (msgData[i].empty())
-			return false;
 	}
 	fin.close();
 	return true;
@@ -232,6 +239,7 @@ void init()
 {
 	localPath = "./local";
 	dataPath = "./data";
+	langPath = "./lpm-lang";
 	writeConfig();
 	writeSource();
 }

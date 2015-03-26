@@ -125,12 +125,15 @@ int main(int argc, char* argv[])
 		else
 		{
 			if (readConfig())
+			{
 				checkPath();
+			}
 			else
 			{
 				init();
 				checkPath();
 			}
+			loadDefaultLang();
 			readSource();
 			prCallbackP = reportProgress;
 			if (cmd == "install")

@@ -35,10 +35,59 @@ wxEND_EVENT_TABLE()
 #define _GUI_SIZE_Y 600
 #endif
 
+wxString guiStrDataDefault[guiStrCount] = {
+	wxT("源"),
+	wxT("添加"),
+	wxT("删除"),
+	wxT("更新"),
+	wxT("包"),
+	wxT("只显示可更新"),
+	wxT("只显示已安装"),
+	wxT("搜索"),
+	wxT("添加"),
+	wxT("删除"),
+	wxT("更新"),
+	wxT("全部更新"),
+	wxT("信息"),
+	wxT("输入源地址"),
+	wxT("添加源"),
+	wxT("ERROR"),
+	wxT("Failed to load source info"),
+	wxT("Live Package Manager"),
+};
+wxString guiStrData[guiStrCount];
+
 pakListTp pakList;
 mainFrame *form;
 std::streambuf *coutBuf = std::cout.rdbuf();
 int pakMask;
+
+void loadDefaultGUILang()
+{
+	for (int i = 0; i < guiStrCount; i++)
+		guiStrData[i] = guiStrDataDefault[i];
+}
+
+bool readGUILang()
+{
+	namespace fs = boost::filesystem;
+	fs::path guiLangPath(langPath.string() + "-gui");
+	if (!fs::exists(guiLangPath) || fs::is_directory(guiLangPath))
+		return false;
+	std::ifstream fin(guiLangPath.string());
+	if (!fin.is_open())
+		return false;
+	std::string tmp;
+	for (int i = 0; i < guiStrCount; i++)
+	{
+		if (fin.eof())
+			return false;
+		std::getline(fin, tmp);
+		guiStrData[i] = tmp;
+	}
+	fin.close();
+	return true;
+}
 
 void printInfo(package *pkg)
 {
@@ -101,7 +150,7 @@ mainFrame::mainFrame(const wxString& title)
 	panel = new wxPanel(this);
 	
 	staticSrc = new wxStaticBox(panel, ID_STATICSRC,
-		wxT("源"),
+		guiStrData[TEXT_STATICSRC],
 		wxPoint(12, 12),
 		wxSize(224, 417)
 		);
@@ -117,39 +166,39 @@ mainFrame::mainFrame(const wxString& title)
 	for (int i = 0; i < count; i++)
 		listSrc->Check(i);
 	buttonAddSrc = new wxButton(staticSrc, ID_BUTTONADDSRC,
-		wxT("添加"),
+		guiStrData[TEXT_BUTTONADDSRC],
 		wxPoint(6, 367 + _GUI_GAP),
 		wxSize(66, 24)
 		);
 	buttonDelSrc = new wxButton(staticSrc, ID_BUTTONDELSRC,
-		wxT("删除"),
+		guiStrData[TEXT_BUTTONDELSRC],
 		wxPoint(78, 367 + _GUI_GAP),
 		wxSize(66, 24)
 		);
 	buttonUpdSrc = new wxButton(staticSrc, ID_BUTTONUPDSRC,
-		wxT("更新"),
+		guiStrData[TEXT_BUTTONUPDSRC],
 		wxPoint(150, 367 + _GUI_GAP),
 		wxSize(66, 24)
 		);
 
 	staticPak = new wxStaticBox(panel, ID_STATICPAK,
-		wxT("包列表"),
+		guiStrData[TEXT_STATICPAK],
 		wxPoint(240, 12),
 		wxSize(372, 417)
 		);
 
 	checkUpd = new wxCheckBox(staticPak, ID_CHECKUPD,
-		wxT("只显示可更新"),
+		guiStrData[TEXT_CHECKUPD],
 		wxPoint(6, _GUI_GAP),
 		wxSize(96, 16)
 		);
 	checkInst = new wxCheckBox(staticPak, ID_CHECKINST,
-		wxT("只显示已安装"),
+		guiStrData[TEXT_CHECKINST],
 		wxPoint(108, _GUI_GAP),
 		wxSize(96, 16)
 		);
 	labelSearch = new wxStaticText(staticPak, ID_LABELSEARCH,
-		wxT("搜索"),
+		guiStrData[TEXT_LABELSEARCH],
 		wxPoint(210, _GUI_GAP),
 		wxSize(29, 16)
 		);
@@ -164,22 +213,22 @@ mainFrame::mainFrame(const wxString& title)
 		wxSize(358, 196)
 		);
 	buttonAddPak = new wxButton(staticPak, ID_BUTTONADDPAK,
-		wxT("添加"),
+		guiStrData[TEXT_BUTTONADDPAK],
 		wxPoint(6, _GUI_GAP + 229),
 		wxSize(85, 24)
 		);
 	buttonRemPak = new wxButton(staticPak, ID_BUTTONDELPAK,
-		wxT("删除"),
+		guiStrData[TEXT_BUTTONDELPAK],
 		wxPoint(97, _GUI_GAP + 229),
 		wxSize(85, 24)
 		);
 	buttonUpgPak = new wxButton(staticPak, ID_BUTTONUPGPAK,
-		wxT("更新"),
+		guiStrData[TEXT_BUTTONUPGPAK],
 		wxPoint(188, _GUI_GAP + 229),
 		wxSize(85, 24)
 		);
 	buttonUpgAll = new wxButton(staticPak, ID_BUTTONUPGALL,
-		wxT("全部更新"),
+		guiStrData[TEXT_BUTTONUPGALL],
 		wxPoint(279, _GUI_GAP + 229),
 		wxSize(85, 24)
 		);
@@ -190,7 +239,7 @@ mainFrame::mainFrame(const wxString& title)
 		);
 
 	staticInfo = new wxStaticBox(panel, ID_STATICINFO,
-		wxT("信息"),
+		guiStrData[TEXT_STATICINFO],
 		wxPoint(12, 435),
 		wxSize(600, 154)
 		);
@@ -246,7 +295,7 @@ void mainFrame::listSrc_ItemCheck(wxCommandEvent& event)
 
 void mainFrame::buttonAddSrc_Click(wxCommandEvent& event)
 {
-	wxTextEntryDialog inputDlg(this, wxT("输入源地址"), wxT("添加源"));
+	wxTextEntryDialog inputDlg(this, guiStrData[TEXT_INPUTSRC], guiStrData[TITLE_INPUTSRC]);
 	inputDlg.ShowModal();
 	wxString src = inputDlg.GetValue();
 	if (src != wxEmptyString)
@@ -317,7 +366,7 @@ void mainFrame::buttonAddPak_Click(wxCommandEvent& event)
 	wxArrayInt::iterator pItr, pEnd = sel.end();
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 	{
-		infoStream << "I:Installing " << pakList[*pItr]->getName() << std::endl;
+		infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << pakList[*pItr]->getName() << std::endl;
 		errInfo err = pakList[*pItr]->instFull();
 		if (err.err)
 			infoStream << err.info << std::endl;
@@ -336,7 +385,7 @@ void mainFrame::buttonDelPak_Click(wxCommandEvent& event)
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 	{
 		name = pakList[*pItr]->getName();
-		infoStream << "I:Removing " << name << std::endl;
+		infoStream << msgData[MSGI_PAK_REMOVING] << ':' << name << std::endl;
 		errInfo err = uninstall(name);
 		if (err.err)
 			infoStream << err.info << std::endl;
@@ -355,7 +404,7 @@ void mainFrame::buttonUpgPak_Click(wxCommandEvent& event)
 	{
 		if (pakList[*pItr]->needUpgrade())
 		{
-			infoStream << "I:Upgrading " << pakList[*pItr]->getName() << std::endl;
+			infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << pakList[*pItr]->getName() << std::endl;
 			errInfo err = pakList[*pItr]->upgrade(true);
 			if (err.err)
 				infoStream << err.info << std::endl;
@@ -371,7 +420,7 @@ void mainFrame::buttonUpgAll_Click(wxCommandEvent& event)
 	{
 		if ((*itrPak)->needUpgrade())
 		{
-			infoStream << "I:Upgrading " << (*itrPak)->getName() << std::endl;
+			infoStream << msgData[MSGI_PAK_UPGRADING] << (*itrPak)->getName() << std::endl;
 			errInfo err = (*itrPak)->upgrade(true);
 			if (err.err)
 				infoStream << err.info << std::endl;
@@ -386,13 +435,17 @@ bool MyApp::OnInit()
 	if (readConfig() == false)
 		init();
 	checkPath();
+	if (readLang() == false)
+		loadDefaultLang();
+	if (readGUILang() == false)
+		loadDefaultGUILang();
 	if (readSource() == false)
 	{
-		wxMessageBox(wxT("Failed to load source info"), wxT("ERROR"), wxOK | wxICON_ERROR);
+		wxMessageBox(guiStrData[TEXTE_LOADSRC], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
 		return false;
 	}
 
-	form = new mainFrame(wxT("Live Package Manager"));
+	form = new mainFrame(guiStrData[TITLE_LPM]);
 	form->Show();
 
 	return true;

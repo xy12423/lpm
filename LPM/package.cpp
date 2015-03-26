@@ -379,19 +379,18 @@ bool package::needUpgrade()
 	std::getline(infoIn, line);
 	infoIn.close();
 	version oldver(line);
-	if (oldver >= ver)
-		return false;
 
-	return true;
+	return oldver < ver;
 }
 
 errInfo package::upgrade(bool checked)
 {
 	if (!is_installed(name))
 		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
-	if (!checked && !needUpgrade())
+	if (!(checked || needUpgrade()))
 		return errInfo(msgData[MSGE_PAK_LATEST]);
 
+	infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << name << std::endl;
 	infoStream << msgData[MSGI_PAK_REMOVING] << std::endl;
 	errInfo err = uninstall(name, true);
 	if (err.err)

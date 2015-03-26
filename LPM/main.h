@@ -12,6 +12,8 @@ void writeConfig();
 void checkPath();
 bool readSource();
 void writeSource();
+void loadDefaultLang();
+bool readLang();
 errInfo update();
 errInfo upgrade(std::string name);
 errInfo upgrade();

@@ -7,6 +7,7 @@ extern boost::filesystem::path localPath, dataPath, langPath;
 extern std::ostream &infoStream;
 
 #include "langn.h"
+extern std::string msgDataDefault[msgCount];
 extern std::string msgData[msgCount];
 
 typedef void(*fProgressReportCallback)(double progress);
