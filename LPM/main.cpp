@@ -14,6 +14,8 @@ bool readConfig()
 	localPath = tmpPath;
 	std::getline(finCfg, tmpPath);
 	dataPath = tmpPath;
+	std::getline(finCfg, tmpPath);
+	langPath = tmpPath;
 	finCfg.close();
 	return true;
 }
@@ -23,6 +25,7 @@ void writeConfig()
 	std::ofstream foutCfg(".config");
 	foutCfg << localPath.string() << std::endl;
 	foutCfg << dataPath.string() << std::endl;
+	foutCfg << langPath.string() << std::endl;
 	foutCfg.close();
 }
 
@@ -151,12 +154,28 @@ void writeSource()
 	foutCfg.close();
 }
 
+bool readLang()
+{
+	std::ifstream fin(langPath.string());
+	std::string tmp;
+	for (int i = 0; i < msgCount; i++)
+	{
+		if (fin.eof())
+			return false;
+		std::getline(fin, msgData[i]);
+		if (msgData[i].empty())
+			return false;
+	}
+	fin.close();
+	return true;
+}
+
 errInfo update()
 {
 	srcListTp::const_iterator p, pEnd = sourceList.cend();
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
-		infoStream << "I:Updating source " << (*p)->getAdd() << std::endl;
+		infoStream << msgData[MSGI_SRCINFO_REFING] << ':' << (*p)->getAdd() << std::endl;
 		errInfo err = (*p)->loadRemote();
 		if (err.err)
 			return err;
@@ -169,7 +188,7 @@ errInfo upgrade(std::string name)
 {
 	package *pkg = find_package(name);
 	if (pkg == NULL)
-		return errInfo("E:Package not found");
+		return errInfo(msgData[MSGE_PAK_NOT_FOUND]);
 	return pkg->upgrade();
 }
 
@@ -190,7 +209,7 @@ bool check(std::string name)
 		return true;
 	package *pkg = find_package(name);
 	if (pkg == NULL)
-		throw("E:Package not found");
+		throw(msgData[MSGE_PAK_NOT_FOUND]);
 	return pkg->check();
 }
 

@@ -19,7 +19,7 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 				if (!exists(nativePath / relaPath))
 					fs::create_directories(nativePath / relaPath);
 				if (exists(nativePath / newRelaPath))
-					throw("E:Multi overwriting");
+					throw(msgData[MSGE_OVERWRITE]);
 				fs::copy_file(targetPath, nativePath / newRelaPath);
 				fs::remove(targetPath);
 			}
@@ -95,7 +95,6 @@ package::package(std::string _source, std::string &_name, version _ver, depListT
 
 errInfo package::inst()
 {
-	CURL *handle = curl_easy_init();
 	dataBuf buf;
 	errInfo err = download(source + "/" + name + ".lpm", &buf);
 	if (err.err)
@@ -109,11 +108,11 @@ errInfo package::inst()
 		flag1 = true;
 		fs::create_directory(pakPath);
 		flag2 = true;
-		infoStream << "I:Decompressing package" << std::endl;
+		infoStream << msgData[MSGI_DECOMPRESSING] << std::endl;
 		errInfo err = unzip(buf.begin(), buf.end(), tmpPath);
 		if (err.err)
 			return err;
-		infoStream << "I:Decompressed" << std::endl;
+		infoStream << msgData[MSGI_DECOMPRESSED] << std::endl;
 
 		if (fs::exists(tmpPath / DIRNAME_INFO))
 		{
@@ -122,15 +121,15 @@ errInfo package::inst()
 				if (fs::is_regular_file(p->path()))
 					fs::copy_file(p->path(), pakPath / p->path().filename());
 				else
-					throw("E:Illegal package:dir in $info");
+					throw(msgData[MSGE_ILLEGAL_PAK]);
 			}
 			fs::remove_all(tmpPath / DIRNAME_INFO);
 		}
 
 		std::ofstream infOut((pakPath / FILENAME_INST).string());
-		infoStream << "I:Copying files" << std::endl;
+		infoStream << msgData[MSGI_COPYING] << std::endl;
 		install_copy(tmpPath, fs::path(), infOut);
-		infoStream << "I:File copied" << std::endl;
+		infoStream << msgData[MSGI_COPIED] << std::endl;
 		infOut.close();
 		flag3 = true;
 
@@ -188,7 +187,7 @@ errInfo package::inst()
 			fs::remove_all(pakPath);
 		if (flag1)
 			fs::remove_all(tmpPath);
-		return errInfo(std::string("E:filesystem:") + err.what());
+		return errInfo(msgData[MSGE_FS] + err.what());
 	}
 	catch (const char* err)
 	{
@@ -207,7 +206,7 @@ errInfo package::inst()
 			fs::remove_all(pakPath);
 		if (flag1)
 			fs::remove_all(tmpPath);
-		return errInfo(std::string(err));
+		return errInfo(err);
 	}
 	catch (std::string err)
 	{
@@ -232,7 +231,7 @@ errInfo package::inst()
 	{
 		throw;
 	}
-	infoStream << "I:Package installed" << std::endl;
+	infoStream << msgData[MSGI_PAK_INSTALLED] << std::endl;
 	return errInfo();
 }
 
@@ -241,28 +240,28 @@ int package::instScript(bool upgrade)
 	fs::path pakPath = dataPath / name, scriptPath = pakPath / SCRIPT_INST, currentPath = fs::current_path();
 	if (exists(scriptPath))
 	{
-		infoStream << "I:Running installation script for package " << name << std::endl;
+		infoStream << msgData[MSGI_RUNS_INST] << std::endl;
 		scriptPath = fs::system_complete(scriptPath);
 		fs::current_path(localPath);
 		int ret = system(("\"" + scriptPath.string() + "\"").c_str());
 		fs::current_path(currentPath);
 		if (ret != EXIT_SUCCESS)
 			return ret;
-		infoStream << "I:Done" << std::endl;
+		infoStream << msgData[MSGI_DONE] << std::endl;
 	}
 	if (!upgrade)
 	{
 		scriptPath = pakPath / SCRIPT_INIT;
 		if (exists(scriptPath))
 		{
-			infoStream << "I:Running initialization script for package " << name << std::endl;
+			infoStream << msgData[MSGI_RUNS_INIT] << std::endl;
 			scriptPath = fs::system_complete(scriptPath);
 			fs::current_path(localPath);
 			int ret = system(scriptPath.string().c_str());
 			fs::current_path(currentPath);
 			if (ret != EXIT_SUCCESS)
 				return ret;
-			infoStream << "I:Done" << std::endl;
+			infoStream << msgData[MSGI_DONE] << std::endl;
 		}
 	}
 	return 0;
@@ -274,19 +273,19 @@ errInfo package::instFull()
 	pDep = confList.begin();
 	pDepEnd = confList.end();
 	depListTp pakList;
-	infoStream << "I:Checking requirement..." << std::endl;
+	infoStream << msgData[MSGI_CHECK_REQUIREMENT] << std::endl;
 	for (; pDep != pDepEnd; pDep++)
 		if (is_installed(*pDep))
 			pakList.push_back(*pDep);
 	if (!pakList.empty())
 	{
-		infoStream << "W:Conflict Package" << std::endl;
+		infoStream << msgData[MSGW_CONF] << std::endl;
 		while (!pakList.empty())
 		{
 			infoStream << "\t" << pakList.front() << std::endl;
 			pakList.pop_front();
 		}
-		return errInfo("E:Confliction found");
+		return errInfo(msgData[MSGE_CONF]);
 	}
 
 	std::list<package *> depPakList;
@@ -303,7 +302,7 @@ errInfo package::instFull()
 		{
 			package *depPak = find_package(*pDep);
 			if (depPak == NULL)
-				return errInfo(std::string("E:Package not found:") + *pDep);
+				return errInfo(msgData[MSGE_PAK_NOT_FOUND] + ':' + *pDep);
 			depPakList.push_front(depPak);
 			pakQue.push_back(*pDep);
 			pakHash.emplace(*pDep);
@@ -315,7 +314,7 @@ errInfo package::instFull()
 		package *depPak = find_package(pakQue.front());
 		pakQue.pop_front();
 		if (depPak == NULL)
-			return errInfo(std::string("E:Package not found:") + pakQue.front());
+			return errInfo(msgData[MSGE_PAK_NOT_FOUND] + ':' + pakQue.front());
 		pDep = depPak->depList.begin();
 		pDepEnd = depPak->depList.end();
 		for (; pDep != pDepEnd; pDep++)
@@ -330,7 +329,7 @@ errInfo package::instFull()
 	}
 
 	std::list<package *>::iterator depItr, depEnd;
-	infoStream << "I:Will install these packages:" << std::endl;
+	infoStream << msgData[MSGI_WILL_INST_LIST] << std::endl;
 	depItr = depPakList.begin();
 	depEnd = depPakList.end();
 	for (; depItr != depEnd; depItr++)
@@ -338,7 +337,7 @@ errInfo package::instFull()
 	depItr = depPakList.begin();
 	for (; depItr != depEnd; depItr++)
 	{
-		infoStream << "I:Installing package " << (*depItr)->name << std::endl;
+		infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << (*depItr)->name << std::endl;
 		errInfo err = (*depItr)->inst();
 		if (err.err)
 			return err;
@@ -349,21 +348,21 @@ errInfo package::instFull()
 		int ret = (*depItr)->instScript();
 		if (ret != EXIT_SUCCESS)
 		{
-			infoStream << "W:Script exited with code " << ret << ", rolling back" << std::endl;
+			infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
 			std::list<package *>::reverse_iterator rbItr, rbEnd = depPakList.rend();
 			rbItr = depPakList.rbegin();
 			for (; rbItr != rbEnd; rbItr++)
 			{
-				infoStream << "I:Removing package " << (*rbItr)->name << std::endl;
+				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << (*rbItr)->name << std::endl;
 				errInfo err = uninstall((*rbItr)->name);
 				if (err.err)
 					return err;
 			}
-			return errInfo(std::string("E:Script exited with code ") + num2str(ret));
+			return errInfo(msgData[MSGE_RUNS] + num2str(ret));
 		}
 	}
 
-	infoStream << "I:Package(s) installed" << std::endl;
+	infoStream << msgData[MSGI_PAKS_INSTALLED] << std::endl;
 	return errInfo();
 }
 
@@ -389,21 +388,21 @@ bool package::needUpgrade()
 errInfo package::upgrade(bool checked)
 {
 	if (!is_installed(name))
-		return errInfo("E:Package not installed");
+		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
 	if (!checked && !needUpgrade())
-		return errInfo("E:Needn't upgrade");
+		return errInfo(msgData[MSGE_PAK_LATEST]);
 
-	infoStream << "I:Removing..." << std::endl;
+	infoStream << msgData[MSGI_PAK_REMOVING] << std::endl;
 	errInfo err = uninstall(name, true);
 	if (err.err)
 		return err;
-	infoStream << "I:Reinstalling..." << std::endl;
+	infoStream << msgData[MSGI_PAK_REINSTALLING] << std::endl;
 	err = install(name);
 	if (err.err)
 		return err;
 	int ret = instScript(true);
 	if (ret != EXIT_SUCCESS)
-		return errInfo(std::string("E:Script exited with code ") + num2str(ret));
+		return errInfo(msgData[MSGE_RUNS] + num2str(ret));
 	return errInfo();
 }
 
@@ -444,13 +443,13 @@ package* find_package(const std::string &name)
 errInfo install(std::string name)
 {
 	if (is_installed(name))
-		return errInfo(std::string("E:Package already installed"));
+		return errInfo(msgData[MSGE_PAK_INSTALLED]);
 
-	infoStream << "I:Searching package..." << std::endl;
+	infoStream << msgData[MSGI_PAK_SEARCHING] << std::endl;
 	package *pak = find_package(name);
 	if (pak == NULL)
-		return errInfo(std::string("E:Package not found"));
-	infoStream << "I:Package found:" << name << std::endl;
+		return errInfo(msgData[MSGE_PAK_NOT_FOUND]);
+	infoStream << msgData[MSGI_PAK_FOUND] << ':' << name << std::endl;
 	
 	return pak->instFull();
 }
@@ -458,7 +457,7 @@ errInfo install(std::string name)
 errInfo uninstall(std::string name, bool upgrade)
 {
 	if (!is_installed(name))
-		return errInfo(std::string("E:Not installed"));
+		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
 	fs::path pakPath = dataPath / name;
 
 	std::ifstream depIn;
@@ -471,7 +470,7 @@ errInfo uninstall(std::string name, bool upgrade)
 		}
 		else
 		{
-			infoStream << "W:This package is depended by:" << std::endl;
+			infoStream << msgData[MSGW_PAK_BE_DEP] << std::endl;
 			depIn.open((pakPath / FILENAME_BEDEP).string());
 			while (!depIn.eof())
 			{
@@ -479,13 +478,13 @@ errInfo uninstall(std::string name, bool upgrade)
 				infoStream << "\t" << line << std::endl;
 			}
 			depIn.close();
-			return errInfo("E:This package is depended by other package");
+			return errInfo(msgData[MSGE_PAK_BE_DEP]);
 		}
 	}
 
 	{
 		if (!fs::exists(pakPath / FILENAME_DEP))
-			return errInfo("E:Dependence info not found");
+			return errInfo(msgData[MSGE_PAK_DEPINFO_NOT_FOUND]);
 		depIn.open((pakPath / FILENAME_DEP).string());
 		std::list<std::string> bedepTmp;
 		std::string bedepFile;
@@ -534,23 +533,23 @@ errInfo uninstall(std::string name, bool upgrade)
 		scriptPath = pakPath / SCRIPT_PURGE;
 		if (exists(scriptPath))
 		{
-			infoStream << "I:Running purge script" << std::endl;
+			infoStream << msgData[MSGI_RUNS_PURGE] << std::endl;
 			fs::current_path(localPath);
 			int ret = system(scriptPath.string().c_str());
 			if (ret != 0)
-				throw(std::string("E:Purge script exited with code") + num2str(ret));
-			infoStream << "I:Done" << std::endl;
+				return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+			infoStream << msgData[MSGI_DONE] << std::endl;
 		}
 	}
 	scriptPath = pakPath / SCRIPT_REMOVE;
 	if (exists(scriptPath))
 	{
-		infoStream << "I:Running removal script" << std::endl;
+		infoStream << msgData[MSGI_RUNS_REMOVE] << std::endl;
 		fs::current_path(localPath);
 		int ret = system(scriptPath.string().c_str());
 		if (ret != 0)
-			throw(std::string("E:Removal script exited with code") + num2str(ret));
-		infoStream << "I:Done" << std::endl;
+			return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+		infoStream << msgData[MSGI_DONE] << std::endl;
 	}
 	fs::current_path(currentPath);
 
@@ -560,7 +559,7 @@ errInfo uninstall(std::string name, bool upgrade)
 
 	try
 	{
-		infoStream << "I:Deleting files" << std::endl;
+		infoStream << msgData[MSGI_DELETING] << std::endl;
 		while (!logIn.eof())
 		{
 			std::getline(logIn, tmpPath);
@@ -575,7 +574,7 @@ errInfo uninstall(std::string name, bool upgrade)
 	}
 	catch (fs::filesystem_error err)
 	{
-		return errInfo(std::string("E:filesystem:") + err.what());
+		return errInfo(msgData[MSGE_FS] + err.what());
 	}
 	catch (const char* err)
 	{
@@ -585,6 +584,6 @@ errInfo uninstall(std::string name, bool upgrade)
 	{
 		throw;
 	}
-	infoStream << "I:Package removed" << std::endl;
+	infoStream << msgData[MSGI_PAK_REMOVED] << std::endl;
 	return errInfo();
 }

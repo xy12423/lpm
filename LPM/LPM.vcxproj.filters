@@ -45,6 +45,9 @@
     <ClInclude Include="download.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="langn.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

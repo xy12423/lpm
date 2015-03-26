@@ -183,11 +183,11 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 										case Z_MEM_ERROR:
 											return errInfo("E:unzip:Memory overflow");
 										case Z_BUF_ERROR:
-											return errInfo("E:unzip:File Format Error:Buffer not enough");
+											return errInfo("E:unzip:Buffer not enough");
 										case Z_DATA_ERROR:
 											return errInfo("E:unzip:Broken File");
 										default:
-											return errInfo(str2cstr("E:unzip:inflateEnd failed with code " + num2str(err)));
+											return errInfo("E:unzip:inflateEnd failed with code " + num2str(err));
 									}
 								}
 							}
@@ -199,11 +199,11 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 								case Z_MEM_ERROR:
 									return errInfo("E:unzip:Memory overflow");
 								case Z_BUF_ERROR:
-									return errInfo("E:unzip:File Format Error:Buffer not enough");
+									return errInfo("E:unzip:Buffer not enough");
 								case Z_DATA_ERROR:
 									return errInfo("E:unzip:Broken File");
 								default:
-									return errInfo(str2cstr("E:unzip:inflate failed with code " + num2str(err)));
+									return errInfo("E:unzip:inflate failed with code " + num2str(err));
 							}
 						}
 					}

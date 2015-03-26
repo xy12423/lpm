@@ -3,8 +3,11 @@
 #ifndef _H_GLOBAL
 #define _H_GLOBAL
 
-extern boost::filesystem::path localPath, dataPath;
+extern boost::filesystem::path localPath, dataPath, langPath;
 extern std::ostream &infoStream;
+
+#include "langn.h"
+extern std::string msgData[msgCount];
 
 typedef void(*fProgressReportCallback)(double progress);
 extern fProgressReportCallback prCallbackP;

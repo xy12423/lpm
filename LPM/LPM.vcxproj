@@ -164,6 +164,7 @@
     <ClInclude Include="download.h" />
     <ClInclude Include="errInfo.h" />
     <ClInclude Include="global.h" />
+    <ClInclude Include="langn.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="main_GUI.h" />
     <ClInclude Include="package.h" />

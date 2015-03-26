@@ -29,7 +29,6 @@ void source::loadLocal(pakListTp &_pkgList)
 
 errInfo source::loadRemote()
 {
-	CURL *handle = curl_easy_init();
 	dataBuf buf;
 	errInfo err = download(add + "/_index", &buf);
 	if (err.err)
@@ -102,10 +101,10 @@ errInfo source::loadRemote()
 	}
 
 	if (state != 0)
-		return errInfo("E:Incorrect pack info from source");
+		return errInfo(msgData[MSGE_SRCINFO]);
 	loadLocal(newPkgList);
 
-	infoStream << "I:Package List of source " << add << " refreshed" << std::endl;
+	infoStream << msgData[MSGI_SRCINFO_REFED] << ':' << add << std::endl;
 	return errInfo();
 }
 
