@@ -133,7 +133,8 @@ int main(int argc, char* argv[])
 				init();
 				checkPath();
 			}
-			loadDefaultLang();
+			if (!readLang())
+				loadDefaultLang();
 			readSource();
 			prCallbackP = reportProgress;
 			if (cmd == "install")
@@ -195,20 +196,20 @@ int main(int argc, char* argv[])
 				string name = std::string(argv[2]);
 				if (!is_installed(name))
 				{
-					cout << "E:Package not installed" << endl;
+					cout << msgData[MSGE_PAK_NOT_INSTALLED] << endl;
 					return 0;
 				}
 				path scriptPath = dataPath / name / SCRIPT_PURGE;
 				if (exists(scriptPath))
 				{
 					path currentPath = current_path();
-					cout << "I:Running purge script" << endl;
+					cout << msgData[MSGI_RUNS_PURGE] << endl;
 					current_path(localPath);
 					int ret = system(scriptPath.string().c_str());
 					if (ret != 0)
-						cout << "E:Installation script exited with code" << num2str(ret) << endl;
+						cout << msgData[MSGE_RUNS] << num2str(ret) << endl;
 					else
-						cout << "I:Done" << endl;
+						cout << msgData[MSGI_DONE] << endl;
 					current_path(currentPath);
 				}
 			}
@@ -227,7 +228,7 @@ int main(int argc, char* argv[])
 					package *pkg = find_package(name);
 					if (pkg == NULL)
 					{
-						cout << "E:Package not found" << endl;
+						cout << msgData[MSGE_PAK_NOT_FOUND] << endl;
 						return 0;
 					}
 					printInfo(pkg);
@@ -348,13 +349,13 @@ int main(int argc, char* argv[])
 				}
 				writeSource();
 				if (found)
-					cout << "I:Deleted" << endl;
+					cout << msgData[MSGI_DELETED] << endl;
 				else
 					cout << "E:Source not found" << endl;
 			}
 			else
 			{
-				cout << "E:Command incorrect" << endl;
+				printUsage();
 			}
 		}
 	}

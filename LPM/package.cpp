@@ -288,10 +288,12 @@ errInfo package::instFull()
 		return errInfo(msgData[MSGE_CONF]);
 	}
 
-	std::list<package *> depPakList;
+	std::list<package *> instList;
 	depListTp pakQue;
 	depMapTp pakHash;
-	depPakList.push_front(this);
+	depMapTp::const_iterator pakHashEnd = pakHash.cend();
+	depListTp::const_iterator pConf, pConfEnd;
+	instList.push_front(this);
 	pakHash.emplace(name);
 
 	pDep = depList.begin();
@@ -303,7 +305,12 @@ errInfo package::instFull()
 			package *depPak = find_package(*pDep);
 			if (depPak == NULL)
 				return errInfo(msgData[MSGE_PAK_NOT_FOUND] + ':' + *pDep);
-			depPakList.push_front(depPak);
+			pConf = depPak->confList.cbegin();
+			pConfEnd = depPak->confList.cend();
+			for (; pConf != pConfEnd; pConf++)
+				if (is_installed(*pConf) || (pakHash.find(*pConf) != pakHashEnd))
+					return errInfo(msgData[MSGE_CONF] + ':' + depPak->name + "<->" + *pConf);
+			instList.push_front(depPak);
 			pakQue.push_back(*pDep);
 			pakHash.emplace(*pDep);
 		}
@@ -321,36 +328,41 @@ errInfo package::instFull()
 		{
 			if (is_installed(*pDep) == false && pakHash.find(*pDep) != pakHash.end())
 			{
-				depPakList.push_front(depPak);
+				pConf = depPak->confList.cbegin();
+				pConfEnd = depPak->confList.cend();
+				for (; pConf != pConfEnd; pConf++)
+					if (is_installed(*pConf) || (pakHash.find(*pConf) != pakHashEnd))
+						return errInfo(msgData[MSGE_CONF] + ':' + depPak->name + "<->" + *pConf);
+				instList.push_front(depPak);
 				pakQue.push_back(*pDep);
 				pakHash.emplace(*pDep);
 			}
 		}
 	}
 
-	std::list<package *>::iterator depItr, depEnd;
+	std::list<package *>::iterator instItr, instEnd;
 	infoStream << msgData[MSGI_WILL_INST_LIST] << std::endl;
-	depItr = depPakList.begin();
-	depEnd = depPakList.end();
-	for (; depItr != depEnd; depItr++)
-		infoStream << "\t" << (*depItr)->name << std::endl;
-	depItr = depPakList.begin();
-	for (; depItr != depEnd; depItr++)
+	instItr = instList.begin();
+	instEnd = instList.end();
+	for (; instItr != instEnd; instItr++)
+		infoStream << "\t" << (*instItr)->name << std::endl;
+	instItr = instList.begin();
+	for (; instItr != instEnd; instItr++)
 	{
-		infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << (*depItr)->name << std::endl;
-		errInfo err = (*depItr)->inst();
+		infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << (*instItr)->name << std::endl;
+		errInfo err = (*instItr)->inst();
 		if (err.err)
 			return err;
 	}
-	depItr = depPakList.begin();
-	for (; depItr != depEnd; depItr++)
+	instItr = instList.begin();
+	for (; instItr != instEnd; instItr++)
 	{
-		int ret = (*depItr)->instScript();
+		int ret = (*instItr)->instScript();
 		if (ret != EXIT_SUCCESS)
 		{
 			infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
-			std::list<package *>::reverse_iterator rbItr, rbEnd = depPakList.rend();
-			rbItr = depPakList.rbegin();
+			std::list<package *>::reverse_iterator rbItr, rbEnd = instList.rend();
+			rbItr = instList.rbegin();
 			for (; rbItr != rbEnd; rbItr++)
 			{
 				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << (*rbItr)->name << std::endl;

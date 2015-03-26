@@ -366,10 +366,15 @@ void mainFrame::buttonAddPak_Click(wxCommandEvent& event)
 	wxArrayInt::iterator pItr, pEnd = sel.end();
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 	{
-		infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << pakList[*pItr]->getName() << std::endl;
-		errInfo err = pakList[*pItr]->instFull();
-		if (err.err)
-			infoStream << err.info << std::endl;
+		if (is_installed(pakList[*pItr]->getName()))
+			infoStream << msgData[MSGE_PAK_INSTALLED] << ':' << pakList[*pItr]->getName() << std::endl;
+		else
+		{
+			infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << pakList[*pItr]->getName() << std::endl;
+			errInfo err = pakList[*pItr]->instFull();
+			if (err.err)
+				infoStream << err.info << std::endl;
+		}
 	}
 	if (checkInst->GetValue())
 		refreshPakList();
