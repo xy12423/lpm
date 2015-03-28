@@ -31,7 +31,7 @@ wxEND_EVENT_TABLE()
 #define _GUI_SIZE_Y 640
 #else
 #define _GUI_GAP 0
-#define _GUI_SIZE_X 600
+#define _GUI_SIZE_X 620
 #define _GUI_SIZE_Y 600
 #endif
 
