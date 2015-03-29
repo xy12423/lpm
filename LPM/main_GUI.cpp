@@ -146,7 +146,7 @@ void getPakList(source *src, pakListTp &ret)
 mainFrame::mainFrame(const wxString& title)
 	: wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(_GUI_SIZE_X, _GUI_SIZE_Y))
 {
-	Centre();
+	Center();
 	panel = new wxPanel(this);
 	
 	staticSrc = new wxStaticBox(panel, ID_STATICSRC,
@@ -317,7 +317,7 @@ void mainFrame::buttonDelSrc_Click(wxCommandEvent& event)
 	for (; srcIndex > 0; srcIndex--)
 		pItr++;
 	sourceList.erase(pItr);
-	listSrc->Delete(srcIndex + 1);
+	listSrc->Delete(srcIndex);
 	refreshPakList();
 	writeSource();
 }
