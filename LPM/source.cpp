@@ -1,23 +1,22 @@
 #include "stdafx.h"
 #include "package.h"
 #include "source.h"
+#include "download.h"
 
-std::vector<source*> sourceList;
+srcListTp sourceList;
 
-size_t write_data_src(void *buffer, size_t size, size_t nmemb, void *userp)
-{
-	std::string *myBuf = static_cast<std::string*>(userp);
-	char *dataBuf = static_cast<char*>(buffer);
-	size_t sizeAll = size * nmemb;
-	for (size_t i = 0; i < sizeAll; i++)
-	{
-		myBuf->push_back(*dataBuf);
-		dataBuf++;
-	}
-	return sizeAll;
-}
+enum src_lineN{
+	LINE_FNAME,
+	LINE_NAME,
+	LINE_VER,
+	LINE_AUTHOR,
+	LINE_INFO,
+	LINE_DEP,
+	LINE_CONF,
+	LINE_END
+};
 
-void source::loadLocal(std::vector<package*> &_pkgList)
+void source::loadLocal(pakListTp &_pkgList)
 {
 	pkgMap.clear(); 
 	std::for_each(pkgList.begin(), pkgList.end(), [this](package* arg){
@@ -32,28 +31,16 @@ void source::loadLocal(std::vector<package*> &_pkgList)
 
 errInfo source::loadRemote()
 {
-	CURL *handle = curl_easy_init();
-	char *addCStr = str2cstr(add + "/_index");
-	std::string buf;
-	char *errBuf = new char[2048];
-	curl_easy_setopt(handle, CURLOPT_URL, addCStr);
-	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_data_src);
-	curl_easy_setopt(handle, CURLOPT_WRITEDATA, &buf);
-	curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errBuf);
-	infoStream << "I:Connecting" << std::endl;
-	CURLcode success = curl_easy_perform(handle);
-	if (success != CURLcode::CURLE_OK)
-	{
-		return errInfo(std::string("E:network:") + errBuf);
-	}
-	curl_easy_cleanup(handle);
-	infoStream << "I:Data downloaded" << std::endl;
+	dataBuf buf;
+	errInfo err = download(add + "/_index", &buf);
+	if (err.err)
+		return err;
 
-	std::vector<package*> newPkgList;
+	pakListTp newPkgList;
 
-	std::string::const_iterator p, pEnd = buf.cend();
+	dataBuf::const_iterator p, pEnd = buf.cend();
 	std::string::const_iterator p2, pEnd2;
-	std::string data[6];
+	std::string data[LINE_END];
 	int state = 0;
 	for (p = buf.cbegin(); p != pEnd;)
 	{
@@ -66,45 +53,14 @@ errInfo source::loadRemote()
 				p++;
 				
 				state++;
-				if (state == 6)
+				if (state == LINE_END)
 				{
-					version ver;
+					version ver(data[LINE_VER]);
 					pakExtInfo extInfo;
 					depListTp depList, confList;
 
-					p2 = data[1].cbegin();
-					pEnd2 = data[1].cend();
-					for (; p2 != pEnd2; p2++)
-					{
-						if (*p2 == '.')
-						{
-							p2++;
-							break;
-						}
-						if (!isdigit(*p2))
-							return errInfo(std::string("E:") + "Invalid version on pack " + data[0]);
-						ver.major = ver.major * 10 + static_cast<UINT>((*p2) - '0');
-					}
-					for (; p2 != pEnd2; p2++)
-					{
-						if (*p2 == '.')
-						{
-							p2++;
-							break;
-						}
-						if (!isdigit(*p2))
-							return errInfo(std::string("E:") + "Invalid version on pack " + data[0]);
-						ver.minor = ver.minor * 10 + static_cast<UINT>((*p2) - '0');
-					}
-					for (; p2 != pEnd2; p2++)
-					{
-						if (!isdigit(*p2))
-							return errInfo(std::string("E:") + "Invalid version on pack " + data[0]);
-						ver.revision = ver.revision * 10 + static_cast<UINT>((*p2) - '0');
-					}
-
 					std::string name;
-					for (p2 = data[4].cbegin(), pEnd2 = data[4].cend(); p2 != pEnd2; p2++)
+					for (p2 = data[LINE_DEP].cbegin(), pEnd2 = data[LINE_DEP].cend(); p2 != pEnd2; p2++)
 					{
 						if (*p2 == ';')
 						{
@@ -118,7 +74,7 @@ errInfo source::loadRemote()
 						depList.push_back(name);
 					name.clear();
 
-					for (p2 = data[5].cbegin(), pEnd2 = data[5].cend(); p2 != pEnd2; p2++)
+					for (p2 = data[LINE_CONF].cbegin(), pEnd2 = data[LINE_CONF].cend(); p2 != pEnd2; p2++)
 					{
 						if (*p2 == ';')
 						{
@@ -132,9 +88,9 @@ errInfo source::loadRemote()
 						confList.push_back(name);
 					name.clear();
 
-					newPkgList.push_back(new package(add, data[0], ver, depList, confList, pakExtInfo(data[2], data[3])));
+					newPkgList.push_back(new package(add, data[LINE_NAME], ver, depList, confList, pakExtInfo(data[LINE_FNAME], data[LINE_AUTHOR], data[LINE_INFO])));
 
-					for (int i = 0; i < 6; i++)
+					for (int i = 0; i < LINE_END; i++)
 						data[i].clear();
 					state = 0;
 				}
@@ -147,10 +103,10 @@ errInfo source::loadRemote()
 	}
 
 	if (state != 0)
-		return errInfo(std::string("E:") + "Incorrect pack info from source");
+		return errInfo(msgData[MSGE_SRCINFO]);
 	loadLocal(newPkgList);
 
-	infoStream << "I:Package List of source" << add << "refreshed" << std::endl;
+	infoStream << msgData[MSGI_SRCINFO_REFED] << ':' << add << std::endl;
 	return errInfo();
 }
 
@@ -160,4 +116,19 @@ package* source::find_package(std::string name)
 	if (p == pkgMap.end())
 		return NULL;
 	return pkgList[p->second];
+}
+
+errInfo source::upgradeAll()
+{
+	pakListTp::const_iterator p = pkgList.cbegin(), pEnd = pkgList.cend();
+	for (; p != pEnd; p++)
+	{
+		if (is_installed((*p)->getName()) && (*p)->needUpgrade())
+		{
+			errInfo err = (*p)->upgrade(true);
+			if (err.err)
+				return err;
+		}
+	}
+	return errInfo();
 }

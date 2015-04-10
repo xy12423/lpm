@@ -8,8 +8,10 @@
 
 # Build results
 [Dd]ebug/
+[Dd]ebug_GUI/
 [Dd]ebugPublic/
 [Rr]elease/
+[Rr]elease_GUI/
 x64/
 build/
 bld/
@@ -189,3 +191,6 @@ _Pvt_Extensions/
 ModelManifest.xml
 /LPM/.config
 /LPM/.source
+/LPM/local
+/LPM/data
+

@@ -1,23 +1,23 @@
 #include "stdafx.h"
 #include "unzip.h"
 
-#define skip(n)	for (i = 0; i < n; i++)                 \
+#define skip(n)	for (i = 0; i < (n); i++)                 \
 				{                                       \
 					dataBegin++;                        \
 					if (dataBegin == dataEnd)           \
-						return errInfo("E:unzip:Broken File");  \
+						return errInfo(msgData[MSGE_UNZIP_BROKEN]);  \
 				}
 #define readUINT(var)	for (i = 0; i < 4; i++)                                          \
 						{                                                                \
 							if (dataBegin == dataEnd)                                    \
-								return errInfo("E:unzip:Broken File");                           \
+								return errInfo(msgData[MSGE_UNZIP_BROKEN]);                           \
 							var = (var >> 8) | (static_cast<UINT>(*dataBegin) << 24);    \
 							dataBegin++;                                                 \
 						}
 #define readBYTE(var)	for (i = 0; i < 2; i++)                                          \
 						{                                                                \
 							if (dataBegin == dataEnd)                                    \
-								return errInfo("E:unzip:Broken File");                           \
+								return errInfo(msgData[MSGE_UNZIP_BROKEN]);                           \
 							var = (var >> 8) | (static_cast<UINT>(*dataBegin) << 8);     \
 							dataBegin++;                                                 \
 						}
@@ -26,6 +26,31 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 {
 	UINT i;
 	std::ofstream fout;
+	ULONGLONG sizeAll = 0, sizeInflated = 0;
+	double progress = 0;
+	if (prCallbackP != NULL)
+	{
+		dataBuf::const_iterator dataPtr = dataBegin;
+		(*prCallbackP)(0);
+		while (dataBegin != dataEnd)
+		{
+			UINT head = 0;
+			readUINT(head);
+			if (head != 0x04034b50)
+				break;
+			skip(14);
+			UINT fileSize, fileOriginSize;
+			readUINT(fileSize);
+			readUINT(fileOriginSize);
+			sizeAll += fileOriginSize;
+			USHORT nameLen, extLen;
+			readBYTE(nameLen);
+			readBYTE(extLen);
+			ULONGLONG skipLen = static_cast<ULONGLONG>(fileSize) + nameLen + extLen;
+			skip(skipLen);
+		}
+		dataBegin = dataPtr;
+	}
 	while (dataBegin != dataEnd)
 	{
 		UINT head = 0;
@@ -46,7 +71,7 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 		for (i = 0; i < nameLen; i++)
 		{
 			if (dataBegin == dataEnd)
-				return errInfo("E:unzip:Broken File");
+				return errInfo(msgData[MSGE_UNZIP_BROKEN]);
 			name.push_back(*dataBegin);
 			dataBegin++;
 		}
@@ -63,15 +88,38 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 			switch (compMethod)
 			{
 				case 0:
-					for (i = 0; i < fileSize; i++)
+					if (prCallbackP != NULL)	//Need report
 					{
-						if (dataBegin == dataEnd)
-							return errInfo("E:unzip:Broken File");
-						fout.put(*dataBegin);
-						dataBegin++;
+						for (i = 0; i < fileSize; i++)
+						{
+							if (dataBegin == dataEnd)
+								return errInfo(msgData[MSGE_UNZIP_BROKEN]);
+							fout.put(*dataBegin);
+							dataBegin++;
+							sizeInflated += 1;
+							if ((i & 0xFF) == 0)
+							{
+								progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
+								(*prCallbackP)(progress);
+							}
+						}
+						progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
+						(*prCallbackP)(progress);
+					}
+					else
+					{
+						for (i = 0; i < fileSize; i++)
+						{
+							if (dataBegin == dataEnd)
+								return errInfo(msgData[MSGE_UNZIP_BROKEN]);
+							fout.put(*dataBegin);
+							dataBegin++;
+						}
 					}
 					break;
 				case 8:
+					const int blockSize = 0x10000000;
+
 					BYTE *dataBuf = new BYTE[fileSize];
 					BYTE *ptr = dataBuf;
 					for (i = 0; i < fileSize; i++)
@@ -79,16 +127,12 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 						if (dataBegin == dataEnd)
 						{
 							delete[] dataBuf;
-							return errInfo("E:unzip:Broken File");
+							return errInfo(msgData[MSGE_UNZIP_BROKEN]);
 						}
 						*ptr = *dataBegin;
 						ptr++;
 						dataBegin++;
 					}
-
-					const int blockSize = 0x10000000;
-					
-					BYTE *fileBuf = new BYTE[blockSize];
 
 					z_stream zstream;
 					zstream.zalloc = static_cast<alloc_func>(Z_NULL);
@@ -98,11 +142,15 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 					zstream.avail_in = 0;
 					int err = inflateInit2(&zstream, -8);
 					if (err != Z_OK)
-						return errInfo("E:unzip:inflateInit2 failed with code " + num2str(err));
+					{
+						delete[] dataBuf;
+						return errInfo(msgData[MSGE_UNZIP_INFLATEINIT] + num2str(err));
+					}
 					zstream.next_in = dataBuf;
 					zstream.avail_in = fileSize;
+					BYTE *fileBuf = new BYTE[blockSize];
 					zstream.next_out = fileBuf;
-					zstream.avail_out = fileOriginSize;
+					zstream.avail_out = blockSize;
 
 					while (true)
 					{
@@ -112,10 +160,17 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 						if (err == Z_OK || err == Z_STREAM_END)
 						{
 							ptr = fileBuf;
-							for (i = 0; i < blockSize - zstream.avail_out; i++)
+							UINT inflatedSize = blockSize - zstream.avail_out;
+							for (i = 0; i < inflatedSize; i++)
 							{
 								fout.put(*ptr);
 								ptr++;
+							}
+							if (prCallbackP != NULL)
+							{
+								sizeInflated += inflatedSize;
+								progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
+								(*prCallbackP)(progress);
 							}
 							if (err == Z_STREAM_END || (err == Z_OK && zstream.avail_in == 0))
 							{
@@ -126,13 +181,13 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 									switch (err)
 									{
 										case Z_MEM_ERROR:
-											return errInfo("E:unzip:Memory overflow");
+											return errInfo(msgData[MSGE_UNZIP_MEM_OVERFLOW]);
 										case Z_BUF_ERROR:
-											return errInfo("E:unzip:File Format Error:Buffer not enough");
+											return errInfo(msgData[MSGE_UNZIP_BUF_OVERFLOW]);
 										case Z_DATA_ERROR:
-											return errInfo("E:unzip:Broken File");
+											return errInfo(msgData[MSGE_UNZIP_BROKEN]);
 										default:
-											return errInfo(str2cstr("E:unzip:inflateEnd failed with code " + num2str(err)));
+											return errInfo(msgData[MSGE_UNZIP_INFLATEEND] + num2str(err));
 									}
 								}
 							}
@@ -142,13 +197,13 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 							switch (err)
 							{
 								case Z_MEM_ERROR:
-									return errInfo("E:unzip:Memory overflow");
+									return errInfo(msgData[MSGE_UNZIP_MEM_OVERFLOW]);
 								case Z_BUF_ERROR:
-									return errInfo("E:unzip:File Format Error:Buffer not enough");
+									return errInfo(msgData[MSGE_UNZIP_BUF_OVERFLOW]);
 								case Z_DATA_ERROR:
-									return errInfo("E:unzip:Broken File");
+									return errInfo(msgData[MSGE_UNZIP_BROKEN]);
 								default:
-									return errInfo(str2cstr("E:unzip:inflate failed with code " + num2str(err)));
+									return errInfo(msgData[MSGE_UNZIP_INFLATE] + num2str(err));
 							}
 						}
 					}

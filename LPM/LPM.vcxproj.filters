@@ -33,7 +33,19 @@
     <ClInclude Include="errInfo.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="globalVar.h">
+    <ClInclude Include="main.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="main_GUI.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="global.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="download.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="langn.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -53,10 +65,19 @@
     <ClCompile Include="errInfo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="LPM.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="globalVar.cpp">
+    <ClCompile Include="main_GUI.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main_CLI.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="global.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="download.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -7,12 +7,18 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LPM", "LPM\LPM.vcxproj", "{
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug_GUI|Win32 = Debug_GUI|Win32
 		Debug|Win32 = Debug|Win32
+		Release_GUI|Win32 = Release_GUI|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2C9E2CC5-D777-4B21-A2CC-8102A966C72D}.Debug_GUI|Win32.ActiveCfg = Debug_GUI|Win32
+		{2C9E2CC5-D777-4B21-A2CC-8102A966C72D}.Debug_GUI|Win32.Build.0 = Debug_GUI|Win32
 		{2C9E2CC5-D777-4B21-A2CC-8102A966C72D}.Debug|Win32.ActiveCfg = Debug|Win32
 		{2C9E2CC5-D777-4B21-A2CC-8102A966C72D}.Debug|Win32.Build.0 = Debug|Win32
+		{2C9E2CC5-D777-4B21-A2CC-8102A966C72D}.Release_GUI|Win32.ActiveCfg = Release_GUI|Win32
+		{2C9E2CC5-D777-4B21-A2CC-8102A966C72D}.Release_GUI|Win32.Build.0 = Release_GUI|Win32
 		{2C9E2CC5-D777-4B21-A2CC-8102A966C72D}.Release|Win32.ActiveCfg = Release|Win32
 		{2C9E2CC5-D777-4B21-A2CC-8102A966C72D}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
