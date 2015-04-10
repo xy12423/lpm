@@ -5,14 +5,16 @@
 
 srcListTp sourceList;
 
-const int LINE_FNAME = 0;
-const int LINE_NAME = 1;
-const int LINE_VER = 2;
-const int LINE_AUTHOR = 3;
-const int LINE_INFO = 4;
-const int LINE_DEP = 5;
-const int LINE_CONF = 6;
-const int LINE_END = 7;
+enum src_lineN{
+	LINE_FNAME,
+	LINE_NAME,
+	LINE_VER,
+	LINE_AUTHOR,
+	LINE_INFO,
+	LINE_DEP,
+	LINE_CONF,
+	LINE_END
+};
 
 void source::loadLocal(pakListTp &_pkgList)
 {

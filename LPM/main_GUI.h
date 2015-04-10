@@ -1,6 +1,6 @@
 #pragma once
 
-#ifndef _H_MAIN_GUI
+#if (!defined _H_MAIN_GUI) && (defined _LPM_GUI)
 #define _H_MAIN_GUI
 
 class mainFrame : public wxFrame
