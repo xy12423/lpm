@@ -62,6 +62,15 @@ mainFrame *form;
 std::streambuf *coutBuf = std::cout.rdbuf();
 int pakMask;
 
+std::string lcase(const std::string &str)
+{
+	std::string ret;
+	std::for_each(str.begin(), str.end(), [&ret](char ch){
+		ret.push_back(tolower(ch));
+	});
+	return ret;
+}
+
 void loadDefaultGUILang()
 {
 	for (int i = 0; i < guiStrCount; i++)
@@ -271,10 +280,9 @@ void mainFrame::refreshPakList()
 	pakListTp::iterator itrPak = pakList.begin(), itrPakEnd = pakList.end();
 	std::string maskName = textSearch->GetLineText(0);
 	bool enableSearch = !maskName.empty();
-	for (std::string name; itrPak != itrPakEnd;)
+	for (; itrPak != itrPakEnd;)
 	{
-		name = (*itrPak)->getName();
-		if ((getState(name) & pakMask) != pakMask || (enableSearch && name.find(maskName) == std::string::npos))
+		if ((getState((*itrPak)->getName()) & pakMask) != pakMask || (enableSearch && lcase((*itrPak)->getExtInfo().fname).find(lcase(maskName)) == std::string::npos))
 		{
 			itrPak = pakList.erase(itrPak);
 			itrPakEnd = pakList.end();

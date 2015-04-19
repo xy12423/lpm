@@ -189,25 +189,6 @@ errInfo package::inst()
 			fs::remove_all(tmpPath);
 		return errInfo(msgData[MSGE_FS] + err.what());
 	}
-	catch (const char* err)
-	{
-		if (flag3)
-		{
-			std::ifstream infIn((pakPath / FILENAME_INST).string());
-			std::string tmpPath;
-			while (!infIn.eof())
-			{
-				std::getline(infIn, tmpPath);
-				if (!tmpPath.empty())
-					fs::remove(tmpPath);
-			}
-		}
-		if (flag2)
-			fs::remove_all(pakPath);
-		if (flag1)
-			fs::remove_all(tmpPath);
-		return errInfo(err);
-	}
 	catch (std::string err)
 	{
 		if (flag3)
@@ -226,6 +207,25 @@ errInfo package::inst()
 		if (flag1)
 			fs::remove_all(tmpPath);
 		return errInfo(err);
+	}
+	catch (std::exception ex)
+	{
+		if (flag3)
+		{
+			std::ifstream infIn((pakPath / FILENAME_INST).string());
+			std::string tmpPath;
+			while (!infIn.eof())
+			{
+				std::getline(infIn, tmpPath);
+				if (!tmpPath.empty())
+					fs::remove(tmpPath);
+			}
+		}
+		if (flag2)
+			fs::remove_all(pakPath);
+		if (flag1)
+			fs::remove_all(tmpPath);
+		return errInfo(ex.what());
 	}
 	catch (...)
 	{
@@ -274,6 +274,7 @@ errInfo package::instFull()
 	pDepEnd = confList.end();
 	depListTp pakList;
 	infoStream << msgData[MSGI_CHECK_REQUIREMENT] << std::endl;
+	//Check Confliction
 	for (; pDep != pDepEnd; pDep++)
 		if (is_installed(*pDep))
 			pakList.push_back(*pDep);
@@ -288,6 +289,7 @@ errInfo package::instFull()
 		return errInfo(msgData[MSGE_CONF]);
 	}
 
+	//Check dependence:init
 	std::list<package *> instList;
 	depListTp pakQue;
 	depMapTp pakHash;
@@ -316,6 +318,7 @@ errInfo package::instFull()
 		}
 	}
 
+	//Check dependence:BFS
 	while (!pakQue.empty())
 	{
 		package *depPak = find_package(pakQue.front());
@@ -340,6 +343,7 @@ errInfo package::instFull()
 		}
 	}
 
+	//Install Packages
 	std::list<package *>::iterator instItr, instEnd;
 	infoStream << msgData[MSGI_WILL_INST_LIST] << std::endl;
 	instItr = instList.begin();
@@ -354,6 +358,7 @@ errInfo package::instFull()
 		if (err.err)
 			return err;
 	}
+	//Run scripts
 	instItr = instList.begin();
 	for (; instItr != instEnd; instItr++)
 	{
