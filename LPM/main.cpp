@@ -128,7 +128,7 @@ void writeSource()
 	foutCfg << sourceList.size() << std::endl;
 	srcListTp::const_iterator p, pEnd = sourceList.cend();
 	pakListTp::const_iterator pP, pPEnd;
-	depListTp::const_iterator pD, pDEnd;
+	depListTp::iterator pD, pDEnd;
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
 		foutCfg << (*p)->add << std::endl;
@@ -141,13 +141,13 @@ void writeSource()
 			foutCfg << (*pP)->depList.size() << ' ' << (*pP)->confList.size() << std::endl;
 			foutCfg << (*pP)->extInfo.fname << std::endl << (*pP)->extInfo.author << std::endl << (*pP)->extInfo.info << std::endl;
 
-			for (pD = (*pP)->depList.cbegin(), pDEnd = (*pP)->depList.cend(); pD != pDEnd; pD++)
+			for (pD = (*pP)->depList.begin(), pDEnd = (*pP)->depList.end(); pD != pDEnd; pD++)
 			{
-				foutCfg << *pD << std::endl;
+				foutCfg << pD->fullStr() << std::endl;
 			}
-			for (pD = (*pP)->confList.cbegin(), pDEnd = (*pP)->confList.cend(); pD != pDEnd; pD++)
+			for (pD = (*pP)->confList.begin(), pDEnd = (*pP)->confList.end(); pD != pDEnd; pD++)
 			{
-				foutCfg << *pD << std::endl;
+				foutCfg << pD->fullStr() << std::endl;
 			}
 		}
 	}

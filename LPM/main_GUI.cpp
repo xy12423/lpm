@@ -109,12 +109,12 @@ void printInfo(package *pkg)
 	sstream << "Author:" << pkg->extInfo.author << std::endl;
 	sstream << "Version:" << pkg->ver.major << '.' << pkg->ver.minor << '.' << pkg->ver.revision << std::endl;
 	sstream << "Required:";
-	std::for_each(pkg->depList.begin(), pkg->depList.end(), [&sstream](std::string pkgName){
-		sstream << pkgName << ';';
+	std::for_each(pkg->depList.begin(), pkg->depList.end(), [&sstream](depInfo dpInf){
+		sstream << dpInf.fullStr() << ';';
 	});
 	sstream << std::endl << "Conflict:";
-	std::for_each(pkg->confList.begin(), pkg->confList.end(), [&sstream](std::string pkgName){
-		sstream << pkgName << ';';
+	std::for_each(pkg->confList.begin(), pkg->confList.end(), [&sstream](depInfo dpInf){
+		sstream << dpInf.fullStr() << ';';
 	});
 	sstream << std::endl;
 	sstream << "Is installed:";

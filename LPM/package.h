@@ -20,14 +20,31 @@ struct version
 	version(const std::string &str);
 	UINT major;
 	USHORT minor, revision;
+	std::string toStr(){ return num2str(major) + '.' + num2str(minor) + '.' + num2str(revision); };
 	friend inline bool operator>(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? false : a.revision > b.revision) : a.minor > b.minor) : a.major > b.major; };
 	friend inline bool operator>=(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? true : a.revision > b.revision) : a.minor > b.minor) : a.major > b.major; };
 	friend inline bool operator<(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? false : a.revision < b.revision) : a.minor < b.minor) : a.major < b.major; };
 	friend inline bool operator<=(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? true : a.revision < b.revision) : a.minor < b.minor) : a.major < b.major; };
+	friend inline bool operator==(const version &a, const version &b){ return a.major == b.major && a.minor == b.minor && a.revision == b.revision; };
+	friend inline bool operator!=(const version &a, const version &b){ return a.major != b.major || a.minor != b.minor || a.revision != b.revision; };
 };
 
-typedef std::list<std::string> depListTp;
-typedef std::unordered_set<std::string> depMapTp;
+struct depInfo
+{
+	enum verCon{ NOCON, BIGGER, BIGEQU, LESS, LESEQU, EQU, NEQU };
+	depInfo(){ con = NOCON; };
+	depInfo(const std::string &_name, version _ver, verCon _con){ name = _name; ver = _ver; con = _con; };
+	depInfo(const std::string &_str);
+	std::string name;
+	version ver;
+	verCon con;
+	std::string fullStr();
+	bool check(version _ver);
+	bool check();
+
+	friend inline depInfo operator~(const depInfo &a);
+};
+typedef std::list<depInfo> depListTp;
 
 class package
 {
@@ -56,7 +73,9 @@ private:
 };
 
 package* find_package(const std::string &name);
-bool is_installed(std::string name);
+package* find_package(const std::string &name, depListTp *con);
+bool is_installed(const std::string &name);
+version cur_version(const std::string &name);
 errInfo install(std::string name);
 errInfo uninstall(std::string name, bool upgrade = false);
 

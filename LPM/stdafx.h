@@ -13,6 +13,8 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <algorithm>
+#include <memory>
+#include <exception>
 
 #include <boost/filesystem.hpp>
 #include <curl/curl.h>

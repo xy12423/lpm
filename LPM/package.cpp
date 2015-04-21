@@ -83,6 +83,138 @@ version::version(const std::string &str)
 	}
 }
 
+depInfo::depInfo(const std::string &str)
+{
+	std::string::const_reverse_iterator itr = str.crbegin(), itrEnd = str.crend(), itrP;
+	for (; itr != itrEnd && *itr != ':'; itr++);
+	if (itr == itrEnd)
+	{
+		name = str;
+		con = NOCON;
+		return;
+	}
+	itrP = itr;
+	itrP++;
+	while (itrP != itrEnd)
+	{
+		name = *itrP + name;
+		itrP++;
+	}
+	itrEnd = str.crbegin();
+	itr--;
+	switch (*itr)
+	{
+		case '>':
+			itr--;
+			if (*itr == '=')
+				con = BIGEQU;
+			else
+			{
+				itr++;
+				con = BIGGER;
+			}
+			break;
+		case '<':
+			itr--;
+			if (*itr == '=')
+				con = LESEQU;
+			else
+			{
+				itr++;
+				con = LESS;
+			}
+			break;
+		case '=':
+			con = EQU;
+			break;
+		case '!':
+			con = NEQU;
+			break;
+		default:
+			con = EQU;
+			itr++;
+	}
+	std::string verStr;
+	do
+	{
+		itr--;
+		verStr.push_back(*itr);
+	}
+	while (itr != itrEnd);
+	ver = version(verStr);
+}
+
+std::string depInfo::fullStr()
+{
+	static const std::string conStrT[] = {
+		"",
+		">",
+		">=",
+		"<",
+		"<=",
+		"=",
+		"!"
+	};
+	return name + (con == NOCON ? "" : ':' + conStrT[con] + ver.toStr());
+}
+
+bool depInfo::check(version _ver)
+{
+	if (con == NOCON)
+		return is_installed(name);
+	switch (con)
+	{
+		case BIGGER:
+			return _ver > ver;
+		case BIGEQU:
+			return _ver >= ver;
+		case LESS:
+			return _ver < ver;
+		case LESEQU:
+			return _ver <= ver;
+		case EQU:
+			return _ver == ver;
+		case NEQU:
+			return _ver != ver;
+		default:
+			return false;
+	}
+}
+
+bool depInfo::check()
+{
+	if (!is_installed(name))
+		return false;
+	return check(cur_version(name));
+}
+
+inline depInfo operator~(const depInfo &a)
+{
+	depInfo b = a;
+	switch (a.con)
+	{
+		case depInfo::BIGGER:
+			b.con = depInfo::LESEQU;
+			break;
+		case depInfo::BIGEQU:
+			b.con = depInfo::LESS;
+			break;
+		case depInfo::LESS:
+			b.con = depInfo::BIGEQU;
+			break;
+		case depInfo::LESEQU:
+			b.con = depInfo::BIGGER;
+			break;
+		case depInfo::EQU:
+			b.con = depInfo::NEQU;
+			break;
+		case depInfo::NEQU:
+			b.con = depInfo::EQU;
+			break;
+	}
+	return b;
+}
+
 package::package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo)
 {
 	source = _source;
@@ -140,12 +272,12 @@ errInfo package::inst()
 		infOut << extInfo.info << std::endl;
 		infOut << extInfo.author << std::endl;
 		infOut << ver.major << '.' << ver.minor << '.' << ver.revision << std::endl;
-		std::for_each(depList.begin(), depList.end(), [this, &infOut](std::string pkgName){
-			infOut << pkgName << ';';
+		std::for_each(depList.begin(), depList.end(), [this, &infOut](depInfo dpInf){
+			infOut << dpInf.fullStr() << ';';
 		});
 		infOut << std::endl;
-		std::for_each(confList.begin(), confList.end(), [this, &infOut](std::string pkgName){
-			infOut << pkgName << ';';
+		std::for_each(confList.begin(), confList.end(), [this, &infOut](depInfo dpInf){
+			infOut << dpInf.fullStr() << ';';
 		});
 		infOut << std::endl;
 		infOut.close();
@@ -154,14 +286,14 @@ errInfo package::inst()
 		std::ofstream depOut;
 		for (; pDep != pDepEnd; pDep++)
 		{
-			depOut.open((dataPath / *pDep / FILENAME_BEDEP).string(), std::ios::out | std::ios::app);
+			depOut.open((dataPath / pDep->name / FILENAME_BEDEP).string(), std::ios::out | std::ios::app);
 			depOut << name << std::endl;
 			depOut.close();
 		}
 		pDep = depList.begin();
 		depOut.open((pakPath / FILENAME_DEP).string());
 		for (; pDep != pDepEnd; pDep++)
-			depOut << *pDep << std::endl;
+			depOut << pDep->name << std::endl;
 		depOut.close();
 		fs::path backupPath = dataPath / DIRNAME_UPGRADE / (name + ".inf");
 		if (exists(backupPath))
@@ -267,115 +399,159 @@ int package::instScript(bool upgrade)
 	return 0;
 }
 
+typedef std::unordered_map<std::string, version> depMapTp;
+struct instItem
+{
+	enum opType{ INST, UPG };
+	instItem(){ pak = NULL; }
+	instItem(package *_pak, opType _oper){ pak = _pak; oper = _oper; };
+	package* pak;
+	opType oper;
+};
+typedef std::list<instItem> pakIListTp;
+typedef std::list<package*> pakQListTp;
+struct confItem
+{
+	confItem(){};
+	confItem(const std::string &_name, const depInfo &_dep){ name = _name; dep = _dep; }
+	std::string name;
+	depInfo dep;
+};
+typedef std::list<confItem> confListTp;
+
 errInfo package::instFull()
 {
-	depListTp::const_iterator pDep, pDepEnd;
+	depListTp::iterator pDep, pDepEnd;
 	pDep = confList.begin();
 	pDepEnd = confList.end();
 	depListTp pakList;
 	infoStream << msgData[MSGI_CHECK_REQUIREMENT] << std::endl;
-	//Check Confliction
-	for (; pDep != pDepEnd; pDep++)
-		if (is_installed(*pDep))
-			pakList.push_back(*pDep);
-	if (!pakList.empty())
-	{
-		infoStream << msgData[MSGW_CONF] << std::endl;
-		while (!pakList.empty())
-		{
-			infoStream << "\t" << pakList.front() << std::endl;
-			pakList.pop_front();
-		}
-		return errInfo(msgData[MSGE_CONF]);
-	}
 
-	//Check dependence:init
-	std::list<package *> instList;
-	depListTp pakQue;
-	depMapTp pakHash;
-	depMapTp::const_iterator pakHashEnd = pakHash.cend();
-	depListTp::const_iterator pConf, pConfEnd;
-	instList.push_front(this);
-	pakHash.emplace(name);
+	//Check requirement:init
+	pakIListTp instList;
+	depMapTp pakMap;
+	depMapTp::iterator mapItr, mapEnd = pakMap.end();
+	pakQListTp pakQue;
+	instList.push_back(instItem(this, instItem::INST));
+	pakQue.push_back(this);
+	pakMap.emplace(name, ver);
+	confListTp confList;
+	confListTp::iterator pConf, pConfEnd;
 
-	pDep = depList.begin();
-	pDepEnd = depList.end();
-	for (; pDep != pDepEnd; pDep++)
-	{
-		if (!is_installed(*pDep))
-		{
-			package *depPak = find_package(*pDep);
-			if (depPak == NULL)
-				return errInfo(msgData[MSGE_PAK_NOT_FOUND] + ':' + *pDep);
-			pConf = depPak->confList.cbegin();
-			pConfEnd = depPak->confList.cend();
-			for (; pConf != pConfEnd; pConf++)
-				if (is_installed(*pConf) || (pakHash.find(*pConf) != pakHashEnd))
-					return errInfo(msgData[MSGE_CONF] + ':' + depPak->name + "<->" + *pConf);
-			instList.push_front(depPak);
-			pakQue.push_back(*pDep);
-			pakHash.emplace(*pDep);
-		}
-	}
-
-	//Check dependence:BFS
+	//Check requirement:DFS
 	while (!pakQue.empty())
 	{
-		package *depPak = find_package(pakQue.front());
+		package *depPak = pakQue.front();
 		pakQue.pop_front();
-		if (depPak == NULL)
-			return errInfo(msgData[MSGE_PAK_NOT_FOUND] + ':' + pakQue.front());
+		pDep = depPak->confList.begin();
+		pDepEnd = depPak->confList.end();
+		for (; pDep != pDepEnd; pDep++)
+		{
+			confList.push_back(confItem(depPak->name, *pDep));
+			if (pDep->check())
+				return errInfo(msgData[MSGE_CONF] + ':' + depPak->name + ":" + pDep->fullStr());
+		}
 		pDep = depPak->depList.begin();
 		pDepEnd = depPak->depList.end();
 		for (; pDep != pDepEnd; pDep++)
 		{
-			if (is_installed(*pDep) == false && pakHash.find(*pDep) != pakHash.end())
+			if (!pDep->check())
 			{
-				pConf = depPak->confList.cbegin();
-				pConfEnd = depPak->confList.cend();
-				for (; pConf != pConfEnd; pConf++)
-					if (is_installed(*pConf) || (pakHash.find(*pConf) != pakHashEnd))
-						return errInfo(msgData[MSGE_CONF] + ':' + depPak->name + "<->" + *pConf);
-				instList.push_front(depPak);
-				pakQue.push_back(*pDep);
-				pakHash.emplace(*pDep);
+				if (is_installed(pDep->name))
+				{
+					depPak = find_package(pDep->name);
+					if (depPak == NULL)
+						return errInfo(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->name);
+					if (!pDep->check(depPak->ver))
+						return errInfo(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->name);
+					instList.push_front(instItem(depPak, instItem::UPG));
+					pakQue.push_front(depPak);
+					pakMap.emplace(depPak->name, depPak->ver);
+				}
+				else
+				{
+					mapItr = pakMap.find(pDep->name);
+					if (mapItr != mapEnd)
+					{
+						if (!pDep->check(mapItr->second))
+							return errInfo(msgData[MSGE_DEP] + ':' + depPak->name + ":" + pDep->fullStr());
+					}
+					else
+					{
+						depPak = find_package(pDep->name, *pDep);
+						if (depPak == NULL)
+							return errInfo(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->name);
+						instList.push_front(instItem(depPak, instItem::INST));
+						pakQue.push_front(depPak);
+						pakMap.emplace(depPak->name, depPak->ver);
+					}
+				}
 			}
 		}
 	}
 
-	//Install Packages
-	std::list<package *>::iterator instItr, instEnd;
+	//Check confliction
+	for (pConf = confList.begin(), pConfEnd = confList.end(); pConf != pConfEnd; pConf++)
+	{
+		mapItr = pakMap.find(pConf->dep.name);
+		if (mapItr != mapEnd && pConf->dep.check(mapItr->second))
+			return errInfo(msgData[MSGE_CONF] + ':' + pConf->name + ":" + pConf->dep.fullStr());
+	}
+
+	//Install/Upgrade Packages
+	pakIListTp::iterator instItr, instEnd;
 	infoStream << msgData[MSGI_WILL_INST_LIST] << std::endl;
 	instItr = instList.begin();
 	instEnd = instList.end();
 	for (; instItr != instEnd; instItr++)
-		infoStream << "\t" << (*instItr)->name << std::endl;
+		infoStream << "\t" << instItr->pak->name << std::endl;
 	instItr = instList.begin();
 	for (; instItr != instEnd; instItr++)
 	{
-		infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << (*instItr)->name << std::endl;
-		errInfo err = (*instItr)->inst();
-		if (err.err)
-			return err;
+		switch (instItr->oper)
+		{
+			case instItem::INST:
+			{
+				infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << instItr->pak->name << std::endl;
+				errInfo err = instItr->pak->inst();
+				if (err.err)
+					return err;
+				break;
+			}
+			case instItem::UPG:
+			{
+				errInfo err = instItr->pak->upgrade();
+				if (err.err)
+					return err;
+				break;
+			}
+		}
 	}
+
 	//Run scripts
 	instItr = instList.begin();
 	for (; instItr != instEnd; instItr++)
 	{
-		int ret = (*instItr)->instScript();
-		if (ret != EXIT_SUCCESS)
+		if (instItr->oper == instItem::INST)
 		{
-			infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
-			std::list<package *>::reverse_iterator rbItr, rbEnd = instList.rend();
-			rbItr = instList.rbegin();
-			for (; rbItr != rbEnd; rbItr++)
+			int ret = instItr->pak->instScript();
+			if (ret != EXIT_SUCCESS)
 			{
-				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << (*rbItr)->name << std::endl;
-				errInfo err = uninstall((*rbItr)->name);
-				if (err.err)
-					return err;
+				infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
+				pakIListTp::reverse_iterator rbItr, rbEnd = instList.rend();
+				rbItr = instList.rbegin();
+				for (; rbItr != rbEnd; rbItr++)
+				{
+					if (rbItr->oper == instItem::INST)
+					{
+						infoStream << msgData[MSGI_PAK_REMOVING] << ':' << rbItr->pak->name << std::endl;
+						errInfo err = uninstall(rbItr->pak->name);
+						if (err.err)
+							return err;
+					}
+				}
+				return errInfo(msgData[MSGE_RUNS] + num2str(ret));
 			}
-			return errInfo(msgData[MSGE_RUNS] + num2str(ret));
 		}
 	}
 
@@ -387,17 +563,7 @@ bool package::needUpgrade()
 {
 	if (!is_installed(name))
 		return false;
-
-	std::string line;
-	std::ifstream infoIn((dataPath / name / FILENAME_INFO).string());
-	std::getline(infoIn, line);
-	std::getline(infoIn, line);
-	std::getline(infoIn, line);
-	std::getline(infoIn, line);
-	infoIn.close();
-	version oldver(line);
-
-	return oldver < ver;
+	return cur_version(name) < ver;
 }
 
 errInfo package::upgrade(bool checked)
@@ -413,7 +579,7 @@ errInfo package::upgrade(bool checked)
 	if (err.err)
 		return err;
 	infoStream << msgData[MSGI_PAK_REINSTALLING] << std::endl;
-	err = install(name);
+	err = instFull();
 	if (err.err)
 		return err;
 	int ret = instScript(true);
@@ -428,32 +594,100 @@ bool package::check()
 	pDep = confList.begin();
 	pDepEnd = confList.end();
 	for (; pDep != pDepEnd; pDep++)
-		if (is_installed(*pDep))
+		if (is_installed(pDep->name))
 			return false;
 	pDep = depList.begin();
 	pDepEnd = depList.end();
 	for (; pDep != pDepEnd; pDep++)
-		if (!is_installed(*pDep))
+		if (!is_installed(pDep->name))
 			return false;
 	return true;
 }
 
-bool is_installed(std::string name)
+bool is_installed(const std::string &name)
 {
 	return fs::exists(dataPath / name) && fs::is_directory(dataPath / name);
+}
+
+version cur_version(const std::string &name)
+{
+	if (!is_installed(name))
+		return version(0, 0, 0);
+
+	std::string line;
+	std::ifstream infoIn((dataPath / name / FILENAME_INFO).string());
+	std::getline(infoIn, line);
+	std::getline(infoIn, line);
+	std::getline(infoIn, line);
+	std::getline(infoIn, line);
+	infoIn.close();
+
+	return version(line);
 }
 
 package* find_package(const std::string &name)
 {
 	srcListTp::const_iterator p, pEnd = sourceList.cend();
-	package *pak;
+	package *pak, *ret = NULL;
+	version ver(0, 0, 0);
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
 		pak = (*p)->find_package(name);
-		if (pak != NULL)
-			return pak;
+		if (pak != NULL && pak->getVer() > ver)
+		{
+			ret = pak;
+			ver = pak->getVer();
+		}
 	}
-	return NULL;
+	return ret;
+}
+
+package* find_package(const std::string &name, depInfo con)
+{
+	srcListTp::const_iterator p, pEnd = sourceList.cend();
+	package *pak, *ret = NULL;
+	version ver, newVer;
+	for (p = sourceList.cbegin(); p != pEnd; p++)
+	{
+		pak = (*p)->find_package(name);
+		newVer = pak->getVer();
+		if (pak != NULL && con.check(newVer) && newVer > ver)
+		{
+			ret = pak;
+			ver = newVer;
+		}
+	}
+	return ret;
+}
+
+package* find_package(const std::string &name, depListTp *con)
+{
+	srcListTp::const_iterator p, pEnd = sourceList.cend();
+	package *pak, *ret = NULL;
+	version ver, newVer;
+	for (p = sourceList.cbegin(); p != pEnd; p++)
+	{
+		pak = (*p)->find_package(name);
+		newVer = pak->getVer();
+		if (pak != NULL && newVer > ver)
+		{
+			bool flag = true;
+			for (depListTp::iterator itr = con->begin(), itrEnd = con->end(); itr != itrEnd; itr++)
+			{
+				if (!itr->check(newVer))
+				{
+					flag = false;
+					break;
+				}
+			}
+			if (flag)
+			{
+				ret = pak;
+				ver = newVer;
+			}
+		}
+	}
+	return ret;
 }
 
 errInfo install(std::string name)
@@ -523,7 +757,7 @@ errInfo uninstall(std::string name, bool upgrade)
 				{
 					std::getline(bedepFS, line);
 					if (!line.empty())
-					bedepTmp.push_back(line);
+						bedepTmp.push_back(line);
 				}
 				bedepFS.close();
 				if (bedepTmp.empty())
