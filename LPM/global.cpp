@@ -52,6 +52,7 @@ std::string msgDataDefault[msgCount] = {
 	"E:unzip:inflateEnd failed with code ",
 	"E:unzip:Memory overflow",
 	"E:unzip:Buffer not enough",
+	"E:STD:",
 	"W:Conflict Package",
 	"W:Script exited with code ",
 	", rolling back",

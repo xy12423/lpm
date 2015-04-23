@@ -73,7 +73,8 @@ private:
 };
 
 package* find_package(const std::string &name);
-package* find_package(const std::string &name, depListTp *con);
+package* find_package(const std::string &name, depInfo con);
+package* find_package(const std::string &name, std::unordered_multimap<int, depInfo> &con);
 bool is_installed(const std::string &name);
 version cur_version(const std::string &name);
 errInfo install(std::string name);
