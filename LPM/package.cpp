@@ -414,6 +414,7 @@ struct depNode
 {
 	depNode(){ pak = NULL; }
 	depNode(package *_pak){ pak = _pak; }
+	bool processed = false;
 	package *pak;
 	std::unordered_multimap<int, depInfo> con;
 	std::unordered_map<int, int> ancestor;
@@ -460,6 +461,23 @@ void clean_dep(depMap &pakMap, depHash &pakHash, int nodeID)
 	}
 }
 
+void add_ancestor(depMap &pakMap, depHash &pakHash, int dst, int src)
+{
+	depNode &srcN = pakMap.at(src), &dstN = pakMap.at(dst);
+	std::for_each(srcN.ancestor.cbegin(), srcN.ancestor.cend(), [&dstN](const std::pair<int, int>& p){
+		dstN.ancestor[p.first] += p.second;
+	});
+	dstN.ancestor[src]++;
+	if (dstN.processed)
+	{
+		std::unordered_map<int, int>::iterator ancEnd = srcN.ancestor.end();
+		std::for_each(srcN.dep.begin(), srcN.dep.end(), [&](int depID){
+			if (srcN.ancestor.find(depID) == ancEnd)
+				add_ancestor(pakMap, pakHash, depID, src);
+		});
+	}
+}
+
 errInfo package::instFull()
 {
 	depListTp::iterator pDep, pDepEnd;
@@ -499,12 +517,7 @@ errInfo package::instFull()
 					depNode &confN = pakMap.at(confID);
 					confN.con.emplace(id, ~(*pDep));
 					if (node.ancestor.find(confID) == node.ancestor.end())
-					{
-						std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&confN](const std::pair<int, int>& p){
-							confN.ancestor[p.first] += p.second;
-						});
-						confN.ancestor[id]++;
-					}
+						add_ancestor(pakMap, pakHash, confID, id);
 					node.dep.emplace(confID);
 				}
 				else
@@ -522,7 +535,6 @@ errInfo package::instFull()
 						confN.ancestor[p.first] += p.second;
 					});
 					confN.ancestor[id]++;
-					pakQue.push_back(newID);
 				}
 				if (pDep->check())
 				{
@@ -532,6 +544,7 @@ errInfo package::instFull()
 					if (pak == NULL)
 						throw(msgData[MSGE_CONF] + ':' + node.pak->name + ":" + pDep->fullStr());
 					confN.pak = pak;
+					confN.processed = false;
 					pakQue.push_back(confID);
 				}
 				else
@@ -546,6 +559,7 @@ errInfo package::instFull()
 						if (pak == NULL)
 							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->name);
 						confN.pak = pak;
+						confN.processed = false;
 						pakQue.push_back(confID);
 					}
 				}
@@ -562,12 +576,7 @@ errInfo package::instFull()
 					depNode &depN = pakMap.at(depID);
 					depN.con.emplace(id, *pDep);
 					if (node.ancestor.find(depID) == node.ancestor.end())
-					{
-						std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int>& p){
-							depN.ancestor[p.first] += p.second;
-						});
-						depN.ancestor[id]++;
-					}
+						add_ancestor(pakMap, pakHash, depID, id);
 					node.dep.emplace(depID);
 					if (!pDep->check() && (depN.pak == NULL || !pDep->check(depN.pak->ver)))
 					{
@@ -578,6 +587,7 @@ errInfo package::instFull()
 						if (pak == NULL)
 							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->name);
 						depN.pak = pak;
+						depN.processed = false;
 						pakQue.push_back(itrHash->second);
 					}
 				}
@@ -604,9 +614,11 @@ errInfo package::instFull()
 						depN.ancestor[p.first] += p.second;
 					});
 					depN.ancestor[id]++;
+					depN.processed = false;
 					pakQue.push_back(newID);
 				}
 			}
+			node.processed = true;
 		}
 
 		std::unordered_set<int> pakDiff;
@@ -619,19 +631,22 @@ errInfo package::instFull()
 			depNode &node = pakMap.at(id);
 			pakQue.pop_front();
 			package *pak = node.pak;
-			if (is_installed(pak->name))
-				instList.push_front(instItem(pak, instItem::UPG));
-			else
-				instList.push_front(instItem(pak, instItem::INST));
-			pDep = node.pak->depList.begin();
-			pDepEnd = node.pak->depList.end();
-			for (; pDep != pDepEnd; pDep++)
+			if (pak != NULL)
 			{
-				int depID = pakHash.at(pDep->name);
-				if (pakDiff.find(depID) == itrDiffEnd)
+				if (is_installed(pak->name))
+					instList.push_front(instItem(pak, instItem::UPG));
+				else
+					instList.push_front(instItem(pak, instItem::INST));
+				pDep = node.pak->depList.begin();
+				pDepEnd = node.pak->depList.end();
+				for (; pDep != pDepEnd; pDep++)
 				{
-					pakQue.push_back(depID);
-					pakDiff.emplace(depID);
+					int depID = pakHash.at(pDep->name);
+					if (pakDiff.find(depID) == itrDiffEnd)
+					{
+						pakQue.push_back(depID);
+						pakDiff.emplace(depID);
+					}
 				}
 			}
 		}
