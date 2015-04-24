@@ -453,7 +453,8 @@ void clean_dep(depMap &pakMap, depHash &pakHash, int nodeID)
 		else
 		{
 			std::for_each(depN.dep.begin(), depN.dep.end(), [&](int id){
-				que.push_back(id);
+				if (node.ancestor.find(id) == node.ancestor.end())
+					que.push_back(id);
 			});
 		}
 	}
@@ -497,10 +498,13 @@ errInfo package::instFull()
 					confID = itrHash->second;
 					depNode &confN = pakMap.at(confID);
 					confN.con.emplace(id, ~(*pDep));
-					std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&confN](const std::pair<int, int>& p){
-						confN.ancestor[p.first] += p.second;
-					});
-					confN.ancestor[id]++;
+					if (node.ancestor.find(confID) == node.ancestor.end())
+					{
+						std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&confN](const std::pair<int, int>& p){
+							confN.ancestor[p.first] += p.second;
+						});
+						confN.ancestor[id]++;
+					}
 					node.dep.emplace(confID);
 				}
 				else
@@ -557,10 +561,13 @@ errInfo package::instFull()
 					depID = itrHash->second;
 					depNode &depN = pakMap.at(depID);
 					depN.con.emplace(id, *pDep);
-					std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int>& p){
-						depN.ancestor[p.first] += p.second;
-					});
-					depN.ancestor[id]++;
+					if (node.ancestor.find(depID) == node.ancestor.end())
+					{
+						std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int>& p){
+							depN.ancestor[p.first] += p.second;
+						});
+						depN.ancestor[id]++;
+					}
 					node.dep.emplace(depID);
 					if (!pDep->check() && (depN.pak == NULL || !pDep->check(depN.pak->ver)))
 					{
@@ -650,26 +657,71 @@ errInfo package::instFull()
 	for (; instItr != instEnd; instItr++)
 		infoStream << "\t" << instItr->pak->name << std::endl;
 	instItr = instList.begin();
-	for (; instItr != instEnd; instItr++)
+	try
 	{
-		switch (instItr->oper)
+		for (; instItr != instEnd; instItr++)
 		{
-			case instItem::INST:
+			switch (instItr->oper)
 			{
-				infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << instItr->pak->name << std::endl;
-				errInfo err = instItr->pak->inst();
-				if (err.err)
-					return err;
-				break;
-			}
-			case instItem::UPG:
-			{
-				errInfo err = instItr->pak->upgrade();
-				if (err.err)
-					return err;
-				break;
+				case instItem::INST:
+				{
+					infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << instItr->pak->name << std::endl;
+					errInfo err = instItr->pak->inst();
+					if (err.err)
+						throw(err);
+					break;
+				}
+				case instItem::UPG:
+				{
+					errInfo err = instItr->pak->upgrade();
+					if (err.err)
+						throw(err);
+					break;
+				}
 			}
 		}
+	}
+	catch (std::exception ex)
+	{
+		infoStream << msgData[MSGE_STD] << ex.what() << std::endl;
+		instItr--;
+		instEnd = instList.begin();
+		do
+		{
+			if (instItr->oper == instItem::INST)
+			{
+				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << instItr->pak->name << std::endl;
+				errInfo err = uninstall(instItr->pak->name);
+				if (err.err)
+					return err;
+			}
+			instItr--;
+		}
+		while (instItr != instEnd);
+		return errInfo(msgData[MSGE_STD] + ex.what());
+	}
+	catch (errInfo err)
+	{
+		infoStream << err.info << std::endl;
+		instItr--;
+		instEnd = instList.begin();
+		do
+		{
+			if (instItr->oper == instItem::INST)
+			{
+				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << instItr->pak->name << std::endl;
+				errInfo err = uninstall(instItr->pak->name);
+				if (err.err)
+					return err;
+			}
+			instItr--;
+		}
+		while (instItr != instEnd);
+		return err;
+	}
+	catch (...)
+	{
+		throw;
 	}
 
 	//Run scripts
