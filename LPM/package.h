@@ -78,6 +78,6 @@ package* find_package(const std::string &name, std::unordered_multimap<int, depI
 bool is_installed(const std::string &name);
 version cur_version(const std::string &name);
 errInfo install(std::string name);
-errInfo uninstall(std::string name, bool upgrade = false);
+errInfo uninstall(std::string name, bool upgrade = false, bool force = false);
 
 #endif

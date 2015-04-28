@@ -286,6 +286,8 @@ errInfo package::inst()
 		std::ofstream depOut;
 		for (; pDep != pDepEnd; pDep++)
 		{
+			if (!fs::exists(dataPath / pDep->name))
+				fs::create_directory(dataPath / pDep->name);
 			depOut.open((dataPath / pDep->name / FILENAME_BEDEP).string(), std::ios::out | std::ios::app);
 			depOut << name << std::endl;
 			depOut.close();
@@ -699,10 +701,10 @@ errInfo package::instFull()
 	catch (std::exception ex)
 	{
 		infoStream << msgData[MSGE_STD] << ex.what() << std::endl;
-		instItr--;
 		instEnd = instList.begin();
 		do
 		{
+			instItr--;
 			if (instItr->oper == instItem::INST)
 			{
 				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << instItr->pak->name << std::endl;
@@ -710,7 +712,6 @@ errInfo package::instFull()
 				if (err.err)
 					return err;
 			}
-			instItr--;
 		}
 		while (instItr != instEnd);
 		return errInfo(msgData[MSGE_STD] + ex.what());
@@ -722,6 +723,7 @@ errInfo package::instFull()
 		instEnd = instList.begin();
 		do
 		{
+			instItr--;
 			if (instItr->oper == instItem::INST)
 			{
 				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << instItr->pak->name << std::endl;
@@ -729,7 +731,6 @@ errInfo package::instFull()
 				if (err.err)
 					return err;
 			}
-			instItr--;
 		}
 		while (instItr != instEnd);
 		return err;
@@ -756,7 +757,7 @@ errInfo package::instFull()
 					if (rbItr->oper == instItem::INST)
 					{
 						infoStream << msgData[MSGI_PAK_REMOVING] << ':' << rbItr->pak->name << std::endl;
-						errInfo err = uninstall(rbItr->pak->name);
+						errInfo err = uninstall(rbItr->pak->name, false, true);
 						if (err.err)
 							return err;
 					}
@@ -861,11 +862,14 @@ package* find_package(const std::string &name, depInfo con)
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
 		pak = (*p)->find_package(name);
-		newVer = pak->getVer();
-		if (pak != NULL && con.check(newVer) && newVer > ver)
+		if (pak != NULL)
 		{
-			ret = pak;
-			ver = newVer;
+			newVer = pak->getVer();
+			if (con.check(newVer) && newVer > ver)
+			{
+				ret = pak;
+				ver = newVer;
+			}
 		}
 	}
 	return ret;
@@ -879,22 +883,25 @@ package* find_package(const std::string &name, std::unordered_multimap<int, depI
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
 		pak = (*p)->find_package(name);
-		newVer = pak->getVer();
-		if (pak != NULL && newVer > ver)
+		if (pak != NULL)
 		{
-			bool flag = true;
-			for (std::unordered_multimap<int, depInfo>::iterator itr = con.begin(), itrEnd = con.end(); itr != itrEnd; itr++)
+			newVer = pak->getVer();
+			if (newVer > ver)
 			{
-				if (!itr->second.check(newVer))
+				bool flag = true;
+				for (std::unordered_multimap<int, depInfo>::iterator itr = con.begin(), itrEnd = con.end(); itr != itrEnd; itr++)
 				{
-					flag = false;
-					break;
+					if (!itr->second.check(newVer))
+					{
+						flag = false;
+						break;
+					}
 				}
-			}
-			if (flag)
-			{
-				ret = pak;
-				ver = newVer;
+				if (flag)
+				{
+					ret = pak;
+					ver = newVer;
+				}
 			}
 		}
 	}
@@ -915,7 +922,7 @@ errInfo install(std::string name)
 	return pak->instFull();
 }
 
-errInfo uninstall(std::string name, bool upgrade)
+errInfo uninstall(std::string name, bool upgrade, bool force)
 {
 	if (!is_installed(name))
 		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
@@ -929,7 +936,7 @@ errInfo uninstall(std::string name, bool upgrade)
 		{
 			fs::copy_file(pakPath / FILENAME_BEDEP, dataPath / DIRNAME_UPGRADE / (name + ".inf"));
 		}
-		else
+		else if (!force)
 		{
 			infoStream << msgData[MSGW_PAK_BE_DEP] << std::endl;
 			depIn.open((pakPath / FILENAME_BEDEP).string());

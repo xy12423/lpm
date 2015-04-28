@@ -293,7 +293,7 @@ void mainFrame::refreshPakList()
 	itrPak = pakList.begin();
 	listPak->Clear();
 	for (; itrPak != itrPakEnd; itrPak++)
-		listPak->AppendString((*itrPak)->getExtInfo().fname);
+		listPak->AppendString((*itrPak)->getExtInfo().fname + '[' + (*itrPak)->getVer().toStr() + ']');
 }
 
 void mainFrame::listSrc_ItemCheck(wxCommandEvent& event)
