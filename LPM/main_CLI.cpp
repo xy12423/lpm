@@ -133,9 +133,15 @@ int main(int argc, char* argv[])
 				init();
 				checkPath();
 			}
+			if (!lock())
+			{
+				std::cout << msgData[MSGE_LOCK] << std::endl;
+				return 0;
+			}
 			if (!readLang())
 				loadDefaultLang();
 			readSource();
+			readLocal();
 			prCallbackP = reportProgress;
 			if (cmd == "install")
 			{
@@ -357,13 +363,24 @@ int main(int argc, char* argv[])
 			{
 				printUsage();
 			}
+			writeLocal();
 		}
+	}
+	catch (boost::filesystem::filesystem_error ex)
+	{
+		cout << "E:" << ex.what() << endl;
+
 	}
 	catch (exception ex)
 	{
 		cout << "E:" << ex.what() << endl;
 	}
+	catch (...)
+	{
+		
+	}
 
+	unlock();
 	return 0;
 }
 

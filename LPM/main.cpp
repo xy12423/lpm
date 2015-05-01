@@ -132,9 +132,9 @@ void writeSource()
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
 		foutCfg << (*p)->add << std::endl;
-		foutCfg << (*p)->pkgList.size() << std::endl;
+		foutCfg << (*p)->pakList.size() << std::endl;
 
-		for (pP = (*p)->pkgList.cbegin(), pPEnd = (*p)->pkgList.cend(); pP != pPEnd; pP++)
+		for (pP = (*p)->pakList.cbegin(), pPEnd = (*p)->pakList.cend(); pP != pPEnd; pP++)
 		{
 			foutCfg << (*pP)->name << std::endl;
 			foutCfg << (*pP)->ver.major << ' ' << (*pP)->ver.minor << ' ' << (*pP)->ver.revision << std::endl;
@@ -152,6 +152,30 @@ void writeSource()
 		}
 	}
 	foutCfg.close();
+}
+
+bool readLocal()
+{
+	path confIPath = dataPath / FILENAME_CONF;
+	if (!exists(confIPath))
+	{
+		return false;
+	}
+	std::ifstream fin(confIPath.string());
+	std::string tmp;
+	while (!fin.eof())
+	{
+		std::getline(fin, tmp);
+		depInfo tmpDep(tmp);
+		globalConf[tmpDep.name].push_back(tmpDep);
+	}
+	fin.close();
+	return true;
+}
+
+void writeLocal()
+{
+	std::ofstream fout((dataPath / FILENAME_CONF).string());
 }
 
 void loadDefaultLang()
@@ -242,4 +266,21 @@ void init()
 	langPath = "./lpm-lang";
 	writeConfig();
 	writeSource();
+}
+
+bool lock()
+{
+	path lockPath = localPath / FILENAME_LOCK;
+	if (exists(lockPath))
+		return false;
+	std::ofstream lockOut(lockPath.string());
+	lockOut.close();
+	return true;
+}
+
+void unlock()
+{
+	path lockPath = localPath / FILENAME_LOCK;
+	if (exists(lockPath))
+		remove(lockPath);
 }

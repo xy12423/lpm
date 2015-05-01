@@ -147,7 +147,7 @@ void getSrcNameList(wxArrayString &ret)
 
 void getPakList(source *src, pakListTp &ret)
 {
-	pakListTp::const_iterator pPak = src->pkgList.cbegin(), pPakEnd = src->pkgList.cend();
+	pakListTp::const_iterator pPak = src->pakList.cbegin(), pPakEnd = src->pakList.cend();
 	for (; pPak != pPakEnd; pPak++)
 		ret.push_back(*pPak);
 }
@@ -445,33 +445,71 @@ IMPLEMENT_APP(MyApp)
 
 bool MyApp::OnInit()
 {
-	if (readConfig() == false)
-		init();
-	checkPath();
-	if (readLang() == false)
-		loadDefaultLang();
-	if (readGUILang() == false)
-		loadDefaultGUILang();
-	if (readSource() == false)
+	try
 	{
-		wxMessageBox(guiStrData[TEXTE_LOADSRC], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
+		if (readConfig() == false)
+			init();
+		if (!lock())
+		{
+			wxMessageBox(guiStrData[MSGE_LOCK], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
+			return false;
+		}
+		checkPath();
+		if (readLang() == false)
+			loadDefaultLang();
+		if (readGUILang() == false)
+			loadDefaultGUILang();
+		if (readSource() == false)
+		{
+			wxMessageBox(guiStrData[TEXTE_LOADSRC], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
+			return false;
+		}
+		readLocal();
+
+		form = new mainFrame(guiStrData[TITLE_LPM]);
+		form->Show();
+	}
+	catch (std::exception ex)
+	{
+		wxMessageBox(ex.what(), guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
 		return false;
 	}
-
-	form = new mainFrame(guiStrData[TITLE_LPM]);
-	form->Show();
+	catch (...)
+	{
+		return false;
+	}
 
 	return true;
 }
 
 int MyApp::OnExit()
 {
-	srcListTp::const_iterator itrSrc = sourceList.cbegin(), itrSrcEnd = sourceList.cend();
-	for (; itrSrc != itrSrcEnd; itrSrc++)
-		delete *itrSrc;
-	std::cout.rdbuf(coutBuf);
+	try
+	{
+		srcListTp::const_iterator itrSrc = sourceList.cbegin(), itrSrcEnd = sourceList.cend();
+		for (; itrSrc != itrSrcEnd; itrSrc++)
+			delete *itrSrc;
+		std::cout.rdbuf(coutBuf);
+
+		unlock();
+	}
+	catch (std::exception ex)
+	{
+		wxMessageBox(ex.what(), guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
+		return EXIT_FAILURE;
+	}
+	catch (...)
+	{
+		return EXIT_FAILURE;
+	}
 
 	return EXIT_SUCCESS;
+}
+
+void MyApp::OnUnhandledException()
+{
+	unlock();
+	return wxApp::OnUnhandledException();
 }
 
 #endif

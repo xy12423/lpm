@@ -18,14 +18,14 @@ enum src_lineN{
 
 void source::loadLocal(pakListTp &_pkgList)
 {
-	pkgMap.clear(); 
-	std::for_each(pkgList.begin(), pkgList.end(), [this](package* arg){
+	pakMap.clear(); 
+	std::for_each(pakList.begin(), pakList.end(), [this](package* arg){
 		delete arg;
 	});
-	pkgList.clear(); 
+	pakList.clear();
 	std::for_each(_pkgList.begin(), _pkgList.end(), [this](package* arg){ 
-		pkgMap.emplace(arg->getName(), pkgList.size()); 
-		pkgList.push_back(arg); 
+		pakMap.emplace(arg->getName(), pakList.size());
+		pakList.push_back(arg);
 	});
 }
 
@@ -112,15 +112,15 @@ errInfo source::loadRemote()
 
 package* source::find_package(std::string name)
 {
-	std::unordered_map<std::string, int>::iterator p = pkgMap.find(name);
-	if (p == pkgMap.end())
+	std::unordered_map<std::string, int>::iterator p = pakMap.find(name);
+	if (p == pakMap.end())
 		return NULL;
-	return pkgList[p->second];
+	return pakList[p->second];
 }
 
 errInfo source::upgradeAll()
 {
-	pakListTp::const_iterator p = pkgList.cbegin(), pEnd = pkgList.cend();
+	pakListTp::const_iterator p = pakList.cbegin(), pEnd = pakList.cend();
 	for (; p != pEnd; p++)
 	{
 		if (is_installed((*p)->getName()) && (*p)->needUpgrade())

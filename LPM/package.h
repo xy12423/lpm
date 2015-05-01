@@ -45,6 +45,7 @@ struct depInfo
 	friend inline depInfo operator~(const depInfo &a);
 };
 typedef std::list<depInfo> depListTp;
+extern std::unordered_map<std::string, depListTp> globalConf;
 
 class package
 {
@@ -63,6 +64,7 @@ public:
 	friend void printInfo(package *pkg);
 private:
 	errInfo inst();
+	errInfo checkUpg();
 	int instScript(bool upgrade = false);
 	std::string source;
 	std::string name;
@@ -71,6 +73,7 @@ private:
 	depListTp depList;
 	depListTp confList;
 };
+typedef std::vector<package*> pakListTp;
 
 package* find_package(const std::string &name);
 package* find_package(const std::string &name, depInfo con);

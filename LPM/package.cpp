@@ -4,9 +4,11 @@
 #include "unzip.h"
 #include "download.h"
 
+std::unordered_map<std::string, depListTp> globalConf;
+
 namespace fs = boost::filesystem;
 
-void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &logOut)
+void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &logOut, bool backup)
 {
 	fs::path nativePath = dataPath / DIRNAME_NATIVE;
 	for (fs::directory_iterator p(tmpPath), pEnd; p != pEnd; p++)
@@ -16,26 +18,30 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 		{
 			if (exists(targetPath))
 			{
-				if (!exists(nativePath / relaPath))
-					fs::create_directories(nativePath / relaPath);
-				if (exists(nativePath / newRelaPath))
-					throw(msgData[MSGE_OVERWRITE]);
-				fs::copy_file(targetPath, nativePath / newRelaPath);
+				if (!backup)
+				{
+					if (!exists(nativePath / relaPath))
+						fs::create_directories(nativePath / relaPath);
+					if (exists(nativePath / newRelaPath))
+						throw(msgData[MSGE_OVERWRITE]);
+					fs::copy_file(targetPath, nativePath / newRelaPath);
+				}
 				fs::remove(targetPath);
 			}
 			logOut << targetPath.string() << std::endl;
 			fs::copy_file(sourcePath, targetPath);
+			fs::remove(sourcePath);
 		}
 		else
 		{
 			if (!exists(targetPath))
 			{
 				fs::create_directory(targetPath);
-				install_copy(sourcePath, newRelaPath, logOut);
+				install_copy(sourcePath, newRelaPath, logOut, backup);
 				logOut << targetPath.string() << std::endl;
 			}
 			else
-				install_copy(sourcePath, newRelaPath, logOut);
+				install_copy(sourcePath, newRelaPath, logOut, backup);
 		}
 	}
 }
@@ -225,6 +231,13 @@ package::package(std::string _source, std::string &_name, version _ver, depListT
 	extInfo = _extInfo;
 }
 
+errInfo package::checkUpg()
+{
+	fs::path confIPath = dataPath / FILENAME_CONF;
+
+	return errInfo();
+}
+
 errInfo package::inst()
 {
 	dataBuf buf;
@@ -260,7 +273,7 @@ errInfo package::inst()
 
 		std::ofstream infOut((pakPath / FILENAME_INST).string());
 		infoStream << msgData[MSGI_COPYING] << std::endl;
-		install_copy(tmpPath, fs::path(), infOut);
+		install_copy(tmpPath, fs::path(), infOut, true);
 		infoStream << msgData[MSGI_COPIED] << std::endl;
 		infOut.close();
 		flag3 = true;
@@ -499,6 +512,9 @@ errInfo package::instFull()
 	pakQListTp pakQue;
 	pakQue.push_back(0);
 
+	//Check requirement:add local info
+
+
 	//Check requirement:BFS
 	try
 	{
@@ -559,7 +575,7 @@ errInfo package::instFull()
 						clean_dep(pakMap, pakHash, confID);
 						package *pak = find_package(pDep->name, confN.con);
 						if (pak == NULL)
-							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->name);
+							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->fullStr());
 						confN.pak = pak;
 						confN.processed = false;
 						pakQue.push_back(confID);
@@ -587,7 +603,7 @@ errInfo package::instFull()
 						clean_dep(pakMap, pakHash, depID);
 						package *pak = find_package(pDep->name, depN.con);
 						if (pak == NULL)
-							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->name);
+							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->fullStr());
 						depN.pak = pak;
 						depN.processed = false;
 						pakQue.push_back(itrHash->second);
@@ -605,7 +621,7 @@ errInfo package::instFull()
 					{
 						pak = find_package(pDep->name, *pDep);
 						if (pak == NULL)
-							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->name);
+							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->fullStr());
 					}
 					node.dep.emplace(newID);
 					pakMap.emplace(newID, depNode(pak));
@@ -635,7 +651,7 @@ errInfo package::instFull()
 			package *pak = node.pak;
 			if (pak != NULL)
 			{
-				if (is_installed(pak->name))
+				if (is_installed(pak->name) && cur_version(pak->name) == pak->ver)
 					instList.push_front(instItem(pak, instItem::UPG));
 				else
 					instList.push_front(instItem(pak, instItem::INST));
@@ -690,7 +706,7 @@ errInfo package::instFull()
 				}
 				case instItem::UPG:
 				{
-					errInfo err = instItr->pak->upgrade();
+					errInfo err = instItr->pak->upgrade(true);
 					if (err.err)
 						throw(err);
 					break;
@@ -782,7 +798,7 @@ errInfo package::upgrade(bool checked)
 {
 	if (!is_installed(name))
 		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
-	if (!(checked || needUpgrade()))
+	if (!checked && !needUpgrade())
 		return errInfo(msgData[MSGE_PAK_LATEST]);
 
 	infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << name << std::endl;
@@ -791,7 +807,7 @@ errInfo package::upgrade(bool checked)
 	if (err.err)
 		return err;
 	infoStream << msgData[MSGI_PAK_REINSTALLING] << std::endl;
-	err = instFull();
+	err = inst();
 	if (err.err)
 		return err;
 	int ret = instScript(true);

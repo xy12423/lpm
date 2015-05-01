@@ -21,6 +21,8 @@ const std::string FILENAME_INST = "inst.inf";
 const std::string FILENAME_INFO = "info.inf";
 const std::string FILENAME_BEDEP = "bedep.inf";
 const std::string FILENAME_DEP = "dep.inf";
+const std::string FILENAME_CONF = "conf.inf";
+const std::string FILENAME_LOCK = "lpm.lck";
 #ifdef WIN32
 const std::string SCRIPT_INST = "inst.bat";
 const std::string SCRIPT_INIT = "init.bat";
