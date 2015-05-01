@@ -156,26 +156,12 @@ void writeSource()
 
 bool readLocal()
 {
-	path confIPath = dataPath / FILENAME_CONF;
-	if (!exists(confIPath))
-	{
-		return false;
-	}
-	std::ifstream fin(confIPath.string());
-	std::string tmp;
-	while (!fin.eof())
-	{
-		std::getline(fin, tmp);
-		depInfo tmpDep(tmp);
-		globalConf[tmpDep.name].push_back(tmpDep);
-	}
-	fin.close();
 	return true;
 }
 
 void writeLocal()
 {
-	std::ofstream fout((dataPath / FILENAME_CONF).string());
+	
 }
 
 void loadDefaultLang()

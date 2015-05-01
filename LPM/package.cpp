@@ -231,13 +231,6 @@ package::package(std::string _source, std::string &_name, version _ver, depListT
 	extInfo = _extInfo;
 }
 
-errInfo package::checkUpg()
-{
-	fs::path confIPath = dataPath / FILENAME_CONF;
-
-	return errInfo();
-}
-
 errInfo package::inst()
 {
 	dataBuf buf;
@@ -295,7 +288,7 @@ errInfo package::inst()
 		infOut << std::endl;
 		infOut.close();
 
-		depListTp::const_iterator pDep = depList.begin(), pDepEnd = depList.end();
+		depListTp::iterator pDep = depList.begin(), pDepEnd = depList.end();
 		std::ofstream depOut;
 		for (; pDep != pDepEnd; pDep++)
 		{
@@ -309,6 +302,12 @@ errInfo package::inst()
 		depOut.open((pakPath / FILENAME_DEP).string());
 		for (; pDep != pDepEnd; pDep++)
 			depOut << pDep->name << std::endl;
+		depOut.close();
+		pDep = confList.begin();
+		pDepEnd = confList.end();
+		depOut.open((pakPath / FILENAME_CONF).string());
+		for (; pDep != pDepEnd; pDep++)
+			depOut << pDep->fullStr() << std::endl;
 		depOut.close();
 		fs::path backupPath = dataPath / DIRNAME_UPGRADE / (name + ".inf");
 		if (exists(backupPath))
@@ -513,7 +512,30 @@ errInfo package::instFull()
 	pakQue.push_back(0);
 
 	//Check requirement:add local info
-
+	fs::directory_iterator p(dataPath), pEnd;
+	fs::path name;
+	std::string buf;
+	for (; p != pEnd; p++)
+	{
+		name = p->path().filename();
+		if (name.string().front() != '$')
+		{
+			std::ifstream fin((dataPath / name / FILENAME_CONF).string());
+			int newID = nextID;
+			nextID++;
+			pakMap.emplace(newID, depNode());
+			pakHash.emplace(pDep->name, newID);
+			itrHash = pakHash.find(pDep->name);
+			depNode &confN = pakMap.at(newID);
+			while (!fin.eof())
+			{
+				std::getline(fin, buf);
+				if (!buf.empty())
+					confN.con.emplace(-1, buf);
+			}
+			fin.close();
+		}
+	}
 
 	//Check requirement:BFS
 	try
