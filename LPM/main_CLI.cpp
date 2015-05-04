@@ -74,7 +74,7 @@ void printAvailable(source *src, bool ignoreInstalled = true)
 {
 	if (src == NULL)
 		return;
-	pakListTp::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
+	pakListTp::const_iterator p = src->pakList.cbegin(), pEnd = src->pakList.cend();
 	for (; p != pEnd; p++)
 		printInfo(*p);
 }
@@ -82,7 +82,7 @@ void printAvailableShort(source *src, bool ignoreInstalled = true)
 {
 	if (src == NULL)
 		return;
-	pakListTp::const_iterator p = src->pkgList.cbegin(), pEnd = src->pkgList.cend();
+	pakListTp::const_iterator p = src->pakList.cbegin(), pEnd = src->pakList.cend();
 	for (; p != pEnd; p++)
 		std::cout << (*p)->getName() << std::endl;
 }
