@@ -389,7 +389,12 @@ int package::instScript(bool upgrade)
 		infoStream << msgData[MSGI_RUNS_INST] << std::endl;
 		scriptPath = fs::system_complete(scriptPath);
 		fs::current_path(localPath);
+#ifdef WIN32
 		int ret = system(("\"" + scriptPath.string() + "\"").c_str());
+#endif
+#ifdef __linux__
+		int ret = system(("bash \"" + scriptPath.string() + "\"").c_str());
+#endif
 		fs::current_path(currentPath);
 		if (ret != EXIT_SUCCESS)
 			return ret;
@@ -403,7 +408,12 @@ int package::instScript(bool upgrade)
 			infoStream << msgData[MSGI_RUNS_INIT] << std::endl;
 			scriptPath = fs::system_complete(scriptPath);
 			fs::current_path(localPath);
-			int ret = system(scriptPath.string().c_str());
+#ifdef WIN32
+			int ret = system(("\"" + scriptPath.string() + "\"").c_str());
+#endif
+#ifdef __linux__
+			int ret = system(("bash \"" + scriptPath.string() + "\"").c_str());
+#endif
 			fs::current_path(currentPath);
 			if (ret != EXIT_SUCCESS)
 				return ret;
@@ -1041,7 +1051,12 @@ errInfo uninstall(std::string name, bool upgrade, bool force)
 		{
 			infoStream << msgData[MSGI_RUNS_PURGE] << std::endl;
 			fs::current_path(localPath);
-			int ret = system(scriptPath.string().c_str());
+#ifdef WIN32
+			int ret = system(("\"" + scriptPath.string() + "\"").c_str());
+#endif
+#ifdef __linux__
+			int ret = system(("bash \"" + scriptPath.string() + "\"").c_str());
+#endif
 			if (ret != 0)
 				return errInfo(msgData[MSGE_RUNS] + num2str(ret));
 			infoStream << msgData[MSGI_DONE] << std::endl;
@@ -1052,7 +1067,12 @@ errInfo uninstall(std::string name, bool upgrade, bool force)
 	{
 		infoStream << msgData[MSGI_RUNS_REMOVE] << std::endl;
 		fs::current_path(localPath);
-		int ret = system(scriptPath.string().c_str());
+#ifdef WIN32
+		int ret = system(("\"" + scriptPath.string() + "\"").c_str());
+#endif
+#ifdef __linux__
+		int ret = system(("bash \"" + scriptPath.string() + "\"").c_str());
+#endif
 		if (ret != 0)
 			return errInfo(msgData[MSGE_RUNS] + num2str(ret));
 		infoStream << msgData[MSGI_DONE] << std::endl;
