@@ -209,7 +209,7 @@ mainFrame::mainFrame(const wxString& title)
 	labelSearch = new wxStaticText(staticPak, ID_LABELSEARCH,
 		guiStrData[TEXT_LABELSEARCH],
 		wxPoint(210, _GUI_GAP),
-		wxSize(29, 16)
+		wxSize(32, 16)
 		);
 	textSearch = new wxTextCtrl(staticPak, ID_TEXTSEARCH,
 		wxEmptyString,
