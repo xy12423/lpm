@@ -59,6 +59,13 @@ void checkPath()
 		remove(dataPath / DIRNAME_UPGRADE);
 		create_directory(dataPath / DIRNAME_UPGRADE);
 	}
+	if (!exists(dataPath / DIRNAME_PATH))
+		create_directory(dataPath / DIRNAME_PATH);
+	else if (!is_directory(dataPath / DIRNAME_PATH))
+	{
+		remove(dataPath / DIRNAME_PATH);
+		create_directory(dataPath / DIRNAME_PATH);
+	}
 }
 
 bool readSource()

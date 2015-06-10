@@ -34,7 +34,7 @@ std::string msgDataDefault[msgCount] = {
 	"I:Data downloaded",
 	"E:Incorrect pack info from source",
 	"E:Script exited with code ",
-	"E:Multi overwriting",
+	"E:Overwriting",
 	"E:Illegal package",
 	"E:Confliction found",
 	"E:Invalid dependence",
