@@ -58,7 +58,9 @@ class MyApp : public wxApp
 public:
 	virtual bool OnInit();
 	virtual int OnExit();
+#ifdef NDEBUG
 	virtual void OnUnhandledException();
+#endif
 };
 
 enum guiStrID{

@@ -125,7 +125,7 @@ errInfo source::upgradeAll()
 	{
 		if (is_installed((*p)->getName()) && (*p)->needUpgrade())
 		{
-			errInfo err = (*p)->upgrade(true);
+			errInfo err = (*p)->upgrade();
 			if (err.err)
 				return err;
 		}

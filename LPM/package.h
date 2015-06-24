@@ -38,6 +38,8 @@ struct depInfo
 	std::string name;
 	version ver;
 	verCon con;
+
+	std::string conStr();
 	std::string fullStr();
 	bool check(version _ver);
 	bool check();
@@ -49,6 +51,15 @@ extern std::unordered_map<std::string, depListTp> globalConf;
 
 class package
 {
+	struct instItem
+	{
+		enum opType{ INST, UPG };
+		instItem(){ pak = NULL; }
+		instItem(package *_pak, opType _oper){ pak = _pak; oper = _oper; };
+		package* pak;
+		opType oper;
+	};
+	typedef std::list<instItem> pakIListTp;
 public:
 	package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo);
 	const std::string &getName(){ return name; };
@@ -65,6 +76,7 @@ public:
 private:
 	errInfo inst();
 	errInfo checkUpg();
+	void checkDep(pakIListTp &instList, depListTp &extraDep);
 	int instScript(bool upgrade = false);
 	std::string source;
 	std::string name;

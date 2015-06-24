@@ -418,7 +418,7 @@ void mainFrame::buttonUpgPak_Click(wxCommandEvent& event)
 		if (pakList[*pItr]->needUpgrade())
 		{
 			infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << pakList[*pItr]->getName() << std::endl;
-			errInfo err = pakList[*pItr]->upgrade(true);
+			errInfo err = pakList[*pItr]->upgrade();
 			if (err.err)
 				infoStream << err.info << std::endl;
 		}
@@ -434,7 +434,7 @@ void mainFrame::buttonUpgAll_Click(wxCommandEvent& event)
 		if ((*itrPak)->needUpgrade())
 		{
 			infoStream << msgData[MSGI_PAK_UPGRADING] << (*itrPak)->getName() << std::endl;
-			errInfo err = (*itrPak)->upgrade(true);
+			errInfo err = (*itrPak)->upgrade();
 			if (err.err)
 				infoStream << err.info << std::endl;
 		}
@@ -506,10 +506,12 @@ int MyApp::OnExit()
 	return EXIT_SUCCESS;
 }
 
+#ifdef NDEBUG
 void MyApp::OnUnhandledException()
 {
 	unlock();
 	return wxApp::OnUnhandledException();
 }
+#endif
 
 #endif

@@ -8,44 +8,6 @@ std::unordered_map<std::string, depListTp> globalConf;
 
 namespace fs = boost::filesystem;
 
-void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &logOut, bool backup)
-{
-	fs::path nativePath = dataPath / DIRNAME_NATIVE;
-	for (fs::directory_iterator p(tmpPath), pEnd; p != pEnd; p++)
-	{
-		fs::path sourcePath = p->path(), newRelaPath = relaPath / sourcePath.filename(), targetPath = localPath / newRelaPath;
-		if (fs::is_regular_file(sourcePath))
-		{
-			if (exists(targetPath))
-			{
-				if (!backup)
-				{
-					if (!exists(nativePath / relaPath))
-						fs::create_directories(nativePath / relaPath);
-					if (exists(nativePath / newRelaPath))
-						throw(msgData[MSGE_OVERWRITE]);
-					fs::copy_file(targetPath, nativePath / newRelaPath);
-				}
-				fs::remove(targetPath);
-			}
-			logOut << targetPath.string() << std::endl;
-			fs::copy_file(sourcePath, targetPath);
-			fs::remove(sourcePath);
-		}
-		else
-		{
-			if (!exists(targetPath))
-			{
-				fs::create_directory(targetPath);
-				install_copy(sourcePath, newRelaPath, logOut, backup);
-				logOut << targetPath.string() << std::endl;
-			}
-			else
-				install_copy(sourcePath, newRelaPath, logOut, backup);
-		}
-	}
-}
-
 version::version(const std::string &str)
 {
 	major = minor = revision = 0;
@@ -107,47 +69,66 @@ depInfo::depInfo(const std::string &str)
 		itrP++;
 	}
 	itrEnd = str.crbegin();
-	itr--;
-	switch (*itr)
-	{
-		case '>':
-			itr--;
-			if (*itr == '=')
-				con = BIGEQU;
-			else
-			{
-				itr++;
-				con = BIGGER;
-			}
-			break;
-		case '<':
-			itr--;
-			if (*itr == '=')
-				con = LESEQU;
-			else
-			{
-				itr++;
-				con = LESS;
-			}
-			break;
-		case '=':
-			con = EQU;
-			break;
-		case '!':
-			con = NEQU;
-			break;
-		default:
-			con = EQU;
-			itr++;
-	}
-	std::string verStr;
-	do
+	if (itr == itrEnd)
+		con = NOCON;
+	else
 	{
 		itr--;
-		verStr.push_back(*itr);
+		switch (*itr)
+		{
+			case '>':
+				itr--;
+				if (*itr == '=')
+					con = BIGEQU;
+				else
+				{
+					itr++;
+					con = BIGGER;
+				}
+				break;
+			case '<':
+				itr--;
+				if (*itr == '=')
+					con = LESEQU;
+				else
+				{
+					itr++;
+					con = LESS;
+				}
+				break;
+			case '=':
+				con = EQU;
+				break;
+			case '!':
+				con = NEQU;
+				break;
+			default:
+				con = EQU;
+				itr++;
+		}
+		std::string verStr;
+		do
+		{
+			itr--;
+			verStr.push_back(*itr);
+		}
+		while (itr != itrEnd);
+		ver = version(verStr);
 	}
-	while (itr != itrEnd);
-	ver = version(verStr);
+}
+
+std::string depInfo::conStr()
+{
+	static const std::string conStrT[] = {
+		"",
+		">",
+		">=",
+		"<",
+		"<=",
+		"=",
+		"!"
+	};
+	return con == NOCON ? "" : ':' + conStrT[con] + ver.toStr();
 }
 
 std::string depInfo::fullStr()
@@ -231,6 +212,44 @@ package::package(std::string _source, std::string &_name, version _ver, depListT
 	extInfo = _extInfo;
 }
 
+void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &logOut, bool backup)
+{
+	fs::path nativePath = dataPath / DIRNAME_NATIVE;
+	for (fs::directory_iterator p(tmpPath), pEnd; p != pEnd; p++)
+	{
+		fs::path sourcePath = p->path(), newRelaPath = relaPath / sourcePath.filename(), targetPath = localPath / newRelaPath;
+		if (fs::is_regular_file(sourcePath))
+		{
+			if (exists(targetPath))
+			{
+				if (!backup)
+				{
+					if (!exists(nativePath / relaPath))
+						fs::create_directories(nativePath / relaPath);
+					if (exists(nativePath / newRelaPath))
+						throw(msgData[MSGE_OVERWRITE]);
+					fs::copy_file(targetPath, nativePath / newRelaPath);
+				}
+				fs::remove(targetPath);
+			}
+			logOut << targetPath.string() << std::endl;
+			fs::copy_file(sourcePath, targetPath);
+			fs::remove(sourcePath);
+		}
+		else
+		{
+			if (!exists(targetPath))
+			{
+				fs::create_directory(targetPath);
+				install_copy(sourcePath, newRelaPath, logOut, backup);
+				logOut << targetPath.string() << std::endl;
+			}
+			else
+				install_copy(sourcePath, newRelaPath, logOut, backup);
+		}
+	}
+}
+
 errInfo package::inst()
 {
 	dataBuf buf;
@@ -308,7 +327,7 @@ errInfo package::inst()
 			if (!fs::exists(dataPath / pDep->name))
 				fs::create_directory(dataPath / pDep->name);
 			depOut.open((dataPath / pDep->name / FILENAME_BEDEP).string(), std::ios::out | std::ios::app);
-			depOut << name << std::endl;
+			depOut << name << pDep->conStr() << std::endl;
 			depOut.close();
 		}
 		pDep = depList.begin();
@@ -320,7 +339,7 @@ errInfo package::inst()
 		pDepEnd = confList.end();
 		depOut.open((pakPath / FILENAME_CONF).string());
 		for (; pDep != pDepEnd; pDep++)
-			depOut << pDep->fullStr() << std::endl;
+			depOut << (~(*pDep)).fullStr() << std::endl;
 		depOut.close();
 		fs::path backupPath = dataPath / DIRNAME_UPGRADE / (name + ".inf");
 		if (exists(backupPath))
@@ -439,283 +458,14 @@ int package::instScript(bool upgrade)
 	return 0;
 }
 
-typedef std::unordered_map<std::string, version> depMapTp;
-struct instItem
-{
-	enum opType{ INST, UPG };
-	instItem(){ pak = NULL; }
-	instItem(package *_pak, opType _oper){ pak = _pak; oper = _oper; };
-	package* pak;
-	opType oper;
-};
-typedef std::list<instItem> pakIListTp;
-typedef std::list<int> pakQListTp;
-struct depNode
-{
-	depNode(){ pak = NULL; }
-	depNode(package *_pak){ pak = _pak; }
-	bool processed = false;
-	package *pak;
-	std::unordered_multimap<int, depInfo> con;
-	std::unordered_map<int, int> ancestor;
-	std::unordered_set<int> dep;
-};
-typedef std::unordered_map<int, depNode> depMap;
-typedef std::unordered_map<std::string, int> depHash;
-
-void clean_dep(depMap &pakMap, depHash &pakHash, int nodeID)
-{
-	pakQListTp que;
-	depNode &node = pakMap.at(nodeID);
-	std::for_each(node.dep.begin(), node.dep.end(), [&](int id){
-		pakMap.at(id).con.erase(nodeID);
-		que.push_back(id);
-	});
-	node.dep.clear();
-	while (!que.empty())
-	{
-		int id = que.front();
-		depNode depN = pakMap.at(id);
-		que.pop_front();
-		std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int>& p){
-			depN.ancestor.at(p.first) -= p.second;
-			if (depN.ancestor.at(p.first) <= 0)
-				depN.ancestor.erase(p.first);
-		});
-		depN.ancestor.at(nodeID)--;
-		if (depN.ancestor.at(nodeID) == 0)
-			depN.ancestor.erase(nodeID);
-		if (depN.ancestor.empty() && id != 0)
-		{
-			clean_dep(pakMap, pakHash, id);
-			pakHash.erase(depN.pak->getName());
-			pakMap.erase(id);
-		}
-		else
-		{
-			std::for_each(depN.dep.begin(), depN.dep.end(), [&](int id){
-				if (node.ancestor.find(id) == node.ancestor.end())
-					que.push_back(id);
-			});
-		}
-	}
-}
-
-void add_ancestor(depMap &pakMap, depHash &pakHash, int dst, int src)
-{
-	depNode &srcN = pakMap.at(src), &dstN = pakMap.at(dst);
-	std::for_each(srcN.ancestor.cbegin(), srcN.ancestor.cend(), [&dstN](const std::pair<int, int>& p){
-		dstN.ancestor[p.first] += p.second;
-	});
-	dstN.ancestor[src]++;
-	if (dstN.processed)
-	{
-		std::unordered_map<int, int>::iterator ancEnd = srcN.ancestor.end();
-		std::for_each(srcN.dep.begin(), srcN.dep.end(), [&](int depID){
-			if (srcN.ancestor.find(depID) == ancEnd)
-				add_ancestor(pakMap, pakHash, depID, src);
-		});
-	}
-}
-
 errInfo package::instFull()
 {
-	depListTp::iterator pDep, pDepEnd;
-	pDep = confList.begin();
-	pDepEnd = confList.end();
-	depListTp pakList;
 	infoStream << msgData[MSGI_CHECK_REQUIREMENT] << std::endl;
 
-	//Check requirement:init
 	pakIListTp instList;
-	depMap pakMap;
-	depHash pakHash;
-	depHash::iterator itrHash, itrHashEnd = pakHash.end();
-	int nextID = 1;
-	pakMap.emplace(0, this);
-	pakHash.emplace(name, 0);
-	pakQListTp pakQue;
-	pakQue.push_back(0);
-
-	//Check requirement:add local info
-	fs::directory_iterator p(dataPath), pEnd;
-	fs::path name;
-	std::string buf;
-	for (; p != pEnd; p++)
-	{
-		name = p->path().filename();
-		if (name.string().front() != '$')
-		{
-			std::ifstream fin((dataPath / name / FILENAME_CONF).string());
-			int newID = nextID;
-			nextID++;
-			pakMap.emplace(newID, depNode());
-			pakHash.emplace(pDep->name, newID);
-			itrHash = pakHash.find(pDep->name);
-			depNode &confN = pakMap.at(newID);
-			while (!fin.eof())
-			{
-				std::getline(fin, buf);
-				if (!buf.empty())
-					confN.con.emplace(-1, buf);
-			}
-			fin.close();
-		}
-	}
-
-	//Check requirement:BFS
 	try
 	{
-		while (!pakQue.empty())
-		{
-			int id = pakQue.front();
-			depNode &node = pakMap.at(id);
-			pakQue.pop_front();
-			pDep = node.pak->confList.begin();
-			pDepEnd = node.pak->confList.end();
-			for (; pDep != pDepEnd; pDep++)
-			{
-				int confID;
-				itrHash = pakHash.find(pDep->name);
-				if (itrHash != itrHashEnd)
-				{
-					confID = itrHash->second;
-					depNode &confN = pakMap.at(confID);
-					confN.con.emplace(id, ~(*pDep));
-					if (node.ancestor.find(confID) == node.ancestor.end())
-						add_ancestor(pakMap, pakHash, confID, id);
-					node.dep.emplace(confID);
-				}
-				else
-				{
-					int newID = nextID;
-					nextID++;
-					confID = newID;
-					node.dep.emplace(newID);
-					pakMap.emplace(newID, depNode());
-					pakHash.emplace(pDep->name, newID);
-					itrHash = pakHash.find(pDep->name);
-					depNode &confN = pakMap.at(newID);
-					confN.con.emplace(id, *pDep);
-					std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&confN](const std::pair<int, int>& p){
-						confN.ancestor[p.first] += p.second;
-					});
-					confN.ancestor[id]++;
-				}
-				if (pDep->check())
-				{
-					depNode &confN = pakMap.at(confID);
-					clean_dep(pakMap, pakHash, confID);
-					package *pak = find_package(pDep->name, confN.con);
-					if (pak == NULL)
-						throw(msgData[MSGE_CONF] + ':' + node.pak->name + ":" + pDep->fullStr());
-					confN.pak = pak;
-					confN.processed = false;
-					pakQue.push_back(confID);
-				}
-				else
-				{
-					depNode &confN = pakMap.at(confID);
-					if (confN.pak != NULL && pDep->check(confN.pak->ver))
-					{
-						if (node.ancestor.find(confID) != node.ancestor.end())
-							throw(msgData[MSGE_DEP] + ':' + node.pak->name + ":" + pDep->fullStr());
-						clean_dep(pakMap, pakHash, confID);
-						package *pak = find_package(pDep->name, confN.con);
-						if (pak == NULL)
-							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->fullStr());
-						confN.pak = pak;
-						confN.processed = false;
-						pakQue.push_back(confID);
-					}
-				}
-			}
-			pDep = node.pak->depList.begin();
-			pDepEnd = node.pak->depList.end();
-			for (; pDep != pDepEnd; pDep++)
-			{
-				int depID;
-				itrHash = pakHash.find(pDep->name);
-				if (itrHash != itrHashEnd)
-				{
-					depID = itrHash->second;
-					depNode &depN = pakMap.at(depID);
-					depN.con.emplace(id, *pDep);
-					if (node.ancestor.find(depID) == node.ancestor.end())
-						add_ancestor(pakMap, pakHash, depID, id);
-					node.dep.emplace(depID);
-					if (!pDep->check() && (depN.pak == NULL || !pDep->check(depN.pak->ver)))
-					{
-						if (node.ancestor.find(itrHash->second) != node.ancestor.end())
-							throw(msgData[MSGE_DEP] + ':' + node.pak->name + ":" + pDep->fullStr());
-						clean_dep(pakMap, pakHash, depID);
-						package *pak = find_package(pDep->name, depN.con);
-						if (pak == NULL)
-							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->fullStr());
-						depN.pak = pak;
-						depN.processed = false;
-						pakQue.push_back(itrHash->second);
-					}
-				}
-				else
-				{
-					int newID = nextID;
-					nextID++;
-					depID = newID;
-					package *pak;
-					if (pDep->check())
-						pak = NULL;
-					else
-					{
-						pak = find_package(pDep->name, *pDep);
-						if (pak == NULL)
-							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->fullStr());
-					}
-					node.dep.emplace(newID);
-					pakMap.emplace(newID, depNode(pak));
-					pakHash.emplace(pDep->name, newID);
-					depNode &depN = pakMap.at(newID);
-					depN.con.emplace(id, *pDep);
-					std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int>& p){
-						depN.ancestor[p.first] += p.second;
-					});
-					depN.ancestor[id]++;
-					depN.processed = false;
-					pakQue.push_back(newID);
-				}
-			}
-			node.processed = true;
-		}
-
-		std::unordered_set<int> pakDiff;
-		std::unordered_set<int>::iterator itrDiffEnd = pakDiff.end();
-		pakQue.push_back(0);
-		pakDiff.emplace(0);
-		while (!pakQue.empty())
-		{
-			int id = pakQue.front();
-			depNode &node = pakMap.at(id);
-			pakQue.pop_front();
-			package *pak = node.pak;
-			if (pak != NULL)
-			{
-				if (is_installed(pak->name) && cur_version(pak->name) == pak->ver)
-					instList.push_front(instItem(pak, instItem::UPG));
-				else
-					instList.push_front(instItem(pak, instItem::INST));
-				pDep = node.pak->depList.begin();
-				pDepEnd = node.pak->depList.end();
-				for (; pDep != pDepEnd; pDep++)
-				{
-					int depID = pakHash.at(pDep->name);
-					if (pakDiff.find(depID) == itrDiffEnd)
-					{
-						pakQue.push_back(depID);
-						pakDiff.emplace(depID);
-					}
-				}
-			}
-		}
+		checkDep(instList, depListTp());
 	}
 	catch (std::exception ex)
 	{
@@ -846,8 +596,39 @@ errInfo package::upgrade(bool checked)
 {
 	if (!is_installed(name))
 		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
-	if (!checked && !needUpgrade())
-		return errInfo(msgData[MSGE_PAK_LATEST]);
+	if (!checked)
+	{
+		if (!needUpgrade())
+			return errInfo(msgData[MSGE_PAK_LATEST]);
+
+		std::ifstream bedepIn((dataPath / name / FILENAME_BEDEP).string());
+		std::string line;
+		depListTp depList;
+		while (!bedepIn.eof())
+		{
+			std::getline(bedepIn, line);
+			if (!line.empty())
+				depList.push_back(depInfo(line));
+		}
+		bedepIn.close();
+
+		try
+		{
+			checkDep(pakIListTp(), depList);
+		}
+		catch (std::exception ex)
+		{
+			return errInfo(msgData[MSGE_STD] + ex.what());
+		}
+		catch (std::string err)
+		{
+			return errInfo(err);
+		}
+		catch (...)
+		{
+			throw;
+		}
+	}
 
 	infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << name << std::endl;
 	infoStream << msgData[MSGI_PAK_REMOVING] << std::endl;
@@ -866,18 +647,301 @@ errInfo package::upgrade(bool checked)
 
 bool package::check()
 {
-	depListTp::const_iterator pDep, pDepEnd;
-	pDep = confList.begin();
-	pDepEnd = confList.end();
-	for (; pDep != pDepEnd; pDep++)
-		if (is_installed(pDep->name))
-			return false;
-	pDep = depList.begin();
-	pDepEnd = depList.end();
-	for (; pDep != pDepEnd; pDep++)
-		if (!is_installed(pDep->name))
-			return false;
+	try
+	{
+		checkDep(pakIListTp(), depListTp());
+	}
+	catch (std::exception ex)
+	{
+		return false;
+	}
+	catch (std::string err)
+	{
+		return false;
+	}
+	catch (...)
+	{
+		throw;
+	}
 	return true;
+}
+
+typedef std::unordered_map<std::string, version> depMapTp;
+typedef std::list<int> pakQListTp;
+struct depNode
+{
+	depNode(){ pak = NULL; }
+	depNode(package *_pak){ pak = _pak; }
+	bool processed = true;
+	package *pak;
+	std::unordered_multimap<int, depInfo> con;
+	std::unordered_map<int, int> ancestor;
+	std::unordered_set<int> dep;
+};
+typedef std::unordered_map<int, depNode> depMap;
+typedef std::unordered_map<std::string, int> depHash;
+
+void clean_dep(depMap &pakMap, depHash &pakHash, int nodeID)
+{
+	pakQListTp que;
+	depNode &node = pakMap.at(nodeID);
+	std::for_each(node.dep.begin(), node.dep.end(), [&](int id){
+		pakMap.at(id).con.erase(nodeID);
+		que.push_back(id);
+	});
+	node.dep.clear();
+	while (!que.empty())
+	{
+		int id = que.front();
+		depNode depN = pakMap.at(id);
+		que.pop_front();
+		std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int>& p){
+			depN.ancestor.at(p.first) -= p.second;
+			if (depN.ancestor.at(p.first) <= 0)
+				depN.ancestor.erase(p.first);
+		});
+		depN.ancestor.at(nodeID)--;
+		if (depN.ancestor.at(nodeID) == 0)
+			depN.ancestor.erase(nodeID);
+		if (depN.ancestor.empty() && id != 0)
+		{
+			clean_dep(pakMap, pakHash, id);
+			pakHash.erase(depN.pak->getName());
+			pakMap.erase(id);
+		}
+		else
+		{
+			std::for_each(depN.dep.begin(), depN.dep.end(), [&](int id){
+				if (node.ancestor.find(id) == node.ancestor.end())
+					que.push_back(id);
+			});
+		}
+	}
+}
+
+void add_ancestor(depMap &pakMap, depHash &pakHash, int dst, int src)
+{
+	depNode &srcN = pakMap.at(src), &dstN = pakMap.at(dst);
+	std::for_each(srcN.ancestor.cbegin(), srcN.ancestor.cend(), [&dstN](const std::pair<int, int>& p){
+		dstN.ancestor[p.first] += p.second;
+	});
+	dstN.ancestor[src]++;
+	if (dstN.processed)
+	{
+		std::unordered_map<int, int>::iterator ancEnd = srcN.ancestor.end();
+		std::for_each(srcN.dep.begin(), srcN.dep.end(), [&](int depID){
+			if (srcN.ancestor.find(depID) == ancEnd)
+				add_ancestor(pakMap, pakHash, depID, src);
+		});
+	}
+}
+
+void package::checkDep(pakIListTp &instList, depListTp &extraDep)
+{
+	//Check requirement:init
+	depListTp::iterator pDep, pDepEnd;
+
+	depMap pakMap;
+	depHash pakHash;
+	depHash::iterator itrHash, itrHashEnd = pakHash.end();
+	int nextID = 1;
+	pakMap.emplace(0, this);
+	std::for_each(extraDep.begin(), extraDep.end(), [&](const depInfo& inf){
+		pakMap[0].con.emplace(-1, inf);
+	});
+	pakHash.emplace(name, 0);
+	pakQListTp pakQue;
+	pakQue.push_back(0);
+
+	//Check requirement:add local info
+	fs::directory_iterator p(dataPath), pEnd;
+	fs::path name;
+	std::string buf;
+	for (; p != pEnd; p++)
+	{
+		name = p->path().filename();
+		if (name.string().front() != '$')
+		{
+			std::ifstream fin((dataPath / name / FILENAME_CONF).string());
+			int newID = nextID;
+			nextID++;
+			pakMap.emplace(newID, depNode());
+			pakHash.emplace(name.string(), newID);
+			depNode &confN = pakMap.at(newID);
+			while (!fin.eof())
+			{
+				std::getline(fin, buf);
+				if (!buf.empty())
+					confN.con.emplace(-1, buf);
+			}
+			fin.close();
+		}
+	}
+
+	//Check requirement:BFS
+	while (!pakQue.empty())
+	{
+		int id = pakQue.front();
+		depNode &node = pakMap.at(id);
+		pakQue.pop_front();
+		pDep = node.pak->confList.begin();
+		pDepEnd = node.pak->confList.end();
+		for (; pDep != pDepEnd; pDep++)
+		{
+			int confID;
+			itrHash = pakHash.find(pDep->name);
+			if (itrHash != itrHashEnd)	//The package is in the map
+			{
+				confID = itrHash->second;
+				depNode &confN = pakMap.at(confID);
+				confN.con.emplace(id, ~(*pDep));
+				if (node.ancestor.find(confID) == node.ancestor.end())
+					add_ancestor(pakMap, pakHash, confID, id);
+				node.dep.emplace(confID);
+			}
+			else	//Add the package to the map
+			{
+				int newID = nextID;
+				nextID++;
+				confID = newID;
+				node.dep.emplace(newID);
+				pakMap.emplace(newID, depNode());
+				pakHash.emplace(pDep->name, newID);
+				itrHash = pakHash.find(pDep->name);
+				depNode &confN = pakMap.at(newID);
+				confN.con.emplace(id, ~(*pDep));
+				std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&confN](const std::pair<int, int>& p){
+					confN.ancestor[p.first] += p.second;
+				});
+				confN.ancestor[id]++;
+			}
+			if (pDep->check())	//Conflict with installed package
+			{
+				depNode &confN = pakMap.at(confID);
+				clean_dep(pakMap, pakHash, confID);
+				package *pak = find_package(pDep->name, confN.con);	//Try to find a correct package
+				if (pak == NULL)
+					throw(msgData[MSGE_CONF] + ':' + node.pak->name + ":" + pDep->fullStr());
+				confN.pak = pak;
+				if (confN.processed)
+				{
+					confN.processed = false;
+					pakQue.push_back(confID);
+				}
+			}
+			else
+			{
+				depNode &confN = pakMap.at(confID);
+				if (confN.pak != NULL && pDep->check(confN.pak->ver))	//Conflict with installing package
+				{
+					if (node.ancestor.find(confID) != node.ancestor.end())	//Loop in map
+						throw(msgData[MSGE_DEP] + ':' + node.pak->name + ":" + pDep->fullStr());
+					clean_dep(pakMap, pakHash, confID);
+					package *pak = find_package(pDep->name, confN.con);
+					if (pak == NULL)
+						throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->fullStr());
+					confN.pak = pak;
+					if (confN.processed)
+					{
+						confN.processed = false;
+						pakQue.push_back(confID);
+					}
+				}
+			}
+		}
+		pDep = node.pak->depList.begin();
+		pDepEnd = node.pak->depList.end();
+		for (; pDep != pDepEnd; pDep++)
+		{
+			int depID;
+			itrHash = pakHash.find(pDep->name);
+			if (itrHash != itrHashEnd)	//The package is in the map
+			{
+				depID = itrHash->second;
+				depNode &depN = pakMap.at(depID);
+				depN.con.emplace(id, *pDep);
+				if (node.ancestor.find(depID) == node.ancestor.end())
+					add_ancestor(pakMap, pakHash, depID, id);
+				node.dep.emplace(depID);
+				if ((depN.pak == NULL && !pDep->check()) || (depN.pak != NULL && !pDep->check(depN.pak->ver)))	//Checking failed
+				{
+					if (node.ancestor.find(itrHash->second) != node.ancestor.end())	//Loop in map
+						throw(msgData[MSGE_DEP] + ':' + node.pak->name + ":" + pDep->fullStr());
+					clean_dep(pakMap, pakHash, depID);
+					package *pak = find_package(pDep->name, depN.con);
+					if (pak == NULL)
+						throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->fullStr());
+					depN.pak = pak;
+					if (depN.processed)
+					{
+						depN.processed = false;
+						pakQue.push_back(itrHash->second);
+					}
+				}
+			}
+			else	//Add the package to the map
+			{
+				int newID = nextID;
+				nextID++;
+				depID = newID;
+				package *pak;
+				if (pDep->check())	//Installed correct package
+					pak = NULL;
+				else
+				{
+					pak = find_package(pDep->name, *pDep);
+					if (pak == NULL)
+						throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + pDep->fullStr());
+				}
+				node.dep.emplace(newID);
+				pakMap.emplace(newID, depNode(pak));
+				pakHash.emplace(pDep->name, newID);
+				depNode &depN = pakMap.at(newID);
+				depN.con.emplace(id, *pDep);
+				std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int>& p){
+					depN.ancestor[p.first] += p.second;
+				});
+				depN.ancestor[id]++;
+				if (depN.processed)
+				{
+					depN.processed = false;
+					pakQue.push_back(newID);
+				}
+			}
+		}
+		node.processed = true;
+	}
+
+	//Check which package need to be installed or upgraded
+	std::unordered_set<int> pakDiff;
+	std::unordered_set<int>::iterator itrDiffEnd = pakDiff.end();
+	pakQue.push_back(0);
+	pakDiff.emplace(0);
+	while (!pakQue.empty())
+	{
+		int id = pakQue.front();
+		depNode &node = pakMap.at(id);
+		pakQue.pop_front();
+		package *pak = node.pak;
+		if (pak != NULL)
+		{
+			if (is_installed(pak->name) && cur_version(pak->name) == pak->ver)
+				instList.push_front(instItem(pak, instItem::UPG));
+			else
+				instList.push_front(instItem(pak, instItem::INST));
+			pDep = node.pak->depList.begin();
+			pDepEnd = node.pak->depList.end();
+			for (; pDep != pDepEnd; pDep++)
+			{
+				int depID = pakHash.at(pDep->name);
+				if (pakDiff.find(depID) == itrDiffEnd)
+				{
+					pakQue.push_back(depID);
+					pakDiff.emplace(depID);
+				}
+			}
+		}
+	}
 }
 
 bool is_installed(const std::string &name)
@@ -1007,7 +1071,7 @@ errInfo uninstall(std::string name, bool upgrade, bool force)
 			while (!depIn.eof())
 			{
 				std::getline(depIn, line);
-				infoStream << "\t" << line << std::endl;
+				infoStream << "\t" << depInfo(line).name << std::endl;
 			}
 			depIn.close();
 			return errInfo(msgData[MSGE_PAK_BE_DEP]);
@@ -1018,7 +1082,7 @@ errInfo uninstall(std::string name, bool upgrade, bool force)
 		if (!fs::exists(pakPath / FILENAME_DEP))
 			return errInfo(msgData[MSGE_PAK_DEPINFO_NOT_FOUND]);
 		depIn.open((pakPath / FILENAME_DEP).string());
-		std::list<std::string> bedepTmp;
+		depListTp bedepTmp;
 		std::string bedepFile;
 		std::fstream bedepFS;
 		while (!depIn.eof())
@@ -1028,18 +1092,16 @@ errInfo uninstall(std::string name, bool upgrade, bool force)
 			{
 				bedepFile = (dataPath / bedepFile / FILENAME_BEDEP).string();
 				bedepFS.open(bedepFile, std::ios::in);
-				while (!bedepFS.eof())
-				{
-					std::getline(bedepFS, line);
-					if (line == name)
-						break;
-					bedepTmp.push_back(line);
-				}
+				depInfo dep;
 				while (!bedepFS.eof())
 				{
 					std::getline(bedepFS, line);
 					if (!line.empty())
-						bedepTmp.push_back(line);
+					{
+						dep = line;
+						if (dep.name != name)
+							bedepTmp.push_back(dep);
+					}
 				}
 				bedepFS.close();
 				if (bedepTmp.empty())
@@ -1049,7 +1111,7 @@ errInfo uninstall(std::string name, bool upgrade, bool force)
 					bedepFS.open(bedepFile, std::ios::out);
 					while (!bedepTmp.empty())
 					{
-						bedepFS << bedepTmp.front() << std::endl;
+						bedepFS << bedepTmp.front().fullStr() << std::endl;
 						bedepTmp.pop_front();
 					}
 					bedepFS.close();
