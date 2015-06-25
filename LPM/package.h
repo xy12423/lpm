@@ -62,22 +62,30 @@ class package
 	typedef std::list<instItem> pakIListTp;
 public:
 	package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo);
+
 	const std::string &getName(){ return name; };
 	const pakExtInfo &getExtInfo(){ return extInfo; };
 	version getVer(){ return ver; };
+
+	//Check requirements then install and run scripts
 	errInfo instFull();
-	bool needUpgrade();
+	//Try to upgrade the package
 	errInfo upgrade(bool checked = false);
+
+	bool needUpgrade();
 	bool check();
 
 	friend void writeSource();
 	friend errInfo install(std::string name);
 	friend void printInfo(package *pkg);
 private:
+	//Install package without checking requirements
 	errInfo inst();
-	errInfo checkUpg();
+	//Check if requirements are OK
 	void checkDep(pakIListTp &instList, depListTp &extraDep);
+	//Run post-installation script
 	int instScript(bool upgrade = false);
+
 	std::string source;
 	std::string name;
 	version ver;

@@ -10,10 +10,16 @@ class source
 public:
 	source(std::string _add){ add = _add; if (add.back() == '/') add.pop_back(); };
 	~source(){ std::for_each(pakList.begin(), pakList.end(), [this](package* arg){ delete arg; }); };
+
 	std::string getAdd(){ return add; };
+
+	//Load source info from remote server
 	errInfo loadRemote();
-	void loadLocal(pakListTp &_pkgList);
+	//Load source info from local
+	void loadLocal(pakListTp &_pakList);
+	//Find package in source
 	package* find_package(std::string name);
+	//Upgrade all package in source
 	errInfo upgradeAll();
 
 	friend void writeSource();

@@ -207,6 +207,7 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 							}
 						}
 					}
+					(*prCallbackP)(100);
 
 					delete[] dataBuf;
 					delete[] fileBuf;

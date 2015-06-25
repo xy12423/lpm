@@ -16,14 +16,14 @@ enum src_lineN{
 	LINE_END
 };
 
-void source::loadLocal(pakListTp &_pkgList)
+void source::loadLocal(pakListTp &_pakList)
 {
 	pakMap.clear(); 
 	std::for_each(pakList.begin(), pakList.end(), [this](package* arg){
 		delete arg;
 	});
 	pakList.clear();
-	std::for_each(_pkgList.begin(), _pkgList.end(), [this](package* arg){ 
+	std::for_each(_pakList.begin(), _pakList.end(), [this](package* arg){
 		pakMap.emplace(arg->getName(), pakList.size());
 		pakList.push_back(arg);
 	});

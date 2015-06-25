@@ -12,7 +12,7 @@ void reportProgress(double progress)
 {
 	if (static_cast<int>(progress) != lastProgress)
 	{
-		std::cout << progress << '%' << std::endl;
+		std::cout << progress << "%\r";
 		lastProgress = static_cast<int>(progress);
 	}
 	return ;
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
 			if (!lock())
 			{
 				std::cout << msgData[MSGE_LOCK] << std::endl;
-				return 0;
+				throw(0);
 			}
 			if (!readLang())
 				loadDefaultLang();
@@ -148,13 +148,13 @@ int main(int argc, char* argv[])
 				if (argc < 3)
 				{
 					printUsage();
-					return 0;
+					throw(0);
 				}
 				errInfo err = install(argv[2]);
 				if (err.err)
 				{
 					cout << err.info << endl;
-					return 0;
+					throw(0);
 				}
 			}
 			else if (cmd == "remove")
@@ -162,13 +162,13 @@ int main(int argc, char* argv[])
 				if (argc < 3)
 				{
 					printUsage();
-					return 0;
+					throw(0);
 				}
 				errInfo err = uninstall(argv[2]);
 				if (err.err)
 				{
 					cout << err.info << endl;
-					return 0;
+					throw(0);
 				}
 			}
 			else if (cmd == "upgrade")
@@ -179,7 +179,7 @@ int main(int argc, char* argv[])
 					if (err.err)
 					{
 						cout << err.info << endl;
-						return 0;
+						throw(0);
 					}
 				}
 				else
@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
 					if (err.err)
 					{
 						cout << err.info << endl;
-						return 0;
+						throw(0);
 					}
 				}
 			}
@@ -197,13 +197,13 @@ int main(int argc, char* argv[])
 				if (argc < 3)
 				{
 					printUsage();
-					return 0;
+					throw(0);
 				}
 				string name = std::string(argv[2]);
 				if (!is_installed(name))
 				{
 					cout << msgData[MSGE_PAK_NOT_INSTALLED] << endl;
-					return 0;
+					throw(0);
 				}
 				path scriptPath = dataPath / name / SCRIPT_PURGE;
 				if (exists(scriptPath))
@@ -224,7 +224,7 @@ int main(int argc, char* argv[])
 				if (argc < 3)
 				{
 					printUsage();
-					return 0;
+					throw(0);
 				}
 				string name = std::string(argv[2]);
 				if (is_installed(name))
@@ -235,7 +235,7 @@ int main(int argc, char* argv[])
 					if (pkg == NULL)
 					{
 						cout << msgData[MSGE_PAK_NOT_FOUND] << endl;
-						return 0;
+						throw(0);
 					}
 					printInfo(pkg);
 				}
@@ -245,7 +245,7 @@ int main(int argc, char* argv[])
 				if (argc < 3)
 				{
 					printUsage();
-					return 0;
+					throw(0);
 				}
 				try
 				{
@@ -269,7 +269,7 @@ int main(int argc, char* argv[])
 				if (err.err)
 				{
 					cout << err.info << endl;
-					return 0;
+					throw(0);
 				}
 			}
 			else if (cmd == "list")
@@ -317,7 +317,7 @@ int main(int argc, char* argv[])
 				if (argc < 3)
 				{
 					printUsage();
-					return 0;
+					throw(0);
 				}
 				string name(argv[2]);
 				vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
@@ -326,7 +326,7 @@ int main(int argc, char* argv[])
 					if ((*p)->getAdd() == name)
 					{
 						cout << "E:Source already added" << endl;
-						return 0;
+						throw(0);
 					}
 				}
 				source *newSrc = new source(name);
@@ -339,7 +339,7 @@ int main(int argc, char* argv[])
 				if (argc < 3)
 				{
 					printUsage();
-					return 0;
+					throw(0);
 				}
 				string name(argv[2]);
 				vector<source*>::iterator p = sourceList.begin(), pEnd = sourceList.end();

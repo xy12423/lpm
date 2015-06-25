@@ -50,6 +50,7 @@ errInfo download(const std::string &add, dataBuf *buf)
 		}
 		curl_easy_setopt(handle, CURLOPT_HEADER, 0);
 		curl_easy_setopt(handle, CURLOPT_NOBODY, 0);
+		(*prCallbackP)(0);
 	}
 
 	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_data);
