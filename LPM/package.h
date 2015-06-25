@@ -76,7 +76,6 @@ public:
 	bool check();
 
 	friend void writeSource();
-	friend errInfo install(std::string name);
 	friend void printInfo(package *pkg);
 private:
 	//Install package without checking requirements
@@ -100,7 +99,9 @@ package* find_package(const std::string &name, depInfo con);
 package* find_package(const std::string &name, std::unordered_multimap<int, depInfo> &con);
 bool is_installed(const std::string &name);
 version cur_version(const std::string &name);
-errInfo install(std::string name);
-errInfo uninstall(std::string name, bool upgrade = false, bool force = false);
+errInfo install(const std::string &name);
+errInfo uninstall(const std::string &name, bool upgrade = false, bool force = false);
+errInfo backup(const std::string &name, bool force = false);
+errInfo recover_from_backup(const std::string &name);
 
 #endif

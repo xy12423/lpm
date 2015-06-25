@@ -212,7 +212,7 @@ package::package(std::string _source, std::string &_name, version _ver, depListT
 	extInfo = _extInfo;
 }
 
-void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &logOut, bool backup)
+void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &logOut, bool nbackup)
 {
 	fs::path nativePath = dataPath / DIRNAME_NATIVE;
 	for (fs::directory_iterator p(tmpPath), pEnd; p != pEnd; p++)
@@ -222,7 +222,7 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 		{
 			if (exists(targetPath))
 			{
-				if (!backup)
+				if (!nbackup)
 				{
 					if (!exists(nativePath / relaPath))
 						fs::create_directories(nativePath / relaPath);
@@ -232,7 +232,7 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 				}
 				fs::remove(targetPath);
 			}
-			logOut << targetPath.string() << std::endl;
+			logOut << newRelaPath.string() << std::endl;
 			fs::copy_file(sourcePath, targetPath);
 			fs::remove(sourcePath);
 		}
@@ -241,11 +241,11 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 			if (!exists(targetPath))
 			{
 				fs::create_directory(targetPath);
-				install_copy(sourcePath, newRelaPath, logOut, backup);
-				logOut << targetPath.string() << std::endl;
+				install_copy(sourcePath, newRelaPath, logOut, nbackup);
+				logOut << newRelaPath.string() << std::endl;
 			}
 			else
-				install_copy(sourcePath, newRelaPath, logOut, backup);
+				install_copy(sourcePath, newRelaPath, logOut, nbackup);
 		}
 	}
 }
@@ -514,11 +514,9 @@ errInfo package::instFull()
 	}
 	catch (std::exception ex)
 	{
-		infoStream << msgData[MSGE_STD] << ex.what() << std::endl;
 		instEnd = instList.begin();
-		do
+		while (true)
 		{
-			instItr--;
 			if (instItr->oper == instItem::INST)
 			{
 				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << instItr->pak->name << std::endl;
@@ -526,18 +524,18 @@ errInfo package::instFull()
 				if (err.err)
 					return err;
 			}
+			if (instItr == instEnd)
+				break;
+			else
+				instItr--;
 		}
-		while (instItr != instEnd);
 		return errInfo(msgData[MSGE_STD] + ex.what());
 	}
 	catch (errInfo err)
 	{
-		infoStream << err.info << std::endl;
-		instItr--;
 		instEnd = instList.begin();
-		do
+		while (true)
 		{
-			instItr--;
 			if (instItr->oper == instItem::INST)
 			{
 				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << instItr->pak->name << std::endl;
@@ -545,8 +543,11 @@ errInfo package::instFull()
 				if (err.err)
 					return err;
 			}
+			if (instItr == instEnd)
+				break;
+			else
+				instItr--;
 		}
-		while (instItr != instEnd);
 		return err;
 	}
 	catch (...)
@@ -631,8 +632,12 @@ errInfo package::upgrade(bool checked)
 	}
 
 	infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << name << std::endl;
+	errInfo err = backup(name, true);
+	if (err.err)
+		return err;
+	
 	infoStream << msgData[MSGI_PAK_REMOVING] << std::endl;
-	errInfo err = uninstall(name, true);
+	err = uninstall(name, true);
 	if (err.err)
 		return err;
 	infoStream << msgData[MSGI_PAK_REINSTALLING] << std::endl;
@@ -641,7 +646,12 @@ errInfo package::upgrade(bool checked)
 		return err;
 	int ret = instScript(true);
 	if (ret != EXIT_SUCCESS)
+	{
+		infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
+		uninstall(name, false, true);
+		recover_from_backup(name);
 		return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+	}
 	return errInfo();
 }
 
@@ -925,8 +935,11 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep)
 		package *pak = node.pak;
 		if (pak != NULL)
 		{
-			if (is_installed(pak->name) && cur_version(pak->name) == pak->ver)
-				instList.push_front(instItem(pak, instItem::UPG));
+			if (is_installed(pak->name))
+			{
+				if (cur_version(pak->name) != pak->ver)
+					instList.push_front(instItem(pak, instItem::UPG));
+			}
 			else
 				instList.push_front(instItem(pak, instItem::INST));
 			pDep = node.pak->depList.begin();
@@ -1036,7 +1049,7 @@ package* find_package(const std::string &name, std::unordered_multimap<int, depI
 	return ret;
 }
 
-errInfo install(std::string name)
+errInfo install(const std::string &name)
 {
 	if (is_installed(name))
 		return errInfo(msgData[MSGE_PAK_INSTALLED]);
@@ -1050,7 +1063,7 @@ errInfo install(std::string name)
 	return pak->instFull();
 }
 
-errInfo uninstall(std::string name, bool upgrade, bool force)
+errInfo uninstall(const std::string &name, bool upgrade, bool force)
 {
 	if (!is_installed(name))
 		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
@@ -1161,16 +1174,18 @@ errInfo uninstall(std::string name, bool upgrade, bool force)
 
 	fs::path logPath = pakPath / FILENAME_INST;
 	std::ifstream logIn(logPath.string());
-	std::string tmpPath;
+	std::string tmpPathStr;
+	fs::path tmpPath;
 
 	try
 	{
 		infoStream << msgData[MSGI_DELETING] << std::endl;
 		while (!logIn.eof())
 		{
-			std::getline(logIn, tmpPath);
-			if (!tmpPath.empty())
+			std::getline(logIn, tmpPathStr);
+			if (!tmpPathStr.empty())
 			{
+				tmpPath = localPath / tmpPathStr;
 				if (!fs::is_directory(tmpPath) || fs::is_empty(tmpPath))
 					fs::remove(tmpPath);
 			}
@@ -1191,5 +1206,148 @@ errInfo uninstall(std::string name, bool upgrade, bool force)
 		throw;
 	}
 	infoStream << msgData[MSGI_PAK_REMOVED] << std::endl;
+	return errInfo();
+}
+
+errInfo backup(const std::string &name, bool force)
+{
+	if (!is_installed(name))
+		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
+	fs::path pakPath = dataPath / name;
+	fs::path backupPath = dataPath / DIRNAME_BACKUP / name;
+	if (fs::exists(backupPath))
+	{
+		if (force)
+			fs::remove_all(backupPath);
+		else
+			return errInfo(msgData[MSGE_BACKUP_EXISTS]);
+	}
+	fs::create_directory(backupPath);
+
+	fs::path logPath = pakPath / FILENAME_INST;
+	std::ifstream logIn(logPath.string());
+	std::string tmpPathStr;
+	fs::path tmpPath;
+
+	try
+	{
+		infoStream << msgData[MSGI_BACKUPING] << std::endl;
+		while (!logIn.eof())
+		{
+			std::getline(logIn, tmpPathStr);
+			if (!tmpPathStr.empty())
+			{
+				tmpPath = tmpPathStr;
+				fs::create_directories(backupPath / tmpPath.parent_path());
+				if (fs::is_regular_file(localPath / tmpPath))
+					fs::copy_file(localPath / tmpPath, backupPath / tmpPath);
+			}
+		}
+		logIn.close();
+		
+		fs::path newInfoPath = backupPath / DIRNAME_INFO;
+		fs::create_directory(newInfoPath);
+		for (fs::directory_iterator p(pakPath), pEnd; p != pEnd; p++)
+			fs::copy_file(p->path(), newInfoPath / p->path().filename());
+	}
+	catch (fs::filesystem_error err)
+	{
+		return errInfo(msgData[MSGE_FS] + err.what());
+	}
+	catch (const char* err)
+	{
+		return errInfo(std::string(err));
+	}
+	catch (...)
+	{
+		throw;
+	}
+	infoStream << msgData[MSGI_BACKUPED] << std::endl;
+	return errInfo();
+}
+
+errInfo recover_from_backup(const std::string &name)
+{
+	if (is_installed(name))
+		return errInfo(msgData[MSGE_PAK_INSTALLED]);
+
+	fs::path backupPath = dataPath / DIRNAME_BACKUP / name, pakPath = dataPath / name;	
+	bool flag1 = false, flag2 = false;
+	try
+	{
+		infoStream << msgData[MSGI_RECOVERING] << std::endl;
+
+		fs::create_directory(pakPath);
+		flag1 = true;
+
+		for (fs::directory_iterator p(backupPath / DIRNAME_INFO), pEnd; p != pEnd; p++)
+			fs::copy(p->path(), pakPath / p->path().filename());
+		fs::remove_all(backupPath / DIRNAME_INFO);
+
+		std::ofstream infOut((pakPath / FILENAME_INST).string());
+		infoStream << msgData[MSGI_COPYING] << std::endl;
+		install_copy(backupPath, fs::path(), infOut, true);
+		infoStream << msgData[MSGI_COPIED] << std::endl;
+		infOut.close();
+		flag2 = true;
+
+		fs::remove_all(backupPath);
+	}
+	catch (fs::filesystem_error err)
+	{
+		if (flag2)
+		{
+			std::ifstream infIn((pakPath / FILENAME_INST).string());
+			std::string tmpPath;
+			while (!infIn.eof())
+			{
+				std::getline(infIn, tmpPath);
+				if (!tmpPath.empty())
+					fs::remove(tmpPath);
+			}
+		}
+		if (flag1)
+			fs::remove_all(pakPath);
+		return errInfo(msgData[MSGE_FS] + err.what());
+	}
+	catch (std::string err)
+	{
+		if (flag2)
+		{
+			std::ifstream infIn((pakPath / FILENAME_INST).string());
+			std::string tmpPath;
+			while (!infIn.eof())
+			{
+				std::getline(infIn, tmpPath);
+				if (!tmpPath.empty())
+					fs::remove(tmpPath);
+			}
+		}
+		if (flag1)
+			fs::remove_all(pakPath);
+		return errInfo(err);
+	}
+	catch (std::exception ex)
+	{
+		if (flag2)
+		{
+			std::ifstream infIn((pakPath / FILENAME_INST).string());
+			std::string tmpPath;
+			while (!infIn.eof())
+			{
+				std::getline(infIn, tmpPath);
+				if (!tmpPath.empty())
+					fs::remove(tmpPath);
+			}
+		}
+		if (flag1)
+			fs::remove_all(pakPath);
+		return errInfo(ex.what());
+	}
+	catch (...)
+	{
+		throw;
+	}
+	infoStream << msgData[MSGI_RECOVERED] << std::endl;
 	return errInfo();
 }

@@ -14,6 +14,7 @@ typedef void(*fProgressReportCallback)(double progress);
 extern fProgressReportCallback prCallbackP;
 
 const std::string DIRNAME_TEMP = "$temp";
+const std::string DIRNAME_BACKUP = "$backup";
 const std::string DIRNAME_NATIVE = "$native";
 const std::string DIRNAME_UPGRADE = "$upgrade";
 const std::string DIRNAME_INFO = "$info";

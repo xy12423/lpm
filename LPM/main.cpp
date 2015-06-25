@@ -52,6 +52,13 @@ void checkPath()
 		remove(dataPath / DIRNAME_NATIVE);
 		create_directory(dataPath / DIRNAME_NATIVE);
 	}
+	if (!exists(dataPath / DIRNAME_BACKUP))
+		create_directory(dataPath / DIRNAME_BACKUP);
+	else if (!is_directory(dataPath / DIRNAME_BACKUP))
+	{
+		remove(dataPath / DIRNAME_BACKUP);
+		create_directory(dataPath / DIRNAME_BACKUP);
+	}
 	if (!exists(dataPath / DIRNAME_UPGRADE))
 		create_directory(dataPath / DIRNAME_UPGRADE);
 	else if (!is_directory(dataPath / DIRNAME_UPGRADE))
