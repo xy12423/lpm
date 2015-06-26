@@ -449,14 +449,14 @@ bool MyApp::OnInit()
 	{
 		if (readConfig() == false)
 			init();
+		if (readLang() == false)
+			loadDefaultLang();
 		if (!lock())
 		{
-			wxMessageBox(guiStrData[MSGE_LOCK], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
+			wxMessageBox(msgData[MSGE_LOCK], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
 			return false;
 		}
 		checkPath();
-		if (readLang() == false)
-			loadDefaultLang();
 		if (readGUILang() == false)
 			loadDefaultGUILang();
 		if (readSource() == false)

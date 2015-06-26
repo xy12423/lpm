@@ -31,8 +31,8 @@ struct version
 
 struct depInfo
 {
-	enum verCon{ NOCON, BIGGER, BIGEQU, LESS, LESEQU, EQU, NEQU };
-	depInfo(){ con = NOCON; };
+	enum verCon{ ALL, BIGGER, BIGEQU, LESS, LESEQU, EQU, NEQU, NONE };
+	depInfo(){ con = ALL; };
 	depInfo(const std::string &_name, version _ver, verCon _con){ name = _name; ver = _ver; con = _con; };
 	depInfo(const std::string &_str);
 	std::string name;

@@ -58,7 +58,7 @@ depInfo::depInfo(const std::string &str)
 	if (itr == itrEnd)
 	{
 		name = str;
-		con = NOCON;
+		con = ALL;
 		return;
 	}
 	itrP = itr;
@@ -70,7 +70,7 @@ depInfo::depInfo(const std::string &str)
 	}
 	itrEnd = str.crbegin();
 	if (itr == itrEnd)
-		con = NOCON;
+		con = ALL;
 	else
 	{
 		itr--;
@@ -100,20 +100,31 @@ depInfo::depInfo(const std::string &str)
 				con = EQU;
 				break;
 			case '!':
-				con = NEQU;
+				itr--;
+				if (*itr == '!')
+					con = NONE;
+				else
+				{
+					itr++;
+					con = NEQU;
+				}
+				
 				break;
 			default:
 				con = EQU;
 				itr++;
 		}
-		std::string verStr;
-		do
+		if (con != NONE)
 		{
-			itr--;
-			verStr.push_back(*itr);
+			std::string verStr;
+			while (itr != itrEnd)
+			{
+				itr--;
+				verStr.push_back(*itr);
+			}
+			if (!verStr.empty())
+				ver = version(verStr);
 		}
-		while (itr != itrEnd);
-		ver = version(verStr);
 	}
 }
 
@@ -128,7 +139,7 @@ std::string depInfo::conStr()
 		"=",
 		"!"
 	};
-	return con == NOCON ? "" : ':' + conStrT[con] + ver.toStr();
+	return con == ALL ? "" : (con == NONE ? ":!!" : ':' + conStrT[con] + ver.toStr());
 }
 
 std::string depInfo::fullStr()
@@ -142,15 +153,17 @@ std::string depInfo::fullStr()
 		"=",
 		"!"
 	};
-	return name + (con == NOCON ? "" : ':' + conStrT[con] + ver.toStr());
+	return name + conStr();
 }
 
 bool depInfo::check(version _ver)
 {
-	if (con == NOCON)
-		return true;
 	switch (con)
 	{
+		case ALL:
+			return true;
+		case NONE:
+			return false;
 		case BIGGER:
 			return _ver > ver;
 		case BIGEQU:
@@ -170,7 +183,7 @@ bool depInfo::check(version _ver)
 
 bool depInfo::check()
 {
-	if (!is_installed(name))
+	if ((!is_installed(name)) ^ (con == NONE))
 		return false;
 	return check(cur_version(name));
 }
@@ -197,6 +210,12 @@ inline depInfo operator~(const depInfo &a)
 			break;
 		case depInfo::NEQU:
 			b.con = depInfo::EQU;
+			break;
+		case depInfo::ALL:
+			b.con = depInfo::NONE;
+			break;
+		case depInfo::NONE:
+			b.con = depInfo::ALL;
 			break;
 	}
 	return b;
@@ -773,18 +792,42 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep)
 		if (name.string().front() != '$')
 		{
 			std::ifstream fin((dataPath / name / FILENAME_CONF).string());
-			int newID = nextID;
-			nextID++;
-			pakMap.emplace(newID, depNode());
-			pakHash.emplace(name.string(), newID);
-			depNode &confN = pakMap.at(newID);
 			while (!fin.eof())
 			{
 				std::getline(fin, buf);
 				if (!buf.empty())
-					confN.con.emplace(-1, buf);
+				{
+					depInfo conf(buf);
+					itrHash = pakHash.find(conf.name);
+					if (itrHash != itrHashEnd)
+					{
+						depNode &confN = pakMap.at(itrHash->second);
+						confN.con.emplace(-1, conf);
+					}
+					else
+					{
+						int newID = nextID;
+						nextID++;
+						pakMap.emplace(newID, depNode());
+						pakHash.emplace(conf.name, newID);
+						itrHash = pakHash.find(conf.name);
+						depNode &confN = pakMap.at(newID);
+						confN.con.emplace(-1, conf);
+					}
+				}
 			}
 			fin.close();
+		}
+	}
+	
+	{
+		depNode &instN = pakMap.at(0);
+		if (!instN.con.empty())
+		{
+			std::for_each(instN.con.begin(), instN.con.end(), [this](std::pair<int, depInfo> p){
+				if (!p.second.check(ver))
+					throw(msgData[MSGE_CONF] + ':' + p.second.fullStr());
+			});
 		}
 	}
 
