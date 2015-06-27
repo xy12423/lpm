@@ -4,8 +4,6 @@
 #include "unzip.h"
 #include "download.h"
 
-std::unordered_map<std::string, depListTp> globalConf;
-
 namespace fs = boost::filesystem;
 
 version::version(const std::string &str)
@@ -108,7 +106,6 @@ depInfo::depInfo(const std::string &str)
 					itr++;
 					con = NEQU;
 				}
-				
 				break;
 			default:
 				con = EQU;
@@ -1118,7 +1115,10 @@ errInfo uninstall(const std::string &name, bool upgrade, bool force)
 	{
 		if (upgrade)
 		{
-			fs::copy_file(pakPath / FILENAME_BEDEP, dataPath / DIRNAME_UPGRADE / (name + ".inf"));
+			fs::path upgradePath = dataPath / DIRNAME_UPGRADE / (name + ".inf");
+			if (fs::exists(upgradePath))
+				fs::remove(upgradePath);
+			fs::copy_file(pakPath / FILENAME_BEDEP, upgradePath);
 		}
 		else if (!force)
 		{

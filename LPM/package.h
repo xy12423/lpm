@@ -47,7 +47,6 @@ struct depInfo
 	friend inline depInfo operator~(const depInfo &a);
 };
 typedef std::list<depInfo> depListTp;
-extern std::unordered_map<std::string, depListTp> globalConf;
 
 class package
 {

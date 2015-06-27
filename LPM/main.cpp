@@ -2,6 +2,8 @@
 #include "main.h"
 using namespace boost::filesystem;
 
+const std::string FILENAME_SOURCE = "$source";
+
 bool readConfig()
 {
 	if (!exists(".config"))
@@ -77,11 +79,11 @@ void checkPath()
 
 bool readSource()
 {
-	if (!exists(".source"))
+	if (!exists(dataPath / FILENAME_SOURCE))
 	{
 		return false;
 	}
-	std::ifstream finCfg(".source");
+	std::ifstream finCfg((dataPath / FILENAME_SOURCE).string());
 	std::string tmpPath, eatCRLF;
 	int sourceCount;
 	finCfg >> sourceCount;
@@ -138,7 +140,7 @@ bool readSource()
 
 void writeSource()
 {
-	std::ofstream foutCfg(".source");
+	std::ofstream foutCfg((dataPath / FILENAME_SOURCE).string());
 	foutCfg << sourceList.size() << std::endl;
 	srcListTp::const_iterator p, pEnd = sourceList.cend();
 	pakListTp::const_iterator pP, pPEnd;
