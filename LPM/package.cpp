@@ -4,8 +4,6 @@
 #include "unzip.h"
 #include "download.h"
 
-namespace fs = boost::filesystem;
-
 version::version(const std::string &str)
 {
 	major = minor = revision = 0;

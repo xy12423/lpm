@@ -117,7 +117,35 @@ int main(int argc, char* argv[])
 
 	try
 	{
-		string cmd(argv[1]);
+		int argp = 1;
+		string cmd;
+		while (argp < argc)
+		{
+			cmd = argv[argp];
+			if (cmd.front() != '-')
+				break;
+			cmd.erase(0, 1);
+			switch (cmd.front())
+			{
+				case '-':
+				{
+					cmd.erase(0, 1);
+					if (cmd.substr(0, 7) == "lpmdir=")
+						boost::filesystem::current_path(cmd.substr(7));
+					else
+					{
+						printUsage();
+						throw(0);
+					}
+					break;
+				}
+				default:
+					printUsage();
+					throw(0);
+			}
+			argp++;
+		}
+		
 		if (cmd == "init")
 		{
 			init();
@@ -143,6 +171,7 @@ int main(int argc, char* argv[])
 			readSource();
 			readLocal();
 			prCallbackP = reportProgress;
+
 			if (cmd == "install")
 			{
 				if (argc < 3)

@@ -17,6 +17,8 @@
 #include <exception>
 
 #include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 #include <curl/curl.h>
 #include <zlib.h>
 

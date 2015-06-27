@@ -1,12 +1,11 @@
 #include "stdafx.h"
 #include "main.h"
-using namespace boost::filesystem;
 
 const std::string FILENAME_SOURCE = "$source";
 
 bool readConfig()
 {
-	if (!exists(".config"))
+	if (!fs::exists(".config"))
 	{
 		return false;
 	}
@@ -272,8 +271,8 @@ void init()
 
 bool lock()
 {
-	path lockPath = localPath / FILENAME_LOCK;
-	if (exists(lockPath))
+	fs::path lockPath = localPath / FILENAME_LOCK;
+	if (fs::exists(lockPath))
 		return false;
 	std::ofstream lockOut(lockPath.string());
 	lockOut.close();
@@ -282,7 +281,7 @@ bool lock()
 
 void unlock()
 {
-	path lockPath = localPath / FILENAME_LOCK;
-	if (exists(lockPath))
+	fs::path lockPath = localPath / FILENAME_LOCK;
+	if (fs::exists(lockPath))
 		remove(lockPath);
 }
