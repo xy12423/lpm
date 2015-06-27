@@ -311,6 +311,7 @@ errInfo package::inst()
 		}
 
 		std::ofstream infOut((pakPath / FILENAME_INST).string());
+		infOut << fs::system_complete(localPath).string() << std::endl;
 		infoStream << msgData[MSGI_COPYING] << std::endl;
 		install_copy(tmpPath, fs::path(), infOut, true);
 		infoStream << msgData[MSGI_COPIED] << std::endl;
@@ -368,11 +369,12 @@ errInfo package::inst()
 		{
 			std::ifstream infIn((pakPath / FILENAME_INST).string());
 			std::string tmpPath;
+			std::getline(infIn, tmpPath);
 			while (!infIn.eof())
 			{
 				std::getline(infIn, tmpPath);
 				if (!tmpPath.empty())
-					fs::remove(tmpPath);
+					fs::remove(localPath / tmpPath);
 			}
 		}
 		if (flag2)
@@ -387,11 +389,12 @@ errInfo package::inst()
 		{
 			std::ifstream infIn((pakPath / FILENAME_INST).string());
 			std::string tmpPath;
+			std::getline(infIn, tmpPath);
 			while (!infIn.eof())
 			{
 				std::getline(infIn, tmpPath);
 				if (!tmpPath.empty())
-					fs::remove(tmpPath);
+					fs::remove(localPath / tmpPath);
 			}
 		}
 		if (flag2)
@@ -406,11 +409,12 @@ errInfo package::inst()
 		{
 			std::ifstream infIn((pakPath / FILENAME_INST).string());
 			std::string tmpPath;
+			std::getline(infIn, tmpPath);
 			while (!infIn.eof())
 			{
 				std::getline(infIn, tmpPath);
 				if (!tmpPath.empty())
-					fs::remove(tmpPath);
+					fs::remove(localPath / tmpPath);
 			}
 		}
 		if (flag2)
@@ -1175,6 +1179,12 @@ errInfo uninstall(const std::string &name, bool upgrade, bool force)
 		depIn.close();
 	}
 
+	fs::path logPath = pakPath / FILENAME_INST;
+	std::ifstream infIn(logPath.string());
+	std::string tmpPathStr;
+	std::getline(infIn, tmpPathStr);
+	fs::path tmpPath, instPath(tmpPathStr);
+
 	fs::path scriptPath,
 		currentPath = fs::current_path(),
 		pathPath = fs::system_complete(dataPath / DIRNAME_PATH);
@@ -1184,7 +1194,7 @@ errInfo uninstall(const std::string &name, bool upgrade, bool force)
 		if (exists(scriptPath))
 		{
 			infoStream << msgData[MSGI_RUNS_PURGE] << std::endl;
-			fs::current_path(localPath);
+			fs::current_path(instPath);
 #ifdef WIN32
 			int ret = system(("set \"PATH=" + pathPath.string() + ";%PATH%\" & \"" + scriptPath.string() + "\"").c_str());
 #endif
@@ -1200,7 +1210,7 @@ errInfo uninstall(const std::string &name, bool upgrade, bool force)
 	if (exists(scriptPath))
 	{
 		infoStream << msgData[MSGI_RUNS_REMOVE] << std::endl;
-		fs::current_path(localPath);
+		fs::current_path(instPath);
 #ifdef WIN32
 		int ret = system(("set \"PATH=" + pathPath.string() + ";%PATH%\" & \"" + scriptPath.string() + "\"").c_str());
 #endif
@@ -1213,25 +1223,20 @@ errInfo uninstall(const std::string &name, bool upgrade, bool force)
 	}
 	fs::current_path(currentPath);
 
-	fs::path logPath = pakPath / FILENAME_INST;
-	std::ifstream logIn(logPath.string());
-	std::string tmpPathStr;
-	fs::path tmpPath;
-
 	try
 	{
 		infoStream << msgData[MSGI_DELETING] << std::endl;
-		while (!logIn.eof())
+		while (!infIn.eof())
 		{
-			std::getline(logIn, tmpPathStr);
+			std::getline(infIn, tmpPathStr);
 			if (!tmpPathStr.empty())
 			{
-				tmpPath = localPath / tmpPathStr;
+				tmpPath = instPath / tmpPathStr;
 				if (!fs::is_directory(tmpPath) || fs::is_empty(tmpPath))
 					fs::remove(tmpPath);
 			}
 		}
-		logIn.close();
+		infIn.close();
 		fs::remove_all(pakPath);
 	}
 	catch (fs::filesystem_error err)
@@ -1266,25 +1271,26 @@ errInfo backup(const std::string &name, bool force)
 	fs::create_directory(backupPath);
 
 	fs::path logPath = pakPath / FILENAME_INST;
-	std::ifstream logIn(logPath.string());
+	std::ifstream infIn(logPath.string());
 	std::string tmpPathStr;
-	fs::path tmpPath;
+	std::getline(infIn, tmpPathStr);
+	fs::path tmpPath, instPath(tmpPathStr);
 
 	try
 	{
 		infoStream << msgData[MSGI_BACKUPING] << std::endl;
-		while (!logIn.eof())
+		while (!infIn.eof())
 		{
-			std::getline(logIn, tmpPathStr);
+			std::getline(infIn, tmpPathStr);
 			if (!tmpPathStr.empty())
 			{
 				tmpPath = tmpPathStr;
 				fs::create_directories(backupPath / tmpPath.parent_path());
-				if (fs::is_regular_file(localPath / tmpPath))
-					fs::copy_file(localPath / tmpPath, backupPath / tmpPath);
+				if (fs::is_regular_file(instPath / tmpPath))
+					fs::copy_file(instPath / tmpPath, backupPath / tmpPath);
 			}
 		}
-		logIn.close();
+		infIn.close();
 		
 		fs::path newInfoPath = backupPath / DIRNAME_INFO;
 		fs::create_directory(newInfoPath);
@@ -1325,9 +1331,26 @@ errInfo recover_from_backup(const std::string &name)
 			fs::copy(p->path(), pakPath / p->path().filename());
 		fs::remove_all(backupPath / DIRNAME_INFO);
 
+		std::ifstream infIn((pakPath / FILENAME_INST).string());
+		std::string tmpPath;
+		std::getline(infIn, tmpPath);
+		fs::path instPath(tmpPath);
+		infIn.close();
+
 		std::ofstream infOut((pakPath / FILENAME_INST).string());
 		infoStream << msgData[MSGI_COPYING] << std::endl;
-		install_copy(backupPath, fs::path(), infOut, true);
+		fs::path currentLocalPath = localPath;
+		localPath = instPath;
+		try
+		{
+			install_copy(backupPath, fs::path(), infOut, true);
+		}
+		catch (...)
+		{
+			localPath = currentLocalPath;
+			throw;
+		}
+		localPath = currentLocalPath;
 		infoStream << msgData[MSGI_COPIED] << std::endl;
 		infOut.close();
 		flag2 = true;
@@ -1340,11 +1363,13 @@ errInfo recover_from_backup(const std::string &name)
 		{
 			std::ifstream infIn((pakPath / FILENAME_INST).string());
 			std::string tmpPath;
+			std::getline(infIn, tmpPath);
+			fs::path instPath(tmpPath);
 			while (!infIn.eof())
 			{
 				std::getline(infIn, tmpPath);
 				if (!tmpPath.empty())
-					fs::remove(tmpPath);
+					fs::remove(instPath / tmpPath);
 			}
 		}
 		if (flag1)
@@ -1357,11 +1382,13 @@ errInfo recover_from_backup(const std::string &name)
 		{
 			std::ifstream infIn((pakPath / FILENAME_INST).string());
 			std::string tmpPath;
+			std::getline(infIn, tmpPath);
+			fs::path instPath(tmpPath);
 			while (!infIn.eof())
 			{
 				std::getline(infIn, tmpPath);
 				if (!tmpPath.empty())
-					fs::remove(tmpPath);
+					fs::remove(instPath / tmpPath);
 			}
 		}
 		if (flag1)
@@ -1374,11 +1401,13 @@ errInfo recover_from_backup(const std::string &name)
 		{
 			std::ifstream infIn((pakPath / FILENAME_INST).string());
 			std::string tmpPath;
+			std::getline(infIn, tmpPath);
+			fs::path instPath(tmpPath);
 			while (!infIn.eof())
 			{
 				std::getline(infIn, tmpPath);
 				if (!tmpPath.empty())
-					fs::remove(tmpPath);
+					fs::remove(instPath / tmpPath);
 			}
 		}
 		if (flag1)

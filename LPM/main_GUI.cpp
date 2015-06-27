@@ -447,14 +447,48 @@ bool MyApp::OnInit()
 {
 	try
 	{
+		int argp = 1;
+		std::string cmd;
+		std::string newLocal, newData;
+		while (argp < argc)
+		{
+			cmd = argv[argp];
+			if (cmd.front() != '-')
+				break;
+			cmd.erase(0, 1);
+			switch (cmd.front())
+			{
+				case '-':
+				{
+					cmd.erase(0, 1);
+					if (cmd.substr(0, 7) == "lpmdir=")
+						boost::filesystem::current_path(cmd.substr(7));
+					else if (cmd.substr(0, 6) == "local=")
+						newLocal = cmd.substr(6);
+					else if (cmd.substr(0, 5) == "data=")
+						newData = cmd.substr(5);
+					else
+						throw(0);
+					break;
+				}
+				default:
+					throw(0);
+			}
+			argp++;
+		}
+
 		if (readConfig() == false)
 			init();
 		if (readLang() == false)
 			loadDefaultLang();
+		if (!newLocal.empty())
+			localPath = newLocal;
+		if (!newData.empty())
+			dataPath = newData;
 		if (!lock())
 		{
 			wxMessageBox(msgData[MSGE_LOCK], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
-			return false;
+			throw(0);
 		}
 		checkPath();
 		if (readGUILang() == false)
@@ -462,7 +496,7 @@ bool MyApp::OnInit()
 		if (readSource() == false)
 		{
 			wxMessageBox(guiStrData[TEXTE_LOADSRC], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
-			return false;
+			throw(0);
 		}
 		readLocal();
 

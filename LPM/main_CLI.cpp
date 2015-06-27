@@ -119,6 +119,7 @@ int main(int argc, char* argv[])
 	{
 		int argp = 1;
 		string cmd;
+		string newLocal, newData;
 		while (argp < argc)
 		{
 			cmd = argv[argp];
@@ -132,6 +133,10 @@ int main(int argc, char* argv[])
 					cmd.erase(0, 1);
 					if (cmd.substr(0, 7) == "lpmdir=")
 						boost::filesystem::current_path(cmd.substr(7));
+					else if (cmd.substr(0, 6) == "local=")
+						newLocal = cmd.substr(6);
+					else if (cmd.substr(0, 5) == "data=")
+						newData = cmd.substr(5);
 					else
 					{
 						printUsage();
@@ -161,6 +166,10 @@ int main(int argc, char* argv[])
 				init();
 				checkPath();
 			}
+			if (!newLocal.empty())
+				localPath = newLocal;
+			if (!newData.empty())
+				dataPath = newData;
 			if (!lock())
 			{
 				std::cout << msgData[MSGE_LOCK] << std::endl;
