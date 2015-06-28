@@ -139,15 +139,6 @@ std::string depInfo::conStr()
 
 std::string depInfo::fullStr()
 {
-	static const std::string conStrT[] = {
-		"",
-		">",
-		">=",
-		"<",
-		"<=",
-		"=",
-		"!"
-	};
 	return name + conStr();
 }
 
@@ -171,9 +162,8 @@ bool depInfo::check(version _ver)
 			return _ver == ver;
 		case NEQU:
 			return _ver != ver;
-		default:
-			return false;
 	}
+	return false;
 }
 
 bool depInfo::check()
@@ -214,16 +204,6 @@ inline depInfo operator~(const depInfo &a)
 			break;
 	}
 	return b;
-}
-
-package::package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo)
-{
-	source = _source;
-	name = _name;
-	ver = _ver;
-	depList = _depList;
-	confList = _confList;
-	extInfo = _extInfo;
 }
 
 void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &logOut, bool nbackup)
@@ -588,7 +568,7 @@ errInfo package::instFull()
 					if (rbItr->oper == instItem::INST)
 					{
 						infoStream << msgData[MSGI_PAK_REMOVING] << ':' << rbItr->pak->name << std::endl;
-						errInfo err = uninstall(rbItr->pak->name, false, true);
+						errInfo err = uninstall(rbItr->pak->name, false, REMOVE_FORCE);
 						if (err.err)
 							return err;
 					}
@@ -664,7 +644,7 @@ errInfo package::upgrade(bool checked)
 	if (ret != EXIT_SUCCESS)
 	{
 		infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
-		uninstall(name, false, true);
+		uninstall(name, false, REMOVE_FORCE);
 		recover_from_backup(name);
 		return errInfo(msgData[MSGE_RUNS] + num2str(ret));
 	}
@@ -677,10 +657,6 @@ bool package::check()
 	{
 		checkDep(pakIListTp(), depListTp());
 	}
-	catch (std::exception ex)
-	{
-		return false;
-	}
 	catch (std::string err)
 	{
 		return false;
@@ -692,7 +668,6 @@ bool package::check()
 	return true;
 }
 
-typedef std::unordered_map<std::string, version> depMapTp;
 typedef std::list<int> pakQListTp;
 struct depNode
 {
@@ -704,10 +679,10 @@ struct depNode
 	std::unordered_map<int, int> ancestor;
 	std::unordered_set<int> dep;
 };
-typedef std::unordered_map<int, depNode> depMap;
-typedef std::unordered_map<std::string, int> depHash;
+typedef std::unordered_map<int, depNode> depMapTp;
+typedef std::unordered_map<std::string, int> depHashTp;
 
-void clean_dep(depMap &pakMap, depHash &pakHash, int nodeID)
+void clean_dep(depMapTp &pakMap, depHashTp &pakHash, int nodeID)
 {
 	pakQListTp que;
 	depNode &node = pakMap.at(nodeID);
@@ -745,7 +720,7 @@ void clean_dep(depMap &pakMap, depHash &pakHash, int nodeID)
 	}
 }
 
-void add_ancestor(depMap &pakMap, depHash &pakHash, int dst, int src)
+void add_ancestor(depMapTp &pakMap, depHashTp &pakHash, int dst, int src)
 {
 	depNode &srcN = pakMap.at(src), &dstN = pakMap.at(dst);
 	std::for_each(srcN.ancestor.cbegin(), srcN.ancestor.cend(), [&dstN](const std::pair<int, int>& p){
@@ -767,9 +742,9 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep)
 	//Check requirement:init
 	depListTp::iterator pDep, pDepEnd;
 
-	depMap pakMap;
-	depHash pakHash;
-	depHash::iterator itrHash, itrHashEnd = pakHash.end();
+	depMapTp pakMap;
+	depHashTp pakHash;
+	depHashTp::iterator itrHash, itrHashEnd = pakHash.end();
 	int nextID = 1;
 	pakMap.emplace(0, this);
 	std::for_each(extraDep.begin(), extraDep.end(), [&](const depInfo& inf){
@@ -1103,7 +1078,7 @@ errInfo install(const std::string &name)
 	return pak->instFull();
 }
 
-errInfo uninstall(const std::string &name, bool upgrade, bool force)
+errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 {
 	if (!is_installed(name))
 		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
@@ -1120,14 +1095,52 @@ errInfo uninstall(const std::string &name, bool upgrade, bool force)
 				fs::remove(upgradePath);
 			fs::copy_file(pakPath / FILENAME_BEDEP, upgradePath);
 		}
-		else if (!force)
+		else if (level == REMOVE_RECURSIVE)
+		{
+			std::unordered_set<std::string> depHash;
+			std::unordered_set<std::string>::iterator depHashEnd = depHash.end();
+			std::list<std::string> depQue, removeQue;
+			depHash.emplace(name);
+			depQue.push_back(name);
+			std::string nextName;
+
+			while (!depQue.empty())
+			{
+				std::string &thisName = depQue.front();
+				depIn.open((dataPath / thisName / FILENAME_BEDEP).string());
+				depQue.pop_front();
+				while (!depIn.eof())
+				{
+					std::getline(depIn, line);
+					if (!line.empty())
+					{
+						nextName = depInfo(line).name;
+						if (depHash.find(nextName) == depHashEnd)
+						{
+							depHash.emplace(nextName);
+							depQue.push_back(nextName);
+							removeQue.push_front(nextName);
+						}
+					}
+				}
+				depIn.close();
+			}
+
+			while (!removeQue.empty())
+			{
+				uninstall(removeQue.front(), false, REMOVE_FORCE);
+				removeQue.pop_front();
+			}
+		}
+		else if (level < REMOVE_FORCE)
 		{
 			infoStream << msgData[MSGW_PAK_BE_DEP] << std::endl;
 			depIn.open((pakPath / FILENAME_BEDEP).string());
 			while (!depIn.eof())
 			{
 				std::getline(depIn, line);
-				infoStream << "\t" << depInfo(line).name << std::endl;
+				if (!line.empty())
+					infoStream << "\t" << depInfo(line).name << std::endl;
 			}
 			depIn.close();
 			return errInfo(msgData[MSGE_PAK_BE_DEP]);
@@ -1147,30 +1160,33 @@ errInfo uninstall(const std::string &name, bool upgrade, bool force)
 			if (!bedepFile.empty())
 			{
 				bedepFile = (dataPath / bedepFile / FILENAME_BEDEP).string();
-				bedepFS.open(bedepFile, std::ios::in);
-				depInfo dep;
-				while (!bedepFS.eof())
+				if (fs::exists(bedepFile))
 				{
-					std::getline(bedepFS, line);
-					if (!line.empty())
+					bedepFS.open(bedepFile, std::ios::in);
+					depInfo dep;
+					while (!bedepFS.eof())
 					{
-						dep = line;
-						if (dep.name != name)
-							bedepTmp.push_back(dep);
-					}
-				}
-				bedepFS.close();
-				if (bedepTmp.empty())
-					fs::remove(bedepFile);
-				else
-				{
-					bedepFS.open(bedepFile, std::ios::out);
-					while (!bedepTmp.empty())
-					{
-						bedepFS << bedepTmp.front().fullStr() << std::endl;
-						bedepTmp.pop_front();
+						std::getline(bedepFS, line);
+						if (!line.empty())
+						{
+							dep = line;
+							if (dep.name != name)
+								bedepTmp.push_back(dep);
+						}
 					}
 					bedepFS.close();
+					if (bedepTmp.empty())
+						fs::remove(bedepFile);
+					else
+					{
+						bedepFS.open(bedepFile, std::ios::out);
+						while (!bedepTmp.empty())
+						{
+							bedepFS << bedepTmp.front().fullStr() << std::endl;
+							bedepTmp.pop_front();
+						}
+						bedepFS.close();
+					}
 				}
 			}
 		}

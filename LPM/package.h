@@ -60,7 +60,9 @@ class package
 	};
 	typedef std::list<instItem> pakIListTp;
 public:
-	package(std::string _source, std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo);
+	package(const std::string &_source, const std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo) :
+		source(_source), name(_name), ver(_ver), depList(_depList), confList(_confList), extInfo(_extInfo)
+	{};
 
 	const std::string &getName(){ return name; };
 	const pakExtInfo &getExtInfo(){ return extInfo; };
@@ -93,13 +95,19 @@ private:
 };
 typedef std::vector<package*> pakListTp;
 
+
+enum remove_level{
+	REMOVE_NORMAL,
+	REMOVE_FORCE,
+	REMOVE_RECURSIVE
+};
 package* find_package(const std::string &name);
 package* find_package(const std::string &name, depInfo con);
 package* find_package(const std::string &name, std::unordered_multimap<int, depInfo> &con);
 bool is_installed(const std::string &name);
 version cur_version(const std::string &name);
 errInfo install(const std::string &name);
-errInfo uninstall(const std::string &name, bool upgrade = false, bool force = false);
+errInfo uninstall(const std::string &name, bool upgrade = false, remove_level level = REMOVE_NORMAL);
 errInfo backup(const std::string &name, bool force = false);
 errInfo recover_from_backup(const std::string &name);
 

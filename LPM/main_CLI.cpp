@@ -120,6 +120,7 @@ int main(int argc, char* argv[])
 		int argp = 1;
 		string cmd;
 		string newLocal, newData;
+		bool force = false;
 		while (argp < argc)
 		{
 			cmd = argv[argp];
@@ -137,6 +138,8 @@ int main(int argc, char* argv[])
 						newLocal = cmd.substr(6);
 					else if (cmd.substr(0, 5) == "data=")
 						newData = cmd.substr(5);
+					else if (cmd.substr(0, 5) == "force")
+						force = true;
 					else
 					{
 						printUsage();
@@ -181,14 +184,15 @@ int main(int argc, char* argv[])
 			readLocal();
 			prCallbackP = reportProgress;
 
+			argp++;
 			if (cmd == "install")
 			{
-				if (argc < 3)
+				if (argc - argp < 1)
 				{
 					printUsage();
 					throw(0);
 				}
-				errInfo err = install(argv[2]);
+				errInfo err = install(argv[argp]);
 				if (err.err)
 				{
 					cout << err.info << endl;
@@ -197,12 +201,12 @@ int main(int argc, char* argv[])
 			}
 			else if (cmd == "remove")
 			{
-				if (argc < 3)
+				if (argc - argp < 1)
 				{
 					printUsage();
 					throw(0);
 				}
-				errInfo err = uninstall(argv[2]);
+				errInfo err = uninstall(argv[argp], false, (force ? REMOVE_RECURSIVE : REMOVE_NORMAL));
 				if (err.err)
 				{
 					cout << err.info << endl;
@@ -211,7 +215,7 @@ int main(int argc, char* argv[])
 			}
 			else if (cmd == "upgrade")
 			{
-				if (argc < 3)
+				if (argc - argp < 1)
 				{
 					errInfo err = upgrade();
 					if (err.err)
@@ -222,7 +226,7 @@ int main(int argc, char* argv[])
 				}
 				else
 				{
-					errInfo err = upgrade(argv[2]);
+					errInfo err = upgrade(argv[argp]);
 					if (err.err)
 					{
 						cout << err.info << endl;
@@ -232,12 +236,12 @@ int main(int argc, char* argv[])
 			}
 			else if (cmd == "dataclear")
 			{
-				if (argc < 3)
+				if (argc - argp < 1)
 				{
 					printUsage();
 					throw(0);
 				}
-				string name = std::string(argv[2]);
+				string name = std::string(argv[argp]);
 				if (!is_installed(name))
 				{
 					cout << msgData[MSGE_PAK_NOT_INSTALLED] << endl;
@@ -259,12 +263,12 @@ int main(int argc, char* argv[])
 			}
 			else if (cmd == "info")
 			{
-				if (argc < 3)
+				if (argc - argp < 1)
 				{
 					printUsage();
 					throw(0);
 				}
-				string name = std::string(argv[2]);
+				string name = std::string(argv[argp]);
 				if (is_installed(name))
 					printInfoFromFile(name);
 				else
@@ -280,14 +284,14 @@ int main(int argc, char* argv[])
 			}
 			else if (cmd == "check")
 			{
-				if (argc < 3)
+				if (argc - argp < 1)
 				{
 					printUsage();
 					throw(0);
 				}
 				try
 				{
-					if (check(argv[2]))
+					if (check(argv[argp]))
 						cout << "OK" << endl;
 					else
 						cout << "NO" << endl;
@@ -352,12 +356,12 @@ int main(int argc, char* argv[])
 			}
 			else if (cmd == "addsrc")
 			{
-				if (argc < 3)
+				if (argc - argp < 1)
 				{
 					printUsage();
 					throw(0);
 				}
-				string name(argv[2]);
+				string name(argv[argp]);
 				vector<source*>::const_iterator p = sourceList.cbegin(), pEnd = sourceList.cend();
 				for (; p != pEnd; p++)
 				{
@@ -374,12 +378,12 @@ int main(int argc, char* argv[])
 			}
 			else if (cmd == "delsrc")
 			{
-				if (argc < 3)
+				if (argc - argp < 1)
 				{
 					printUsage();
 					throw(0);
 				}
-				string name(argv[2]);
+				string name(argv[argp]);
 				vector<source*>::iterator p = sourceList.begin(), pEnd = sourceList.end();
 				bool found = false;
 				for (; p != pEnd; p++)
