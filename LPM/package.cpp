@@ -266,12 +266,11 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 
 errInfo package::inst()
 {
-	dataBuf buf;
-	errInfo err = download(source + "/" + name + ".lpm", &buf);
+	fs::path tmpPath = dataPath / DIRNAME_TEMP / name, pakPath = dataPath / name;
+	errInfo err = download(source + "/" + name + ".lpm", tmpPath.string() + ".lpm");
 	if (err.err)
 		return err;
 
-	fs::path tmpPath = dataPath / DIRNAME_TEMP / name, pakPath = dataPath / name;
 	bool flag1 = false, flag2 = false, flag3 = false;
 	try
 	{
@@ -280,7 +279,8 @@ errInfo package::inst()
 		fs::create_directory(pakPath);
 		flag2 = true;
 		infoStream << msgData[MSGI_DECOMPRESSING] << std::endl;
-		errInfo err = unzip(buf.begin(), buf.end(), tmpPath);
+		errInfo err = unzip(tmpPath.string() + ".lpm", tmpPath);
+		fs::remove(tmpPath.string() + ".lpm");
 		if (err.err)
 			throw(err.info);
 		infoStream << msgData[MSGI_DECOMPRESSED] << std::endl;
