@@ -74,6 +74,13 @@ void checkPath()
 		remove(dataPath / DIRNAME_PATH);
 		create_directory(dataPath / DIRNAME_PATH);
 	}
+	if (!exists(dataPath / FILENAME_SOURCE))
+		writeSource();
+	else if (!is_directory(dataPath / DIRNAME_PATH))
+	{
+		remove(dataPath / DIRNAME_PATH);
+		writeSource();
+	}
 }
 
 bool readSource()
@@ -265,6 +272,7 @@ void init()
 	localPath = "./local";
 	dataPath = "./data";
 	langPath = "./lpm-lang";
+	checkPath();
 	writeConfig();
 	writeSource();
 }

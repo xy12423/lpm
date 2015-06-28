@@ -44,6 +44,6 @@ typedef unsigned long ULONG;
 typedef unsigned long long ULONGLONG;
 typedef unsigned char BYTE;
 
-typedef std::list<BYTE> dataBuf;
+typedef std::vector<BYTE> dataBuf;
 
 #endif

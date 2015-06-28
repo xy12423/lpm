@@ -24,11 +24,12 @@ size_t save_header(void *ptr, size_t size, size_t nmemb, void *data)
 
 errInfo download(const std::string &add, dataBuf *buf)
 {
+	std::vector<char> errBuf;
+	errBuf.reserve(2048);
 	CURL *handle = curl_easy_init();
 	char *addCStr = str2cstr(add);
-	char *errBuf = new char[2048];
 	curl_easy_setopt(handle, CURLOPT_URL, addCStr);
-	curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errBuf);
+	curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errBuf.data());
 	CURLcode success;
 	infoStream << "I:Connecting" << std::endl;
 	if (prCallbackP != NULL)
@@ -40,13 +41,13 @@ errInfo download(const std::string &add, dataBuf *buf)
 		if (success != CURLcode::CURLE_OK)
 		{
 			curl_easy_cleanup(handle);
-			return errInfo(std::string("E:network:") + errBuf);
+			return errInfo(std::string("E:network:") + errBuf.data());
 		}
 		success = curl_easy_getinfo(handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &lenAll);
 		if (success != CURLcode::CURLE_OK)
 		{
 			curl_easy_cleanup(handle);
-			return errInfo(std::string("E:network:") + errBuf);
+			return errInfo(std::string("E:network:") + errBuf.data());
 		}
 		curl_easy_setopt(handle, CURLOPT_HEADER, 0);
 		curl_easy_setopt(handle, CURLOPT_NOBODY, 0);
@@ -60,7 +61,7 @@ errInfo download(const std::string &add, dataBuf *buf)
 	if (success != CURLcode::CURLE_OK)
 	{
 		curl_easy_cleanup(handle);
-		return errInfo(std::string("E:network:") + errBuf);
+		return errInfo(std::string("E:network:") + errBuf.data());
 	}
 	if (prCallbackP != NULL)
 		(*prCallbackP)(100);

@@ -118,96 +118,110 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 					}
 					break;
 				case 8:
-					const int blockSize = 0x10000000;
+					const int blockSize = 0x100000;
 
 					BYTE *dataBuf = new BYTE[fileSize];
-					BYTE *ptr = dataBuf;
-					for (i = 0; i < fileSize; i++)
+					BYTE *fileBuf = new BYTE[blockSize];
+
+					try
 					{
-						if (dataBegin == dataEnd)
+						BYTE *ptr = dataBuf;
+						for (i = 0; i < fileSize; i++)
+						{
+							if (dataBegin == dataEnd)
+							{
+								delete[] dataBuf;
+								throw(errInfo(msgData[MSGE_UNZIP_BROKEN]));
+							}
+							*ptr = *dataBegin;
+							ptr++;
+							dataBegin++;
+						}
+
+						z_stream zstream;
+						zstream.zalloc = static_cast<alloc_func>(Z_NULL);
+						zstream.zfree = static_cast<free_func>(Z_NULL);
+						zstream.opaque = 0;
+						zstream.next_in = NULL;
+						zstream.avail_in = 0;
+						int err = inflateInit2(&zstream, -15);
+						if (err != Z_OK)
 						{
 							delete[] dataBuf;
-							return errInfo(msgData[MSGE_UNZIP_BROKEN]);
+							throw(errInfo(msgData[MSGE_UNZIP_INFLATEINIT] + num2str(err)));
 						}
-						*ptr = *dataBegin;
-						ptr++;
-						dataBegin++;
-					}
+						zstream.next_in = dataBuf;
+						zstream.avail_in = fileSize;
 
-					z_stream zstream;
-					zstream.zalloc = static_cast<alloc_func>(Z_NULL);
-					zstream.zfree = static_cast<free_func>(Z_NULL);
-					zstream.opaque = 0;
-					zstream.next_in = NULL;
-					zstream.avail_in = 0;
-					int err = inflateInit2(&zstream, -8);
-					if (err != Z_OK)
-					{
-						delete[] dataBuf;
-						return errInfo(msgData[MSGE_UNZIP_INFLATEINIT] + num2str(err));
-					}
-					zstream.next_in = dataBuf;
-					zstream.avail_in = fileSize;
-					BYTE *fileBuf = new BYTE[blockSize];
-					zstream.next_out = fileBuf;
-					zstream.avail_out = blockSize;
-
-					while (true)
-					{
-						zstream.next_out = fileBuf;
-						zstream.avail_out = blockSize;
-						err = inflate(&zstream, Z_SYNC_FLUSH);
-						if (err == Z_OK || err == Z_STREAM_END)
+						while (true)
 						{
-							ptr = fileBuf;
-							UINT inflatedSize = blockSize - zstream.avail_out;
-							for (i = 0; i < inflatedSize; i++)
+							zstream.next_out = fileBuf;
+							zstream.avail_out = blockSize;
+							err = inflate(&zstream, Z_NO_FLUSH);
+							if (err == Z_OK || err == Z_STREAM_END)
 							{
-								fout.put(*ptr);
-								ptr++;
-							}
-							if (prCallbackP != NULL)
-							{
-								sizeInflated += inflatedSize;
-								progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
-								(*prCallbackP)(progress);
-							}
-							if (err == Z_STREAM_END || (err == Z_OK && zstream.avail_in == 0))
-							{
-								if ((err = inflateEnd(&zstream)) == Z_OK)
-									break;
-								else
+								ptr = fileBuf;
+								UINT inflatedSize = blockSize - zstream.avail_out;
+								for (i = 0; i < inflatedSize; i++)
 								{
-									switch (err)
+									fout.put(*ptr);
+									ptr++;
+								}
+								if (prCallbackP != NULL)
+								{
+									sizeInflated += inflatedSize;
+									progress = static_cast<double>(sizeInflated)* 100 / sizeAll;
+									(*prCallbackP)(progress);
+								}
+								if (err == Z_STREAM_END || (err == Z_OK && zstream.avail_in == 0))
+								{
+									if ((err = inflateEnd(&zstream)) == Z_OK)
+										break;
+									else
 									{
-										case Z_MEM_ERROR:
-											return errInfo(msgData[MSGE_UNZIP_MEM_OVERFLOW]);
-										case Z_BUF_ERROR:
-											return errInfo(msgData[MSGE_UNZIP_BUF_OVERFLOW]);
-										case Z_DATA_ERROR:
-											return errInfo(msgData[MSGE_UNZIP_BROKEN]);
-										default:
-											return errInfo(msgData[MSGE_UNZIP_INFLATEEND] + num2str(err));
+										switch (err)
+										{
+											case Z_MEM_ERROR:
+												throw(errInfo(msgData[MSGE_UNZIP_MEM_OVERFLOW]));
+											case Z_BUF_ERROR:
+												throw(errInfo(msgData[MSGE_UNZIP_BUF_OVERFLOW]));
+											case Z_DATA_ERROR:
+												throw(errInfo(msgData[MSGE_UNZIP_BROKEN]));
+											default:
+												throw(errInfo(msgData[MSGE_UNZIP_INFLATEEND] + num2str(err)));
+										}
 									}
 								}
 							}
-						}
-						else
-						{
-							switch (err)
+							else
 							{
-								case Z_MEM_ERROR:
-									return errInfo(msgData[MSGE_UNZIP_MEM_OVERFLOW]);
-								case Z_BUF_ERROR:
-									return errInfo(msgData[MSGE_UNZIP_BUF_OVERFLOW]);
-								case Z_DATA_ERROR:
-									return errInfo(msgData[MSGE_UNZIP_BROKEN]);
-								default:
-									return errInfo(msgData[MSGE_UNZIP_INFLATE] + num2str(err));
+								switch (err)
+								{
+									case Z_MEM_ERROR:
+										throw(errInfo(msgData[MSGE_UNZIP_MEM_OVERFLOW]));
+									case Z_BUF_ERROR:
+										throw(errInfo(msgData[MSGE_UNZIP_BUF_OVERFLOW]));
+									case Z_DATA_ERROR:
+										throw(errInfo(msgData[MSGE_UNZIP_BROKEN]));
+									default:
+										throw(errInfo(msgData[MSGE_UNZIP_INFLATE] + num2str(err)));
+								}
 							}
 						}
+						(*prCallbackP)(100);
 					}
-					(*prCallbackP)(100);
+					catch (errInfo ex)
+					{
+						delete[] dataBuf;
+						delete[] fileBuf;
+						return ex;
+					}
+					catch (...)
+					{
+						delete[] dataBuf;
+						delete[] fileBuf;
+						throw;
+					}
 
 					delete[] dataBuf;
 					delete[] fileBuf;

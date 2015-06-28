@@ -282,7 +282,7 @@ errInfo package::inst()
 		infoStream << msgData[MSGI_DECOMPRESSING] << std::endl;
 		errInfo err = unzip(buf.begin(), buf.end(), tmpPath);
 		if (err.err)
-			return err;
+			throw(err.info);
 		infoStream << msgData[MSGI_DECOMPRESSED] << std::endl;
 
 		if (fs::exists(tmpPath / DIRNAME_INFO))
@@ -538,9 +538,8 @@ errInfo package::instFull()
 			if (instItr->oper == instItem::INST)
 			{
 				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << instItr->pak->name << std::endl;
-				errInfo err = uninstall(instItr->pak->name);
-				if (err.err)
-					return err;
+				if (is_installed(instItr->pak->name))
+					uninstall(instItr->pak->name);
 			}
 			if (instItr == instEnd)
 				break;
@@ -557,9 +556,8 @@ errInfo package::instFull()
 			if (instItr->oper == instItem::INST)
 			{
 				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << instItr->pak->name << std::endl;
-				errInfo err = uninstall(instItr->pak->name);
-				if (err.err)
-					return err;
+				if (is_installed(instItr->pak->name))
+					uninstall(instItr->pak->name);
 			}
 			if (instItr == instEnd)
 				break;
@@ -954,7 +952,7 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep)
 					depN.ancestor[p.first] += p.second;
 				});
 				depN.ancestor[id]++;
-				if (depN.processed)
+				if (pak != NULL && depN.processed)
 				{
 					depN.processed = false;
 					pakQue.push_back(newID);
