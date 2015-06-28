@@ -29,6 +29,7 @@ std::string msgDataDefault[msgCount] = {
 	"I:Done",
 	"I:Checking requirement",
 	"I:Will install or upgrade these packages:",
+	"I:Will remove these packages:",
 	"I:Connecting",
 	"I:Downloading data",
 	"I:Data downloaded",

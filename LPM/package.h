@@ -50,6 +50,7 @@ typedef std::list<depInfo> depListTp;
 
 class package
 {
+public:
 	struct instItem
 	{
 		enum opType{ INST, UPG };
@@ -59,7 +60,7 @@ class package
 		opType oper;
 	};
 	typedef std::list<instItem> pakIListTp;
-public:
+
 	package(const std::string &_source, const std::string &_name, version _ver, depListTp &_depList, depListTp &_confList, pakExtInfo _extInfo) :
 		source(_source), name(_name), ver(_ver), depList(_depList), confList(_confList), extInfo(_extInfo)
 	{};
@@ -68,7 +69,7 @@ public:
 	const pakExtInfo &getExtInfo(){ return extInfo; };
 	version getVer(){ return ver; };
 
-	//Check requirements then install and run scripts
+	//Check requirements then install them using instList
 	errInfo instFull();
 	//Try to upgrade the package
 	errInfo upgrade(bool checked = false);
@@ -79,6 +80,8 @@ public:
 	friend void writeSource();
 	friend void printInfo(package *pkg);
 private:
+	//Install packages
+	errInfo instList(pakIListTp &instList);
 	//Install package without checking requirements
 	errInfo inst();
 	//Check if requirements are OK

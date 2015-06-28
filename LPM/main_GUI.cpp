@@ -398,7 +398,6 @@ void mainFrame::buttonDelPak_Click(wxCommandEvent& event)
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 	{
 		name = pakList[*pItr]->getName();
-		infoStream << msgData[MSGI_PAK_REMOVING] << ':' << name << std::endl;
 		errInfo err = uninstall(name);
 		if (err.err)
 			infoStream << err.info << std::endl;

@@ -12,7 +12,7 @@ void reportProgress(double progress)
 {
 	if (static_cast<int>(progress) != lastProgress)
 	{
-		std::cout << progress << "%\r";
+		std::cout << static_cast<int>(progress) << "%    \r";
 		lastProgress = static_cast<int>(progress);
 	}
 	return ;

@@ -419,7 +419,7 @@ int package::instScript(bool upgrade)
 		pathPath = fs::system_complete(dataPath / DIRNAME_PATH);
 	if (exists(scriptPath))
 	{
-		infoStream << msgData[MSGI_RUNS_INST] << std::endl;
+		infoStream << msgData[MSGI_RUNS_INST] << ':' << name << std::endl;
 		scriptPath = fs::system_complete(scriptPath);
 		fs::current_path(localPath);
 #ifdef WIN32
@@ -438,7 +438,7 @@ int package::instScript(bool upgrade)
 		scriptPath = pakPath / SCRIPT_INIT;
 		if (exists(scriptPath))
 		{
-			infoStream << msgData[MSGI_RUNS_INIT] << std::endl;
+			infoStream << msgData[MSGI_RUNS_INIT] << ':' << name << std::endl;
 			scriptPath = fs::system_complete(scriptPath);
 			fs::current_path(localPath);
 #ifdef WIN32
@@ -456,28 +456,8 @@ int package::instScript(bool upgrade)
 	return 0;
 }
 
-errInfo package::instFull()
+errInfo package::instList(pakIListTp &instList)
 {
-	infoStream << msgData[MSGI_CHECK_REQUIREMENT] << std::endl;
-
-	pakIListTp instList;
-	try
-	{
-		checkDep(instList, depListTp());
-	}
-	catch (std::exception ex)
-	{
-		return errInfo(msgData[MSGE_STD] + ex.what());
-	}
-	catch (std::string err)
-	{
-		return errInfo(err);
-	}
-	catch (...)
-	{
-		throw;
-	}
-
 	//Install/Upgrade Packages
 	pakIListTp::iterator instItr, instEnd;
 	infoStream << msgData[MSGI_WILL_INST_LIST] << std::endl;
@@ -517,7 +497,6 @@ errInfo package::instFull()
 		{
 			if (instItr->oper == instItem::INST)
 			{
-				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << instItr->pak->name << std::endl;
 				if (is_installed(instItr->pak->name))
 					uninstall(instItr->pak->name);
 			}
@@ -535,7 +514,6 @@ errInfo package::instFull()
 		{
 			if (instItr->oper == instItem::INST)
 			{
-				infoStream << msgData[MSGI_PAK_REMOVING] << ':' << instItr->pak->name << std::endl;
 				if (is_installed(instItr->pak->name))
 					uninstall(instItr->pak->name);
 			}
@@ -567,16 +545,47 @@ errInfo package::instFull()
 				{
 					if (rbItr->oper == instItem::INST)
 					{
-						infoStream << msgData[MSGI_PAK_REMOVING] << ':' << rbItr->pak->name << std::endl;
-						errInfo err = uninstall(rbItr->pak->name, false, REMOVE_FORCE);
-						if (err.err)
-							return err;
+						if (is_installed(rbItr->pak->name))
+						{
+							errInfo err = uninstall(rbItr->pak->name, false, REMOVE_FORCE);
+							if (err.err)
+								return err;
+						}
 					}
 				}
 				return errInfo(msgData[MSGE_RUNS] + num2str(ret));
 			}
 		}
 	}
+
+	return errInfo();
+}
+
+errInfo package::instFull()
+{
+	infoStream << msgData[MSGI_CHECK_REQUIREMENT] << std::endl;
+
+	pakIListTp instL;
+	try
+	{
+		checkDep(instL, depListTp());
+	}
+	catch (std::exception ex)
+	{
+		return errInfo(msgData[MSGE_STD] + ex.what());
+	}
+	catch (std::string err)
+	{
+		return errInfo(err);
+	}
+	catch (...)
+	{
+		throw;
+	}
+
+	errInfo err = instList(instL);
+	if (err.err)
+		return err;
 
 	infoStream << msgData[MSGI_PAKS_INSTALLED] << std::endl;
 	return errInfo();
@@ -593,6 +602,8 @@ errInfo package::upgrade(bool checked)
 {
 	if (!is_installed(name))
 		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
+
+	pakIListTp instL;
 	if (!checked)
 	{
 		if (!needUpgrade())
@@ -611,7 +622,7 @@ errInfo package::upgrade(bool checked)
 
 		try
 		{
-			checkDep(pakIListTp(), depList);
+			checkDep(instL, depList);
 		}
 		catch (std::exception ex)
 		{
@@ -637,16 +648,38 @@ errInfo package::upgrade(bool checked)
 	if (err.err)
 		return err;
 	infoStream << msgData[MSGI_PAK_REINSTALLING] << std::endl;
-	err = inst();
-	if (err.err)
-		return err;
-	int ret = instScript(true);
-	if (ret != EXIT_SUCCESS)
+	if (checked)
 	{
-		infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
-		uninstall(name, false, REMOVE_FORCE);
-		recover_from_backup(name);
-		return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+		err = inst();
+		if (err.err)
+			return err;
+		int ret = instScript(true);
+		if (ret != EXIT_SUCCESS)
+		{
+			infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
+			uninstall(name, false, REMOVE_FORCE);
+			recover_from_backup(name);
+			return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+		}
+	}
+	else
+	{
+		if (instL.front().pak == this)
+			instL.pop_front();
+		err = instList(instL);
+		if (err.err)
+			return err;
+		err = inst();
+		if (err.err)
+			return err;
+		int ret = instScript(true);
+		if (ret != EXIT_SUCCESS)
+		{
+			infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
+			uninstall(name, false, REMOVE_FORCE);
+			recover_from_backup(name);
+			return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+		}
 	}
 	return errInfo();
 }
@@ -1078,6 +1111,44 @@ errInfo install(const std::string &name)
 	return pak->instFull();
 }
 
+void uninst_list(const std::string &name, std::list<std::string> &removeQue)
+{
+	std::ifstream depIn;
+	std::string line;
+
+	std::unordered_set<std::string> depHash;
+	std::unordered_set<std::string>::iterator depHashEnd = depHash.end();
+	std::list<std::string> depQue;
+	depHash.emplace(name);
+	depQue.push_back(name);
+	std::string nextName;
+
+	while (!depQue.empty())
+	{
+		std::string &thisName = depQue.front();
+		if (fs::exists(dataPath / thisName / FILENAME_BEDEP))
+		{
+			depIn.open((dataPath / thisName / FILENAME_BEDEP).string());
+			depQue.pop_front();
+			while (!depIn.eof())
+			{
+				std::getline(depIn, line);
+				if (!line.empty())
+				{
+					nextName = depInfo(line).name;
+					if (depHash.find(nextName) == depHashEnd)
+					{
+						depHash.emplace(nextName);
+						depQue.push_back(nextName);
+						removeQue.push_front(nextName);
+					}
+				}
+			}
+			depIn.close();
+		}
+	}
+}
+
 errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 {
 	if (!is_installed(name))
@@ -1097,55 +1168,39 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 		}
 		else if (level == REMOVE_RECURSIVE)
 		{
-			std::unordered_set<std::string> depHash;
-			std::unordered_set<std::string>::iterator depHashEnd = depHash.end();
-			std::list<std::string> depQue, removeQue;
-			depHash.emplace(name);
-			depQue.push_back(name);
-			std::string nextName;
+			std::list<std::string> removeQue;
+			uninst_list(name, removeQue);
 
-			while (!depQue.empty())
+			if (!removeQue.empty())
 			{
-				std::string &thisName = depQue.front();
-				depIn.open((dataPath / thisName / FILENAME_BEDEP).string());
-				depQue.pop_front();
-				while (!depIn.eof())
+				infoStream << msgData[MSGI_WILL_REMOVE_LIST] << std::endl;
+				std::for_each(removeQue.begin(), removeQue.end(), [](std::string &pak){
+					infoStream << "\t" << pak.front() << std::endl;
+				});
+
+				while (!removeQue.empty())
 				{
-					std::getline(depIn, line);
-					if (!line.empty())
-					{
-						nextName = depInfo(line).name;
-						if (depHash.find(nextName) == depHashEnd)
-						{
-							depHash.emplace(nextName);
-							depQue.push_back(nextName);
-							removeQue.push_front(nextName);
-						}
-					}
+					infoStream << msgData[MSGI_PAK_REMOVING] << ':' << removeQue.front() << std::endl;
+					uninstall(removeQue.front(), false, REMOVE_FORCE);
+					removeQue.pop_front();
 				}
-				depIn.close();
-			}
-
-			while (!removeQue.empty())
-			{
-				uninstall(removeQue.front(), false, REMOVE_FORCE);
-				removeQue.pop_front();
 			}
 		}
 		else if (level < REMOVE_FORCE)
 		{
 			infoStream << msgData[MSGW_PAK_BE_DEP] << std::endl;
-			depIn.open((pakPath / FILENAME_BEDEP).string());
-			while (!depIn.eof())
+			std::list<std::string> depList;
+			uninst_list(name, depList);
+			while (!depList.empty())
 			{
-				std::getline(depIn, line);
-				if (!line.empty())
-					infoStream << "\t" << depInfo(line).name << std::endl;
+				infoStream << "\t" << depList.front() << std::endl;
+				depList.pop_front();
 			}
-			depIn.close();
 			return errInfo(msgData[MSGE_PAK_BE_DEP]);
 		}
 	}
+
+	infoStream << msgData[MSGI_PAK_REMOVING] << ':' << name << std::endl;
 
 	{
 		if (!fs::exists(pakPath / FILENAME_DEP))
