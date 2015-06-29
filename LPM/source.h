@@ -19,6 +19,8 @@ public:
 	void loadLocal(pakListTp &_pakList);
 	//Find package in source
 	package* find_package(std::string name);
+	//Check upgrade in source and add them to ret
+	void checkUpgrade(pakListTp &ret);
 	//Upgrade all package in source
 	errInfo upgradeAll();
 

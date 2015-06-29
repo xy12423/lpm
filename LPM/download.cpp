@@ -44,7 +44,7 @@ errInfo download(const std::string &add, dataBuf *buf)
 	curl_easy_setopt(handle, CURLOPT_URL, addCStr);
 	curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errBuf.data());
 	CURLcode success;
-	infoStream << "I:Connecting" << std::endl;
+	infoStream << msgData[MSGI_CONNECTING] << std::endl;
 	if (prCallbackP != NULL)
 	{
 		curl_easy_setopt(handle, CURLOPT_HEADER, 1);
@@ -54,13 +54,13 @@ errInfo download(const std::string &add, dataBuf *buf)
 		if (success != CURLcode::CURLE_OK)
 		{
 			curl_easy_cleanup(handle);
-			return errInfo(std::string("E:network:") + errBuf.data());
+			return errInfo(msgData[MSGE_NETWORK] + errBuf.data());
 		}
 		success = curl_easy_getinfo(handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &sizeAll);
 		if (success != CURLcode::CURLE_OK)
 		{
 			curl_easy_cleanup(handle);
-			return errInfo(std::string("E:network:") + errBuf.data());
+			return errInfo(msgData[MSGE_NETWORK] + errBuf.data());
 		}
 		curl_easy_setopt(handle, CURLOPT_HEADER, 0);
 		curl_easy_setopt(handle, CURLOPT_NOBODY, 0);
@@ -69,19 +69,19 @@ errInfo download(const std::string &add, dataBuf *buf)
 
 	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_data);
 	curl_easy_setopt(handle, CURLOPT_WRITEDATA, buf);
-	infoStream << "I:Downloading data" << std::endl;
+	infoStream << msgData[MSGI_DOWNLOADING] << std::endl;
 	sizeDownloaded = 0;
 	success = curl_easy_perform(handle);
 	if (success != CURLcode::CURLE_OK)
 	{
 		curl_easy_cleanup(handle);
-		return errInfo(std::string("E:network:") + errBuf.data());
+		return errInfo(msgData[MSGE_NETWORK] + errBuf.data());
 	}
 	if (prCallbackP != NULL)
 		(*prCallbackP)(100);
 	curl_easy_cleanup(handle);
 	
-	infoStream << "I:Data downloaded" << std::endl;
+	infoStream << msgData[MSGI_DOWNLOADED] << std::endl;
 	return errInfo();
 }
 
@@ -94,7 +94,7 @@ errInfo download(const std::string &add, std::string path)
 	curl_easy_setopt(handle, CURLOPT_URL, addCStr);
 	curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errBuf.data());
 	CURLcode success;
-	infoStream << "I:Connecting" << std::endl;
+	infoStream << msgData[MSGI_CONNECTING] << std::endl;
 	if (prCallbackP != NULL)
 	{
 		curl_easy_setopt(handle, CURLOPT_HEADER, 1);
@@ -104,13 +104,13 @@ errInfo download(const std::string &add, std::string path)
 		if (success != CURLcode::CURLE_OK)
 		{
 			curl_easy_cleanup(handle);
-			return errInfo(std::string("E:network:") + errBuf.data());
+			return errInfo(msgData[MSGI_DOWNLOADING] + errBuf.data());
 		}
 		success = curl_easy_getinfo(handle, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &sizeAll);
 		if (success != CURLcode::CURLE_OK)
 		{
 			curl_easy_cleanup(handle);
-			return errInfo(std::string("E:network:") + errBuf.data());
+			return errInfo(msgData[MSGI_DOWNLOADING] + errBuf.data());
 		}
 		curl_easy_setopt(handle, CURLOPT_HEADER, 0);
 		curl_easy_setopt(handle, CURLOPT_NOBODY, 0);
@@ -120,18 +120,18 @@ errInfo download(const std::string &add, std::string path)
 	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_data_to_file);
 	std::ofstream fout(path, std::ios_base::out | std::ios_base::binary);
 	curl_easy_setopt(handle, CURLOPT_WRITEDATA, &fout);
-	infoStream << "I:Downloading data" << std::endl;
+	infoStream << msgData[MSGI_DOWNLOADING] << std::endl;
 	sizeDownloaded = 0;
 	success = curl_easy_perform(handle);
 	if (success != CURLcode::CURLE_OK)
 	{
 		curl_easy_cleanup(handle);
-		return errInfo(std::string("E:network:") + errBuf.data());
+		return errInfo(msgData[MSGI_DOWNLOADING] + errBuf.data());
 	}
 	if (prCallbackP != NULL)
 		(*prCallbackP)(100);
 	curl_easy_cleanup(handle);
 
-	infoStream << "I:Data downloaded" << std::endl;
+	infoStream << msgData[MSGI_DOWNLOADED] << std::endl;
 	return errInfo();
 }

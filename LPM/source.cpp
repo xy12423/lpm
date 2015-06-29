@@ -118,6 +118,14 @@ package* source::find_package(std::string name)
 	return pakList[p->second];
 }
 
+void source::checkUpgrade(pakListTp &ret)
+{
+	pakListTp::const_iterator p = pakList.cbegin(), pEnd = pakList.cend();
+	for (; p != pEnd; p++)
+		if (is_installed((*p)->getName()) && (*p)->needUpgrade())
+			ret.push_back(*p);
+}
+
 errInfo source::upgradeAll()
 {
 	pakListTp::const_iterator p = pakList.cbegin(), pEnd = pakList.cend();

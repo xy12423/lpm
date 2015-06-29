@@ -19,6 +19,7 @@ bool readLang();
 errInfo update();
 errInfo upgrade(std::string name);
 errInfo upgrade();
+void checkUpgrade(pakListTp &ret);
 bool check(std::string name);
 int getState(std::string name);
 void init();

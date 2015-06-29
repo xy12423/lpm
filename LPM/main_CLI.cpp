@@ -326,6 +326,19 @@ int main(int argc, char* argv[])
 					cout << err.info << endl;
 					throw(0);
 				}
+				pakListTp upgradeList;
+				checkUpgrade(upgradeList);
+				if (upgradeList.empty())
+				{
+					cout << msgData[MSGI_UPGRADE] << endl;
+					std::for_each(upgradeList.begin(), upgradeList.end(), [](package *pak){
+						cout << '\t' << pak->getName() << endl;
+					});
+				}
+				else
+				{
+					cout << msgData[MSGI_NO_UPGRADE] << endl;
+				}
 			}
 			else if (cmd == "list")
 			{
@@ -388,6 +401,20 @@ int main(int argc, char* argv[])
 				newSrc->loadRemote();
 				sourceList.push_back(newSrc);
 				writeSource();
+
+				pakListTp upgradeList;
+				newSrc->checkUpgrade(upgradeList);
+				if (upgradeList.empty())
+				{
+					cout << msgData[MSGI_UPGRADE] << endl;
+					std::for_each(upgradeList.begin(), upgradeList.end(), [](package *pak){
+						cout << '\t' << pak->getName() << endl;
+					});
+				}
+				else
+				{
+					cout << msgData[MSGI_NO_UPGRADE] << endl;
+				}
 			}
 			else if (cmd == "delsrc")
 			{

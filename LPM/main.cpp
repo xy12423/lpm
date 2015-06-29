@@ -242,6 +242,16 @@ errInfo upgrade()
 	return errInfo();
 }
 
+void checkUpgrade(pakListTp &ret)
+{
+	srcListTp::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
+	errInfo err;
+	for (; pSrc != pSrcEnd; pSrc++)
+	{
+		(*pSrc)->checkUpgrade(ret);
+	}
+}
+
 bool check(std::string name)
 {
 	if (is_installed(name))
