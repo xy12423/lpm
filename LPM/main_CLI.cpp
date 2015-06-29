@@ -114,12 +114,13 @@ int main(int argc, char* argv[])
 		printUsage();
 		return 0;
 	}
+	bool locked = false;
 
 	try
 	{
 		int argp = 1;
 		string cmd;
-		string newLocal, newData;
+		string newPath, newLocal, newData;
 		bool force = false;
 		while (argp < argc)
 		{
@@ -133,7 +134,7 @@ int main(int argc, char* argv[])
 				{
 					cmd.erase(0, 1);
 					if (cmd.substr(0, 7) == "lpmdir=")
-						boost::filesystem::current_path(cmd.substr(7));
+						newPath = cmd.substr(7);
 					else if (cmd.substr(0, 6) == "local=")
 						newLocal = cmd.substr(6);
 					else if (cmd.substr(0, 5) == "data=")
@@ -156,32 +157,44 @@ int main(int argc, char* argv[])
 		
 		if (cmd == "init")
 		{
+			if (!newPath.empty())
+				current_path(newPath);
 			init();
 		}
 		else
 		{
+			path oldPath = current_path();	//Save current path
+			if (!newPath.empty())
+				current_path(newPath);	//Switch to new path to read config
+
 			if (readConfig())
-			{
 				checkPath();
-			}
 			else
 			{
 				init();
 				checkPath();
 			}
+			if (!newPath.empty())	//Switch back to old path to get absolute path of local path
+				current_path(oldPath);
+
 			if (!newLocal.empty())
 				localPath = newLocal;
+			localPath = system_complete(localPath);
 			if (!newData.empty())
 				dataPath = newData;
+			if (!newPath.empty())
+				current_path(newPath);
+
+			if (!readLang())
+				loadDefaultLang();
+			readSource();
+			readLocal();
 			if (!lock())
 			{
 				std::cout << msgData[MSGE_LOCK] << std::endl;
 				throw(0);
 			}
-			if (!readLang())
-				loadDefaultLang();
-			readSource();
-			readLocal();
+			locked = true;
 			prCallbackP = reportProgress;
 
 			argp++;
@@ -421,8 +434,9 @@ int main(int argc, char* argv[])
 	{
 		
 	}
-
-	unlock();
+	
+	if (locked)
+		unlock();
 	return 0;
 }
 

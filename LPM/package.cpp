@@ -7,44 +7,26 @@
 version::version(const std::string &str)
 {
 	major = minor = revision = 0;
+	int tmp[3] = { 0, 0, 0 };
 	std::string::const_iterator p = str.cbegin(), pEnd = str.cend();
-	for (; p != pEnd; p++)
+	for (int i = 0; i < 3; i++)
 	{
-		if (*p == '.')
+		for (; p != pEnd; p++)
 		{
-			p++;
-			break;
+			if (*p == '.' && i < 2)
+			{
+				p++;
+				break;
+			}
+			if (!isdigit(*p))
+			{
+				major = minor = revision = 0;
+				return;
+			}
+			tmp[i] = tmp[i] * 10 + static_cast<UINT>((*p) - '0');
 		}
-		if (!isdigit(*p))
-		{
-			major = minor = revision = 0;
-			return;
-		}
-		major = major * 10 + static_cast<UINT>((*p) - '0');
 	}
-	for (; p != pEnd; p++)
-	{
-		if (*p == '.')
-		{
-			p++;
-			break;
-		}
-		if (!isdigit(*p))
-		{
-			major = minor = revision = 0;
-			return;
-		}
-		minor = minor * 10 + static_cast<UINT>((*p) - '0');
-	}
-	for (; p != pEnd; p++)
-	{
-		if (!isdigit(*p))
-		{
-			major = minor = revision = 0;
-			return;
-		}
-		revision = revision * 10 + static_cast<UINT>((*p) - '0');
-	}
+	major = tmp[0]; minor = tmp[1]; revision = tmp[2];
 }
 
 depInfo::depInfo(const std::string &str)
@@ -252,6 +234,7 @@ errInfo package::inst()
 		return err;
 
 	bool flag1 = false, flag2 = false, flag3 = false;
+	errInfo errInTry;
 	try
 	{
 		fs::create_directory(tmpPath);
@@ -345,68 +328,42 @@ errInfo package::inst()
 	}
 	catch (fs::filesystem_error err)
 	{
-		if (flag3)
-		{
-			std::ifstream infIn((pakPath / FILENAME_INST).string());
-			std::string tmpPath;
-			std::getline(infIn, tmpPath);
-			while (!infIn.eof())
-			{
-				std::getline(infIn, tmpPath);
-				if (!tmpPath.empty())
-					fs::remove(localPath / tmpPath);
-			}
-		}
-		if (flag2)
-			fs::remove_all(pakPath);
-		if (flag1)
-			fs::remove_all(tmpPath);
-		return errInfo(msgData[MSGE_FS] + err.what());
+		errInTry = errInfo(msgData[MSGE_FS] + err.what());
 	}
 	catch (std::string err)
 	{
-		if (flag3)
-		{
-			std::ifstream infIn((pakPath / FILENAME_INST).string());
-			std::string tmpPath;
-			std::getline(infIn, tmpPath);
-			while (!infIn.eof())
-			{
-				std::getline(infIn, tmpPath);
-				if (!tmpPath.empty())
-					fs::remove(localPath / tmpPath);
-			}
-		}
-		if (flag2)
-			fs::remove_all(pakPath);
-		if (flag1)
-			fs::remove_all(tmpPath);
-		return errInfo(err);
+		errInTry = errInfo(err);
 	}
 	catch (std::exception ex)
 	{
-		if (flag3)
-		{
-			std::ifstream infIn((pakPath / FILENAME_INST).string());
-			std::string tmpPath;
-			std::getline(infIn, tmpPath);
-			while (!infIn.eof())
-			{
-				std::getline(infIn, tmpPath);
-				if (!tmpPath.empty())
-					fs::remove(localPath / tmpPath);
-			}
-		}
-		if (flag2)
-			fs::remove_all(pakPath);
-		if (flag1)
-			fs::remove_all(tmpPath);
-		return errInfo(ex.what());
+		errInTry = errInfo(ex.what());
 	}
 	catch (...)
 	{
 		throw;
 	}
+
+	if (errInTry.err)
+	{
+		if (flag3)
+		{
+			std::ifstream infIn((pakPath / FILENAME_INST).string());
+			std::string tmpPath;
+			std::getline(infIn, tmpPath);
+			while (!infIn.eof())
+			{
+				std::getline(infIn, tmpPath);
+				if (!tmpPath.empty())
+					fs::remove(localPath / tmpPath);
+			}
+		}
+		if (flag2)
+			fs::remove_all(pakPath);
+		if (flag1)
+			fs::remove_all(tmpPath);
+		return errInTry;
+	}
+
 	infoStream << msgData[MSGI_PAK_INSTALLED] << std::endl;
 	return errInfo();
 }
@@ -466,6 +423,7 @@ errInfo package::instList(pakIListTp &instList)
 	for (; instItr != instEnd; instItr++)
 		infoStream << "\t" << instItr->pak->name << std::endl;
 	instItr = instList.begin();
+	errInfo errInTry;
 	try
 	{
 		for (; instItr != instEnd; instItr++)
@@ -492,41 +450,33 @@ errInfo package::instList(pakIListTp &instList)
 	}
 	catch (std::exception ex)
 	{
-		instEnd = instList.begin();
-		while (true)
-		{
-			if (instItr->oper == instItem::INST)
-			{
-				if (is_installed(instItr->pak->name))
-					uninstall(instItr->pak->name);
-			}
-			if (instItr == instEnd)
-				break;
-			else
-				instItr--;
-		}
-		return errInfo(msgData[MSGE_STD] + ex.what());
+		errInTry = errInfo(msgData[MSGE_STD] + ex.what());
 	}
 	catch (errInfo err)
 	{
-		instEnd = instList.begin();
-		while (true)
-		{
-			if (instItr->oper == instItem::INST)
-			{
-				if (is_installed(instItr->pak->name))
-					uninstall(instItr->pak->name);
-			}
-			if (instItr == instEnd)
-				break;
-			else
-				instItr--;
-		}
-		return err;
+		errInTry = err;
 	}
 	catch (...)
 	{
 		throw;
+	}
+
+	if (errInTry.err)
+	{
+		instEnd = instList.begin();
+		while (true)
+		{
+			if (instItr->oper == instItem::INST)
+			{
+				if (is_installed(instItr->pak->name))
+					uninstall(instItr->pak->name);
+			}
+			if (instItr == instEnd)
+				break;
+			else
+				instItr--;
+		}
+		return errInTry;
 	}
 
 	//Run scripts
@@ -609,16 +559,19 @@ errInfo package::upgrade(bool checked)
 		if (!needUpgrade())
 			return errInfo(msgData[MSGE_PAK_LATEST]);
 
-		std::ifstream bedepIn((dataPath / name / FILENAME_BEDEP).string());
-		std::string line;
 		depListTp depList;
-		while (!bedepIn.eof())
+		if (fs::exists(dataPath / name / FILENAME_BEDEP))
 		{
-			std::getline(bedepIn, line);
-			if (!line.empty())
-				depList.push_back(depInfo(line));
+			std::ifstream bedepIn((dataPath / name / FILENAME_BEDEP).string());
+			std::string line;
+			while (!bedepIn.eof())
+			{
+				std::getline(bedepIn, line);
+				if (!line.empty())
+					depList.push_back(depInfo(line));
+			}
+			bedepIn.close();
 		}
-		bedepIn.close();
 
 		try
 		{
@@ -666,9 +619,12 @@ errInfo package::upgrade(bool checked)
 	{
 		if (instL.front().pak == this)
 			instL.pop_front();
-		err = instList(instL);
-		if (err.err)
-			return err;
+		if (!instL.empty())
+		{
+			err = instList(instL);
+			if (err.err)
+				return err;
+		}
 		err = inst();
 		if (err.err)
 			return err;
@@ -1129,7 +1085,6 @@ void uninst_list(const std::string &name, std::list<std::string> &removeQue)
 		if (fs::exists(dataPath / thisName / FILENAME_BEDEP))
 		{
 			depIn.open((dataPath / thisName / FILENAME_BEDEP).string());
-			depQue.pop_front();
 			while (!depIn.eof())
 			{
 				std::getline(depIn, line);
@@ -1146,6 +1101,7 @@ void uninst_list(const std::string &name, std::list<std::string> &removeQue)
 			}
 			depIn.close();
 		}
+		depQue.pop_front();
 	}
 }
 
@@ -1155,8 +1111,6 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
 	fs::path pakPath = dataPath / name;
 
-	std::ifstream depIn;
-	std::string line;
 	if (fs::exists(pakPath / FILENAME_BEDEP))
 	{
 		if (upgrade)
@@ -1175,12 +1129,12 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 			{
 				infoStream << msgData[MSGI_WILL_REMOVE_LIST] << std::endl;
 				std::for_each(removeQue.begin(), removeQue.end(), [](std::string &pak){
-					infoStream << "\t" << pak.front() << std::endl;
+					infoStream << "\t" << pak << std::endl;
 				});
+				infoStream << "\t" << name << std::endl;
 
 				while (!removeQue.empty())
 				{
-					infoStream << msgData[MSGI_PAK_REMOVING] << ':' << removeQue.front() << std::endl;
 					uninstall(removeQue.front(), false, REMOVE_FORCE);
 					removeQue.pop_front();
 				}
@@ -1203,6 +1157,8 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 	infoStream << msgData[MSGI_PAK_REMOVING] << ':' << name << std::endl;
 
 	{
+		std::ifstream depIn;
+		std::string line;
 		if (!fs::exists(pakPath / FILENAME_DEP))
 			return errInfo(msgData[MSGE_PAK_DEPINFO_NOT_FOUND]);
 		depIn.open((pakPath / FILENAME_DEP).string());
@@ -1387,6 +1343,7 @@ errInfo recover_from_backup(const std::string &name)
 	if (is_installed(name))
 		return errInfo(msgData[MSGE_PAK_INSTALLED]);
 
+	errInfo err;
 	fs::path backupPath = dataPath / DIRNAME_BACKUP / name, pakPath = dataPath / name;	
 	bool flag1 = false, flag2 = false;
 	try
@@ -1426,66 +1383,41 @@ errInfo recover_from_backup(const std::string &name)
 
 		fs::remove_all(backupPath);
 	}
-	catch (fs::filesystem_error err)
+	catch (fs::filesystem_error ex)
 	{
-		if (flag2)
-		{
-			std::ifstream infIn((pakPath / FILENAME_INST).string());
-			std::string tmpPath;
-			std::getline(infIn, tmpPath);
-			fs::path instPath(tmpPath);
-			while (!infIn.eof())
-			{
-				std::getline(infIn, tmpPath);
-				if (!tmpPath.empty())
-					fs::remove(instPath / tmpPath);
-			}
-		}
-		if (flag1)
-			fs::remove_all(pakPath);
-		return errInfo(msgData[MSGE_FS] + err.what());
+		err = msgData[MSGE_FS] + ex.what();
 	}
-	catch (std::string err)
+	catch (std::string ex)
 	{
-		if (flag2)
-		{
-			std::ifstream infIn((pakPath / FILENAME_INST).string());
-			std::string tmpPath;
-			std::getline(infIn, tmpPath);
-			fs::path instPath(tmpPath);
-			while (!infIn.eof())
-			{
-				std::getline(infIn, tmpPath);
-				if (!tmpPath.empty())
-					fs::remove(instPath / tmpPath);
-			}
-		}
-		if (flag1)
-			fs::remove_all(pakPath);
-		return errInfo(err);
+		err = ex;
 	}
 	catch (std::exception ex)
 	{
-		if (flag2)
-		{
-			std::ifstream infIn((pakPath / FILENAME_INST).string());
-			std::string tmpPath;
-			std::getline(infIn, tmpPath);
-			fs::path instPath(tmpPath);
-			while (!infIn.eof())
-			{
-				std::getline(infIn, tmpPath);
-				if (!tmpPath.empty())
-					fs::remove(instPath / tmpPath);
-			}
-		}
-		if (flag1)
-			fs::remove_all(pakPath);
-		return errInfo(ex.what());
+		err = msgData[MSGE_STD] + ex.what();
 	}
 	catch (...)
 	{
 		throw;
+	}
+
+	if (err.err)
+	{
+		if (flag2)
+		{
+			std::ifstream infIn((pakPath / FILENAME_INST).string());
+			std::string tmpPath;
+			std::getline(infIn, tmpPath);
+			fs::path instPath(tmpPath);
+			while (!infIn.eof())
+			{
+				std::getline(infIn, tmpPath);
+				if (!tmpPath.empty() && fs::exists(instPath / tmpPath))
+					fs::remove(instPath / tmpPath);
+			}
+		}
+		if (flag1)
+			fs::remove_all(pakPath);
+		return err;
 	}
 	infoStream << msgData[MSGI_RECOVERED] << std::endl;
 	return errInfo();

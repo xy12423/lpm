@@ -64,7 +64,7 @@ std::string msgDataDefault[msgCount] = {
 	"W:Conflict Package",
 	"W:Script exited with code ",
 	", rolling back",
-	"W:This package is depended by:"
+	"W:This package is depended by:",
 };
 std::string msgData[msgCount];
 

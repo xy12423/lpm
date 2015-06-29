@@ -6,8 +6,8 @@
 struct errInfo
 {
 	errInfo(){ err = false; }
-	errInfo(std::string _info){ err = true; info = _info; }
-	errInfo(const char *_info){ err = true; info = _info; }
+	errInfo(std::string _info) :info(_info){ err = true; }
+	errInfo(const char *_info) :info(_info){ err = true; }
 	bool err;
 	std::string info;
 };
