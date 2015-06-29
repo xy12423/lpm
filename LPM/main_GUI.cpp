@@ -314,6 +314,20 @@ void mainFrame::buttonAddSrc_Click(wxCommandEvent& event)
 		sourceList.push_back(newSrc);
 		listSrc->Check(listSrc->GetCount() - 1);
 		refreshPakList();
+
+		pakListTp upgradeList;
+		newSrc->checkUpgrade(upgradeList);
+		if (upgradeList.empty())
+		{
+			infoStream << msgData[MSGI_NO_UPGRADE] << std::endl;
+		}
+		else
+		{
+			infoStream << msgData[MSGI_UPGRADE] << std::endl;
+			std::for_each(upgradeList.begin(), upgradeList.end(), [](package *pak){
+				infoStream << '\t' << pak->getName() << std::endl;
+			});
+		}
 	}
 	writeSource();
 }
@@ -336,6 +350,20 @@ void mainFrame::buttonUpdSrc_Click(wxCommandEvent& event)
 	update();
 	refreshPakList();
 	writeSource();
+
+	pakListTp upgradeList;
+	checkUpgrade(upgradeList);
+	if (upgradeList.empty())
+	{
+		infoStream << msgData[MSGI_NO_UPGRADE] << std::endl;
+	}
+	else
+	{
+		infoStream << msgData[MSGI_UPGRADE] << std::endl;
+		std::for_each(upgradeList.begin(), upgradeList.end(), [](package *pak){
+			infoStream << '\t' << pak->getName() << std::endl;
+		});
+	}
 }
 
 void mainFrame::checkUpd_CheckedChanged(wxCommandEvent& event)

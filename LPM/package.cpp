@@ -1154,7 +1154,8 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 		}
 	}
 
-	infoStream << msgData[MSGI_PAK_REMOVING] << ':' << name << std::endl;
+	if (!upgrade)
+		infoStream << msgData[MSGI_PAK_REMOVING] << ':' << name << std::endl;
 
 	{
 		std::ifstream depIn;
