@@ -660,6 +660,7 @@ bool package::check()
 typedef std::list<int> pakQListTp;
 struct depNode
 {
+	depNode(){ pak = NULL; }
 	depNode(const std::string &_name) :name(_name){ pak = NULL; }
 	depNode(package *_pak){ pak = _pak; name = pak->getName(); }
 	bool processed = true;
@@ -954,7 +955,7 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep, bool force)
 						else
 						{
 							std::string errMessage;
-							std::for_each(confN.con.begin(), confN.con.end(), [&errMessage, &pakMap](std::pair<int, depInfo> &p){
+							std::for_each(confN.con.begin(), confN.con.end(), [&errMessage, &pakMap](std::pair<int, depInfo> p){
 								errMessage.append(pakMap.at(p.first).name);
 								errMessage.push_back(':');
 								errMessage.append(p.second.fullStr());
@@ -996,7 +997,7 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep, bool force)
 					if (pak == NULL)
 					{
 						std::string errMessage;
-						std::for_each(depN.con.begin(), depN.con.end(), [&errMessage, &pakMap](std::pair<int, depInfo> &p){
+						std::for_each(depN.con.begin(), depN.con.end(), [&errMessage, &pakMap](std::pair<int, depInfo> p){
 							errMessage.append(pakMap.at(p.first).name);
 							errMessage.push_back(':');
 							errMessage.append(p.second.fullStr());
@@ -1031,7 +1032,7 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep, bool force)
 				depN.bedep.emplace(id);
 				pakHash.emplace(pDep->name, newID);
 				depN.con.emplace(id, *pDep);
-				std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int>& p){
+				std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int> p){
 					depN.ancestor[p.first] += p.second;
 				});
 				depN.ancestor[id]++;
