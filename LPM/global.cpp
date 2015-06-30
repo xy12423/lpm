@@ -45,6 +45,7 @@ std::string msgDataDefault[msgCount] = {
 	"E:Illegal package",
 	"E:Confliction found",
 	"E:Invalid dependence",
+	"E:Found a dependency which is impossible to implement",
 	"E:Package not found",
 	"E:Package already installed",
 	"E:Package not installed",

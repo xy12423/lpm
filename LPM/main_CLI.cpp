@@ -205,7 +205,7 @@ int main(int argc, char* argv[])
 					printUsage();
 					throw(0);
 				}
-				errInfo err = install(argv[argp]);
+				errInfo err = install(argv[argp], force);
 				if (err.err)
 				{
 					cout << err.info << endl;

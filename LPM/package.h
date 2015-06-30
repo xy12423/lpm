@@ -53,10 +53,12 @@ class package
 public:
 	struct instItem
 	{
-		enum opType{ INST, UPG };
+		enum opType{ INST, UPG, REMOVE };
 		instItem(){ pak = NULL; }
 		instItem(package *_pak, opType _oper){ pak = _pak; oper = _oper; };
+		instItem(const std::string &_name) :name(_name){ oper = REMOVE; };
 		package* pak;
+		std::string name;
 		opType oper;
 	};
 	typedef std::list<instItem> pakIListTp;
@@ -70,7 +72,7 @@ public:
 	version getVer(){ return ver; };
 
 	//Check requirements then install them using instList
-	errInfo instFull();
+	errInfo instFull(bool force = false);
 	//Try to upgrade the package
 	errInfo upgrade(bool checked = false);
 
@@ -85,7 +87,7 @@ private:
 	//Install package without checking requirements
 	errInfo inst();
 	//Check if requirements are OK
-	void checkDep(pakIListTp &instList, depListTp &extraDep);
+	void checkDep(pakIListTp &instList, depListTp &extraDep, bool force = false);
 	//Run post-installation script
 	int instScript(bool upgrade = false);
 
@@ -109,7 +111,7 @@ package* find_package(const std::string &name, depInfo con);
 package* find_package(const std::string &name, std::unordered_multimap<int, depInfo> &con);
 bool is_installed(const std::string &name);
 version cur_version(const std::string &name);
-errInfo install(const std::string &name);
+errInfo install(const std::string &name, bool force = false);
 errInfo uninstall(const std::string &name, bool upgrade = false, remove_level level = REMOVE_NORMAL);
 errInfo backup(const std::string &name, bool force = false);
 errInfo recover_from_backup(const std::string &name);
