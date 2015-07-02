@@ -244,10 +244,10 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 						if (fin.eof())                                                   \
 							return errInfo(msgData[MSGE_UNZIP_BROKEN]);
 
-errInfo unzip(std::string filePath, boost::filesystem::path path)
+errInfo unzip(std::string fPath, boost::filesystem::path path)
 {
 	UINT i;
-	std::ifstream fin(filePath, std::ios_base::in | std::ios_base::binary);
+	std::ifstream fin(fPath, std::ios_base::in | std::ios_base::binary);
 	std::ofstream fout;
 	ULONGLONG sizeAll = 0, sizeInflated = 0;
 	double progress = 0;
@@ -274,7 +274,7 @@ errInfo unzip(std::string filePath, boost::filesystem::path path)
 			skip(skipLen);
 		}
 		fin.close();
-		fin.open(filePath, std::ios_base::in | std::ios_base::binary);
+		fin.open(fPath, std::ios_base::in | std::ios_base::binary);
 	}
 	while (!fin.eof())
 	{
@@ -282,10 +282,50 @@ errInfo unzip(std::string filePath, boost::filesystem::path path)
 		fin.read(reinterpret_cast<char*>(&head), 4);
 		if (fin.eof())
 			break;
-		if (head != 0x04034b50)
+		if (head == 0x08074b50)
+		{
+			skip(12);
+			continue;
+		}
+		else if (head == 0x02014b50)
+		{
+			skip(24);
+			USHORT nameLen, extLen, commentLen;
+			readBYTE(nameLen);
+			readBYTE(extLen);
+			readBYTE(commentLen);
+			skip(4);
+			UINT fileAttribute;
+			readUINT(fileAttribute);
+			skip(4);
+			std::string name;
+			{
+				char *nameBuf = new char[nameLen];
+				fin.read(nameBuf, nameLen);
+				if (fin.eof())
+				{
+					delete[] nameBuf;
+					return errInfo(msgData[MSGE_UNZIP_BROKEN]);
+				}
+				name = std::string(nameBuf, nameLen);
+				delete[] nameBuf;
+			}
+			skip(extLen + commentLen);
+
+			if (!(fileAttribute & DIR_ATTRIBUTE) && fs::is_directory(path / name))
+			{
+				fs::remove(path / name);
+				fout.open((path / name).string());
+				fout.close();
+			}
+
+			continue;
+		}
+		else if (head != 0x04034b50)
 			break;
-		skip(4);
-		USHORT compMethod = 0;
+		skip(2);
+		USHORT flag = 0, compMethod = 0;
+		readBYTE(flag);
 		readBYTE(compMethod);
 		skip(8);
 		UINT fileSize, fileOriginSize;

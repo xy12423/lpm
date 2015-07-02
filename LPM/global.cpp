@@ -28,7 +28,7 @@ std::string msgDataDefault[msgCount] = {
 	"I:Running removal script",
 	"I:Done",
 	"I:Checking requirement",
-	"I:Will install or upgrade these packages:",
+	"I:Will do these:",
 	"I:Will remove these packages:",
 	"I:Connecting",
 	"I:Downloading data",
@@ -39,6 +39,9 @@ std::string msgDataDefault[msgCount] = {
 	"I:Recovered from backup",
 	"I:Found new version of some package. Use 'lpm upgrade' to promote an upgrade:",
 	"I:All packages are up to date.",
+	"I:The package requirement and confliction are listed below:",
+	"I:You may can use 'lpm --force COMMAND' to continue.",
+	"I:Package stack trace:",
 	"E:Incorrect pack info from source",
 	"E:Script exited with code ",
 	"E:Overwriting",
@@ -47,6 +50,7 @@ std::string msgDataDefault[msgCount] = {
 	"E:Invalid dependence",
 	"E:Found a dependency which is impossible to implement",
 	"E:Package not found",
+	"E:Could not find specificed package. This package have dependency problem",
 	"E:Package already installed",
 	"E:Package not installed",
 	"E:Needn't upgrade",
@@ -68,6 +72,10 @@ std::string msgDataDefault[msgCount] = {
 	"W:Script exited with code ",
 	", rolling back",
 	"W:This package is depended by:",
+
+	"Install",
+	"Upgrade",
+	"Remove",
 };
 std::string msgData[msgCount];
 

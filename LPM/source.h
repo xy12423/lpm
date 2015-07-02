@@ -22,7 +22,7 @@ public:
 	//Check upgrade in source and add them to ret
 	void checkUpgrade(pakListTp &ret);
 	//Upgrade all package in source
-	errInfo upgradeAll();
+	void upgradeAll();
 
 	friend void writeSource();
 #ifdef _LPM_GUI

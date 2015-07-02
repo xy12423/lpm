@@ -168,6 +168,7 @@
     <ClInclude Include="main.h" />
     <ClInclude Include="main_GUI.h" />
     <ClInclude Include="package.h" />
+    <ClInclude Include="package_core.h" />
     <ClInclude Include="source.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="unzip.h" />
@@ -180,6 +181,7 @@
     <ClCompile Include="main_CLI.cpp" />
     <ClCompile Include="main_GUI.cpp" />
     <ClCompile Include="package.cpp" />
+    <ClCompile Include="package_core.cpp" />
     <ClCompile Include="source.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

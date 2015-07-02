@@ -33,11 +33,12 @@ struct depInfo
 {
 	enum verCon{ ALL, BIGGER, BIGEQU, LESS, LESEQU, EQU, NEQU, NONE };
 	depInfo(){ con = ALL; };
-	depInfo(const std::string &_name, version _ver, verCon _con){ name = _name; ver = _ver; con = _con; };
-	depInfo(const std::string &_str);
+	depInfo(const std::string _name, version _ver, verCon _con, bool _isDep) :name(_name), ver(_ver), con(_con){ isDep = _isDep; };
+	depInfo(std::string _str);
 	std::string name;
 	version ver;
 	verCon con;
+	bool isDep;
 
 	std::string conStr();
 	std::string fullStr();
@@ -55,7 +56,7 @@ public:
 	{
 		enum opType{ INST, UPG, REMOVE };
 		instItem(){ pak = NULL; }
-		instItem(package *_pak, opType _oper){ pak = _pak; oper = _oper; };
+		instItem(package *_pak, opType _oper) :name(_pak->name){ pak = _pak; oper = _oper; };
 		instItem(const std::string &_name) :name(_name){ oper = REMOVE; };
 		package* pak;
 		std::string name;
@@ -100,7 +101,6 @@ private:
 };
 typedef std::vector<package*> pakListTp;
 
-
 enum remove_level{
 	REMOVE_NORMAL,
 	REMOVE_FORCE,
@@ -108,7 +108,7 @@ enum remove_level{
 };
 package* find_package(const std::string &name);
 package* find_package(const std::string &name, depInfo con);
-package* find_package(const std::string &name, std::unordered_multimap<int, depInfo> &con);
+package* find_package(const std::string &name, std::unordered_multimap<int, depInfo> &con, bool force, std::list<int> &removeList);
 bool is_installed(const std::string &name);
 version cur_version(const std::string &name);
 errInfo install(const std::string &name, bool force = false);

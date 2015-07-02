@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "package.h"
+#include "package_core.h"
 #include "source.h"
 #include "unzip.h"
 #include "download.h"
@@ -29,79 +30,80 @@ version::version(const std::string &str)
 	major = tmp[0]; minor = tmp[1]; revision = tmp[2];
 }
 
-depInfo::depInfo(const std::string &str)
+depInfo::depInfo(std::string str)
 {
-	std::string::const_reverse_iterator itr = str.crbegin(), itrEnd = str.crend(), itrP;
-	for (; itr != itrEnd && *itr != ':'; itr++);
+	if (str.front() == '&')
+		isDep = true;
+	else if (str.front() == '!')
+		isDep = false;
+	str.erase(0, 1);
+
+	std::string::iterator itr = str.begin(), itrEnd = str.end();
+	for (; itr != itrEnd; itr++)
+	{
+		if (*itr == ':')
+			break;
+		else
+			name.push_back(*itr);
+	}
 	if (itr == itrEnd)
 	{
-		name = str;
 		con = ALL;
 		return;
 	}
-	itrP = itr;
-	itrP++;
-	while (itrP != itrEnd)
-	{
-		name = *itrP + name;
-		itrP++;
-	}
-	itrEnd = str.crbegin();
-	if (itr == itrEnd)
-		con = ALL;
 	else
 	{
-		itr--;
-		switch (*itr)
+		std::string conStr;
+		itr++;
+		for (; itr != itrEnd; itr++)
+			conStr.push_back(*itr);
+		switch (conStr.front())
 		{
 			case '>':
-				itr--;
-				if (*itr == '=')
+			{
+				conStr.erase(0, 1);
+				if (conStr.front() == '=')
+				{
+					conStr.erase(0, 1);
 					con = BIGEQU;
+				}
 				else
-				{
-					itr++;
 					con = BIGGER;
-				}
 				break;
+			}
 			case '<':
-				itr--;
-				if (*itr == '=')
-					con = LESEQU;
-				else
+			{
+				conStr.erase(0, 1);
+				if (conStr.front() == '=')
 				{
-					itr++;
-					con = LESS;
+					conStr.erase(0, 1);
+					con = LESEQU;
 				}
+				else
+					con = LESS;
 				break;
+			}
 			case '=':
+			{
 				con = EQU;
 				break;
+			}
 			case '!':
-				itr--;
-				if (*itr == '!')
-					con = NONE;
-				else
+			{
+				conStr.erase(0, 1);
+				if (conStr.front() == '!')
 				{
-					itr++;
-					con = NEQU;
+					con = NONE;
+					return;
 				}
+				else
+					con = NEQU;
 				break;
+			}
 			default:
 				con = EQU;
-				itr++;
 		}
-		if (con != NONE)
-		{
-			std::string verStr;
-			while (itr != itrEnd)
-			{
-				itr--;
-				verStr.push_back(*itr);
-			}
-			if (!verStr.empty())
-				ver = version(verStr);
-		}
+		ver = conStr;
 	}
 }
 
@@ -121,7 +123,7 @@ std::string depInfo::conStr()
 
 std::string depInfo::fullStr()
 {
-	return name + conStr();
+	return (isDep ? '&' : '!') + name + conStr();
 }
 
 bool depInfo::check(version _ver)
@@ -305,7 +307,7 @@ errInfo package::inst()
 			if (!fs::exists(dataPath / pDep->name))
 				fs::create_directory(dataPath / pDep->name);
 			depOut.open((dataPath / pDep->name / FILENAME_BEDEP).string(), std::ios::out | std::ios::app);
-			depOut << name << pDep->conStr() << std::endl;
+			depOut << '&' << name << pDep->conStr() << std::endl;
 			depOut.close();
 		}
 		pDep = depList.begin();
@@ -417,11 +419,26 @@ errInfo package::instList(pakIListTp &instList)
 {
 	//Install/Upgrade Packages
 	pakIListTp::iterator instItr, instEnd;
-	infoStream << msgData[MSGI_WILL_INST_LIST] << std::endl;
+	infoStream << msgData[MSGI_WILL_DO_LIST] << std::endl;
 	instItr = instList.begin();
 	instEnd = instList.end();
 	for (; instItr != instEnd; instItr++)
-		infoStream << "\t" << instItr->pak->name << std::endl;
+	{
+		infoStream << "\t";
+		switch (instItr->oper)
+		{
+			case instItem::INST:
+				infoStream << msgData[MSGN_INST];
+				break;
+			case instItem::UPG:
+				infoStream << msgData[MSGN_UPG];
+				break;
+			case instItem::REMOVE:
+				infoStream << msgData[MSGN_REMOVE];
+				break;
+		}
+		infoStream << '\t' << instItr->name << std::endl;
+	}
 	instItr = instList.begin();
 	errInfo errInTry;
 	try
@@ -444,6 +461,12 @@ errInfo package::instList(pakIListTp &instList)
 					if (err.err)
 						throw(err);
 					break;
+				}
+				case instItem::REMOVE:
+				{
+					errInfo err = uninstall(instItr->name);
+					if (err.err)
+						throw(err);
 				}
 			}
 		}
@@ -553,6 +576,8 @@ errInfo package::upgrade(bool checked)
 	if (!is_installed(name))
 		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
 
+	infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << name << std::endl;
+
 	pakIListTp instL;
 	if (!checked)
 	{
@@ -568,7 +593,11 @@ errInfo package::upgrade(bool checked)
 			{
 				std::getline(bedepIn, line);
 				if (!line.empty())
-					depList.push_back(depInfo(line));
+				{
+					depInfo dep(line);
+					dep.name = name;
+					depList.push_back(dep);
+				}
 			}
 			bedepIn.close();
 		}
@@ -591,7 +620,6 @@ errInfo package::upgrade(bool checked)
 		}
 	}
 
-	infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << name << std::endl;
 	errInfo err = backup(name, true);
 	if (err.err)
 		return err;
@@ -657,435 +685,6 @@ bool package::check()
 	return true;
 }
 
-typedef std::list<int> pakQListTp;
-struct depNode
-{
-	depNode(){ pak = NULL; }
-	depNode(const std::string &_name) :name(_name){ pak = NULL; }
-	depNode(package *_pak){ pak = _pak; name = pak->getName(); }
-	bool processed = true;
-	package *pak;
-	std::string name;
-	std::unordered_multimap<int, depInfo> con;
-	std::unordered_map<int, int> ancestor;
-	std::unordered_set<int> dep;
-	std::unordered_set<int> bedep;
-};
-typedef std::unordered_map<int, depNode> depMapTp;
-typedef std::unordered_map<std::string, int> depHashTp;
-typedef std::list<std::string> pakRListTp;
-typedef std::unordered_set<std::string> pakRHashTp;
-void uninst_list(const std::string &name, pakRListTp &removeList, pakRHashTp &removeHash);
-
-void clean_dep(depMapTp &pakMap, depHashTp &pakHash, int nodeID)
-{
-	pakQListTp que;
-	depNode &node = pakMap.at(nodeID);
-	std::for_each(node.dep.begin(), node.dep.end(), [&](int id){
-		depNode &depNode = pakMap.at(id);
-		depNode.con.erase(nodeID);
-		depNode.bedep.erase(nodeID);
-		que.push_back(id);
-	});
-	node.dep.clear();
-	while (!que.empty())
-	{
-		int id = que.front();
-		depNode depN = pakMap.at(id);
-		que.pop_front();
-		std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int>& p){
-			depN.ancestor.at(p.first) -= p.second;
-			if (depN.ancestor.at(p.first) <= 0)
-				depN.ancestor.erase(p.first);
-		});
-		depN.ancestor.at(nodeID)--;
-		if (depN.ancestor.at(nodeID) == 0)
-			depN.ancestor.erase(nodeID);
-		if (depN.ancestor.empty() && id != 0)
-		{
-			clean_dep(pakMap, pakHash, id);
-			pakHash.erase(depN.pak->getName());
-			pakMap.erase(id);
-		}
-		else
-		{
-			std::for_each(depN.dep.begin(), depN.dep.end(), [&](int id){
-				if (node.ancestor.find(id) == node.ancestor.end())
-					que.push_back(id);
-			});
-		}
-	}
-}
-
-void add_ancestor(depMapTp &pakMap, depHashTp &pakHash, int dst, int src)
-{
-	depNode &srcN = pakMap.at(src), &dstN = pakMap.at(dst);
-	std::for_each(srcN.ancestor.cbegin(), srcN.ancestor.cend(), [&dstN](const std::pair<int, int>& p){
-		dstN.ancestor[p.first] += p.second;
-	});
-	dstN.ancestor[src]++;
-	if (dstN.processed)
-	{
-		std::unordered_map<int, int>::iterator ancEnd = srcN.ancestor.end();
-		std::for_each(srcN.dep.begin(), srcN.dep.end(), [&](int depID){
-			if (srcN.ancestor.find(depID) == ancEnd)
-				add_ancestor(pakMap, pakHash, depID, src);
-		});
-	}
-}
-
-void package::checkDep(pakIListTp &instList, depListTp &extraDep, bool force)
-{
-	//Check requirement:init
-	depListTp::iterator pDep, pDepEnd;
-
-	depMapTp pakMap;
-	depHashTp pakHash;
-	depHashTp::iterator itrHash, itrHashEnd = pakHash.end();
-	int nextID = 1;
-	pakMap.emplace(0, this);
-	std::for_each(extraDep.begin(), extraDep.end(), [&](const depInfo& inf){
-		pakMap[0].con.emplace(-1, inf);
-	});
-	pakHash.emplace(name, 0);
-	pakQListTp pakQue;
-	pakQue.push_back(0);
-	pakRListTp removeList;
-	pakRHashTp removeHash;
-
-	//Check requirement:add local info
-	fs::directory_iterator p(dataPath), pEnd;
-	fs::path name;
-	std::string buf;
-	for (; p != pEnd; p++)
-	{
-		name = p->path().filename();
-		if (name.string().front() != '$')
-		{
-			std::ifstream fin((dataPath / name / FILENAME_CONF).string());
-			while (!fin.eof())
-			{
-				std::getline(fin, buf);
-				if (!buf.empty())
-				{
-					depInfo conf(buf);
-					itrHash = pakHash.find(conf.name);
-					if (itrHash != itrHashEnd)
-					{
-						depNode &confN = pakMap.at(itrHash->second);
-						confN.con.emplace(-1, conf);
-					}
-					else
-					{
-						int newID = nextID;
-						nextID++;
-						pakMap.emplace(newID, depNode(conf.name));
-						pakHash.emplace(conf.name, newID);
-						itrHash = pakHash.find(conf.name);
-						depNode &confN = pakMap.at(newID);
-						confN.con.emplace(-1, conf);
-					}
-				}
-			}
-			fin.close();
-		}
-	}
-	
-	{
-		depNode &instN = pakMap.at(0);
-		if (!instN.con.empty())
-		{
-			std::for_each(instN.con.begin(), instN.con.end(), [this](std::pair<int, depInfo> p){
-				if (!p.second.check(ver))
-					throw(msgData[MSGE_CONF] + ':' + p.second.fullStr());
-			});
-		}
-	}
-
-	//Check requirement:BFS
-	while (!pakQue.empty())
-	{
-		int id = pakQue.front();
-		depNode &node = pakMap.at(id);
-		pakQue.pop_front();
-
-		pDep = node.pak->confList.begin();
-		pDepEnd = node.pak->confList.end();
-		for (; pDep != pDepEnd; pDep++)
-		{
-			int confID;
-			itrHash = pakHash.find(pDep->name);
-			if (itrHash != itrHashEnd)	//The package is in the map
-			{
-				confID = itrHash->second;
-				depNode &confN = pakMap.at(confID);
-				confN.con.emplace(id, ~(*pDep));
-				if (node.ancestor.find(confID) == node.ancestor.end())
-					add_ancestor(pakMap, pakHash, confID, id);
-				node.dep.emplace(confID);
-			}
-			else	//Add the package to the map
-			{
-				int newID = nextID;
-				nextID++;
-				confID = newID;
-				node.dep.emplace(newID);
-				depNode &confN = pakMap.emplace(newID, depNode(pDep->name)).first->second;
-				pakHash.emplace(pDep->name, newID);
-				itrHash = pakHash.find(pDep->name);
-				confN.con.emplace(id, ~(*pDep));
-				std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&confN](const std::pair<int, int>& p){
-					confN.ancestor[p.first] += p.second;
-				});
-				confN.ancestor[id]++;
-			}
-			if (pDep->check() && removeHash.find(pDep->name) == removeHash.end())	//Conflict with installed package
-			{
-				depNode &confN = pakMap.at(confID);
-				clean_dep(pakMap, pakHash, confID);
-				package *pak = find_package(pDep->name, confN.con);	//Try to find a correct package
-				if (pak == NULL)
-				{
-					if (!confN.bedep.empty())
-						throw(msgData[MSGE_DEP_CONF]);
-					if (force)
-					{
-						removeList.push_front(pDep->name);
-						removeHash.emplace(pDep->name);
-						pakRListTp::iterator itrEnd = removeList.begin();
-						uninst_list(pDep->name, removeList, removeHash);
-						for (pakRListTp::iterator itr = removeList.begin(); itr != itrEnd; itr++)	//Add all of packages in the removeList to map
-						{
-							itrHash = pakHash.find(*itr);
-							int rmID;
-							if (itrHash != itrHashEnd)	//The package is in the map
-							{
-								rmID = itrHash->second;
-								depNode &rmN = pakMap.at(rmID);
-								rmN.con.emplace(id, depInfo(*itr, version(), depInfo::NONE));
-								if (!rmN.bedep.empty())
-									throw(msgData[MSGE_DEP_CONF]);
-								else
-									rmN.pak = NULL;
-								if (node.ancestor.find(rmID) == node.ancestor.end())
-									add_ancestor(pakMap, pakHash, rmID, id);
-								node.dep.emplace(rmID);
-							}
-							else	//Add the package to the map
-							{
-								int newID = nextID;
-								nextID++;
-								rmID = newID;
-								node.dep.emplace(newID);
-								depNode &rmN = pakMap.emplace(newID, depNode(*itr)).first->second;
-								pakHash.emplace(*itr, newID);
-								itrHash = pakHash.find(*itr);
-								rmN.con.emplace(id, depInfo(*itr, version(), depInfo::NONE));
-								std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&rmN](const std::pair<int, int>& p){
-									rmN.ancestor[p.first] += p.second;
-								});
-								rmN.ancestor[id]++;
-							}
-						}
-					}
-					else
-						throw(msgData[MSGE_CONF] + ':' + node.pak->name + ":" + pDep->fullStr());
-				}
-				confN.pak = pak;
-				if (pak != NULL && confN.processed)
-				{
-					confN.processed = false;
-					pakQue.push_back(confID);
-				}
-			}
-			else
-			{
-				depNode &confN = pakMap.at(confID);
-				if (confN.pak != NULL && pDep->check(confN.pak->ver))	//Conflict with installing package
-				{
-					if (node.ancestor.find(confID) != node.ancestor.end())	//Loop in map
-						throw(msgData[MSGE_DEP] + ':' + node.pak->name + ":" + pDep->fullStr());
-					clean_dep(pakMap, pakHash, confID);
-					package *pak = find_package(pDep->name, confN.con);
-					if (pak == NULL)
-					{
-						if (!confN.bedep.empty())
-							throw(msgData[MSGE_DEP_CONF]);
-						if (force)
-						{
-							removeList.push_front(pDep->name);
-							removeHash.emplace(pDep->name);
-							pakRListTp::iterator itrEnd = removeList.begin();
-							uninst_list(pDep->name, removeList, removeHash);
-							for (pakRListTp::iterator itr = removeList.begin(); itr != itrEnd; itr++)	//Add all of packages in the removeList to map
-							{
-								itrHash = pakHash.find(*itr);
-								int rmID;
-								if (itrHash != itrHashEnd)	//The package is in the map
-								{
-									rmID = itrHash->second;
-									depNode &rmN = pakMap.at(rmID);
-									rmN.con.emplace(id, depInfo(*itr, version(), depInfo::NONE));
-									if (!rmN.bedep.empty())
-										throw(msgData[MSGE_DEP_CONF]);
-									else
-										rmN.pak = NULL;
-									if (node.ancestor.find(rmID) == node.ancestor.end())
-										add_ancestor(pakMap, pakHash, rmID, id);
-									node.dep.emplace(rmID);
-									pakQue.push_back(rmID);
-								}
-								else	//Add the package to the map
-								{
-									int newID = nextID;
-									nextID++;
-									rmID = newID;
-									node.dep.emplace(newID);
-									depNode &rmN = pakMap.emplace(newID, depNode(*itr)).first->second;
-									pakHash.emplace(*itr, newID);
-									itrHash = pakHash.find(*itr);
-									rmN.con.emplace(id, depInfo(*itr, version(), depInfo::NONE));
-									std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&rmN](const std::pair<int, int>& p){
-										rmN.ancestor[p.first] += p.second;
-									});
-									rmN.ancestor[id]++;
-								}
-							}
-						}
-						else
-						{
-							std::string errMessage;
-							std::for_each(confN.con.begin(), confN.con.end(), [&errMessage, &pakMap](std::pair<int, depInfo> p){
-								errMessage.append(pakMap.at(p.first).name);
-								errMessage.push_back(':');
-								errMessage.append(p.second.fullStr());
-								errMessage.push_back(';');
-							});
-							throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + errMessage);
-						}
-					}
-					confN.pak = pak;
-					if (confN.processed)
-					{
-						confN.processed = false;
-						pakQue.push_back(confID);
-					}
-				}
-			}
-		}
-		pDep = node.pak->depList.begin();
-		pDepEnd = node.pak->depList.end();
-		for (; pDep != pDepEnd; pDep++)
-		{
-			int depID;
-			itrHash = pakHash.find(pDep->name);
-			if (itrHash != itrHashEnd)	//The package is in the map
-			{
-				depID = itrHash->second;
-				depNode &depN = pakMap.at(depID);
-				depN.bedep.emplace(id);
-				depN.con.emplace(id, *pDep);
-				if (node.ancestor.find(depID) == node.ancestor.end())
-					add_ancestor(pakMap, pakHash, depID, id);
-				node.dep.emplace(depID);
-				if ((depN.pak == NULL && !pDep->check()) || (depN.pak != NULL && !pDep->check(depN.pak->ver)))	//Checking failed
-				{
-					if (node.ancestor.find(itrHash->second) != node.ancestor.end())	//Loop in map
-						throw(msgData[MSGE_DEP] + ':' + node.pak->name + ":" + pDep->fullStr());
-					clean_dep(pakMap, pakHash, depID);
-					package *pak = find_package(pDep->name, depN.con);
-					if (pak == NULL)
-					{
-						std::string errMessage;
-						std::for_each(depN.con.begin(), depN.con.end(), [&errMessage, &pakMap](std::pair<int, depInfo> p){
-							errMessage.append(pakMap.at(p.first).name);
-							errMessage.push_back(':');
-							errMessage.append(p.second.fullStr());
-							errMessage.push_back(';');
-						});
-						throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + errMessage);
-					}
-					depN.pak = pak;
-					if (depN.processed)
-					{
-						depN.processed = false;
-						pakQue.push_back(itrHash->second);
-					}
-				}
-			}
-			else	//Add the package to the map
-			{
-				int newID = nextID;
-				nextID++;
-				depID = newID;
-				package *pak;
-				if (pDep->check())	//Installed correct package
-					pak = NULL;
-				else
-				{
-					pak = find_package(pDep->name, *pDep);
-					if (pak == NULL)
-						throw(msgData[MSGE_PAK_NOT_FOUND] + ':' + node.name + ':' + pDep->fullStr() + ';');
-				}
-				node.dep.emplace(newID);
-				depNode &depN = pakMap.emplace(newID, depNode(pak)).first->second;
-				depN.bedep.emplace(id);
-				pakHash.emplace(pDep->name, newID);
-				depN.con.emplace(id, *pDep);
-				std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int> p){
-					depN.ancestor[p.first] += p.second;
-				});
-				depN.ancestor[id]++;
-				if (pak != NULL && depN.processed)
-				{
-					depN.processed = false;
-					pakQue.push_back(newID);
-				}
-			}
-		}
-		node.processed = true;
-	}
-
-	//Check which package need to be installed or upgraded
-	std::unordered_set<int> pakDiff;
-	std::unordered_set<int>::iterator itrDiffEnd = pakDiff.end();
-	pakQue.push_back(0);
-	pakDiff.emplace(0);
-	while (!pakQue.empty())
-	{
-		int id = pakQue.front();
-		depNode &node = pakMap.at(id);
-		pakQue.pop_front();
-		package *pak = node.pak;
-		if (pak != NULL)
-		{
-			if (is_installed(pak->name))
-			{
-				if (cur_version(pak->name) != pak->ver)
-					instList.push_front(instItem(pak, instItem::UPG));
-			}
-			else
-				instList.push_front(instItem(pak, instItem::INST));
-			pDep = node.pak->depList.begin();
-			pDepEnd = node.pak->depList.end();
-			for (; pDep != pDepEnd; pDep++)
-			{
-				int depID = pakHash.at(pDep->name);
-				if (pakDiff.find(depID) == itrDiffEnd)
-				{
-					pakQue.push_back(depID);
-					pakDiff.emplace(depID);
-				}
-			}
-		}
-	}
-	while (!removeList.empty())
-	{
-		instList.push_front(instItem(removeList.front()));
-		removeList.pop_front();
-	}
-}
-
 bool is_installed(const std::string &name)
 {
 	return fs::exists(dataPath / name) && fs::is_directory(dataPath / name);
@@ -1145,11 +744,14 @@ package* find_package(const std::string &name, depInfo con)
 	return ret;
 }
 
-package* find_package(const std::string &name, std::unordered_multimap<int, depInfo> &con)
+package* find_package(const std::string &name, std::unordered_multimap<int, depInfo> &con, bool force, std::list<int> &removeList)
 {
+	removeList.clear();
+	size_t removeCount = removeList.max_size();
 	srcListTp::const_iterator p, pEnd = sourceList.cend();
 	package *pak, *ret = NULL;
 	version ver, newVer;
+	std::list<int> tmpRemoveList;
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
 		pak = (*p)->find_package(name);
@@ -1158,19 +760,27 @@ package* find_package(const std::string &name, std::unordered_multimap<int, depI
 			newVer = pak->getVer();
 			if (newVer > ver)
 			{
+				tmpRemoveList.clear();
 				bool flag = true;
 				for (std::unordered_multimap<int, depInfo>::iterator itr = con.begin(), itrEnd = con.end(); itr != itrEnd; itr++)
 				{
 					if (!itr->second.check(newVer))
 					{
-						flag = false;
-						break;
+						if (force && !itr->second.isDep)
+							tmpRemoveList.push_back(itr->first);
+						else
+						{
+							flag = false;
+							break;
+						}
 					}
 				}
-				if (flag)
+				if (flag && (!force || (tmpRemoveList.size() <= removeCount)))
 				{
 					ret = pak;
 					ver = newVer;
+					removeList = tmpRemoveList;
+					removeCount = tmpRemoveList.size();
 				}
 			}
 		}

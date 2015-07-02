@@ -89,22 +89,44 @@ void printAvailableShort(source *src, bool ignoreInstalled = true)
 
 void printUsage()
 {
-	cout << "Usage:" << endl;
-	cout << "\tlpm init" << endl;
-	cout << "\tlpm update" << endl;
-	cout << "\tlpm install <package name>" << endl;
-	cout << "\tlpm remove <package name>" << endl;
-	cout << "\tlpm dataclear <package name>" << endl;
-	cout << "\tlpm upgrade [package name]" << endl;
-	cout << "\tlpm info <package name>" << endl;
-	cout << "\tlpm check <package name>" << endl;
-	cout << "\tlpm list" << endl;
-	cout << "\tlpm list-short" << endl;
-	cout << "\tlpm available" << endl;
-	cout << "\tlpm available-short" << endl;
-	cout << "\tlpm listsrc" << endl;
-	cout << "\tlpm addsrc <source address>" << endl;
-	cout << "\tlpm delsrc <source address>" << endl;
+	cout << "Usage:\n\n";
+	cout << "    lpm [--lpmdir=TARGET_LPM] [--local=TARGET_LOCAL] [--force] COMMAND\n";
+	cout << "      \n";
+	cout << "      Options:\n";
+	cout << "        --lpmdir    Specific a target LPM deploy directory\n";
+	cout << "        --local     Specific where package should unpack to.\n";
+	cout << "        --force     Force continue, will remove all packages that noticed.\n";
+	cout << "                     Usually required when removing with dependency,\n";
+	cout << "                     installing or update with removing conflicted packages.\n\n";
+	cout << "        COMMAND     Specific things that LPM should to do.\n";
+	cout << "      \n";
+	cout << "      Commands:\n";
+	cout << "        init                            Create inital configuration files.\n";
+	cout << "        update                          Check for updates from source.\n";
+	cout << "        install <package name>          Install a specific package.\n";
+	cout << "        remove <package name>           Remove a specific package.\n";
+	cout << "        dataclear <package name>        Run initalize process of a package.\n";
+	cout << "                                         Will clear package configuration\n";
+	cout << "                                         and reset package settings.\n\n";
+	cout << "        upgrade [package name]          Upgrade a specific package or all\n";
+	cout << "                                         out-of-date packages.\n\n";
+	cout << "        info <package name>             Display information of a package.\n";
+	cout << "        check <package name>            Check dependency of a specific\n";
+	cout << "                                         package.\n\n";
+	cout << "        list                            List all packages that installed.\n";
+	cout << "        list-short                      List installed packages only in names.\n";
+	cout << "        available                       Show available packages in source.\n";
+	cout << "        available-short                 Show available packages only in names.\n";
+	cout << "        listsrc                         List all sources in use.\n";
+	cout << "        addsrc <source address>         Add a package installing source.\n";
+	cout << "        delsrc <source address>         Remove a package installing source.\n";
+	cout << "        release                         Try to release the management lock\n";
+	cout << "                                         of LPM. (Usually use in abnormal\n";
+	cout << "                                         situation, such as a crash.)\n\n\n";
+	cout << "Live Package Manager v1.2\n";
+	cout << "    Made by xy12423. Licensed in GPLv3,\n";
+	cout << "    Copyleft xy12423 & Little Busters! Live Project.\n";
+	cout << "    Source code available at http://github.com/xy12423/lpm" << endl;
 }
 
 int main(int argc, char* argv[])
@@ -160,6 +182,10 @@ int main(int argc, char* argv[])
 			if (!newPath.empty())
 				current_path(newPath);
 			init();
+		}
+		else if (cmd == "release")
+		{
+			locked = true;
 		}
 		else
 		{

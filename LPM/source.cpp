@@ -64,28 +64,28 @@ errInfo source::loadRemote()
 					{
 						if (*p2 == ';')
 						{
-							depList.push_back(name);
+							depList.push_back('&' + name);
 							name.clear();
 						}
 						else
 							name.push_back(*p2);
 					}
 					if (!name.empty())
-						depList.push_back(name);
+						depList.push_back('&' + name);
 					name.clear();
 
 					for (p2 = data[LINE_CONF].cbegin(), pEnd2 = data[LINE_CONF].cend(); p2 != pEnd2; p2++)
 					{
 						if (*p2 == ';')
 						{
-							confList.push_back(name);
+							confList.push_back('!' + name);
 							name.clear();
 						}
 						else
 							name.push_back(*p2);
 					}
 					if (!name.empty())
-						confList.push_back(name);
+						confList.push_back('!' + name);
 					name.clear();
 
 					newPkgList.push_back(new package(add, data[LINE_NAME], ver, depList, confList, pakExtInfo(data[LINE_FNAME], data[LINE_AUTHOR], data[LINE_INFO])));
@@ -126,7 +126,7 @@ void source::checkUpgrade(pakListTp &ret)
 			ret.push_back(*p);
 }
 
-errInfo source::upgradeAll()
+void source::upgradeAll()
 {
 	pakListTp::const_iterator p = pakList.cbegin(), pEnd = pakList.cend();
 	for (; p != pEnd; p++)
@@ -135,8 +135,7 @@ errInfo source::upgradeAll()
 		{
 			errInfo err = (*p)->upgrade();
 			if (err.err)
-				return err;
+				infoStream << err.info << std::endl;
 		}
 	}
-	return errInfo();
 }

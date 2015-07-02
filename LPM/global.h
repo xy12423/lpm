@@ -37,6 +37,7 @@ const std::string SCRIPT_INIT = "init.sh";
 const std::string SCRIPT_PURGE = "clear.sh";
 const std::string SCRIPT_REMOVE = "remove.sh";
 #endif
+const UINT DIR_ATTRIBUTE = 0x10;
 
 typedef unsigned short int USHORT;
 typedef unsigned int UINT;
