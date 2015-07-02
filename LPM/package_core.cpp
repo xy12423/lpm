@@ -360,12 +360,13 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep, bool force)
 								std::string errMessage(msgData[MSGI_PAK_NOT_FOUND_SPEC_1]);
 								errMessage.push_back('\n');
 								std::for_each(confN.con.begin(), confN.con.end(), [&errMessage, &pakMap](std::pair<int, depInfo> p){
+									errMessage.push_back('\t');
 									errMessage.append(pakMap.at(p.first).name);
 									errMessage.append(p.second.conStr());
 									errMessage.push_back('\n');
 								});
 								errMessage.append(msgData[MSGI_PAK_NOT_FOUND_SPEC_2]);
-								throw(dep_throw(msgData[MSGE_PAK_NOT_FOUND_SPEC] + ':' + confN.name + '\n' + errMessage, confID));
+								throw(dep_throw(msgData[MSGE_PAK_NOT_FOUND_SPEC] + ":\n\t" + confN.name + '\n' + errMessage, confID));
 							}
 						}
 						confN.pak = pak;
@@ -412,12 +413,13 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep, bool force)
 							std::string errMessage(msgData[MSGI_PAK_NOT_FOUND_SPEC_1]);
 							errMessage.push_back('\n');
 							std::for_each(depN.con.begin(), depN.con.end(), [&errMessage, &pakMap](std::pair<int, depInfo> p){
+								errMessage.push_back('\t');
 								errMessage.append(pakMap.at(p.first).name);
 								errMessage.append(p.second.conStr());
 								errMessage.push_back('\n');
 							});
 							errMessage.append(msgData[MSGI_PAK_NOT_FOUND_SPEC_2]);
-							throw(dep_throw(msgData[MSGE_PAK_NOT_FOUND_SPEC] + ':' + pDep->name + '\n' + errMessage, depID));
+							throw(dep_throw(msgData[MSGE_PAK_NOT_FOUND_SPEC] + ":\n\t" + pDep->name + '\n' + errMessage, depID));
 						}
 						else if (!tmpRemoveList.empty())
 						{
@@ -450,7 +452,8 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep, bool force)
 					{
 						pak = find_package(pDep->name, *pDep);
 						if (pak == NULL)
-							throw(dep_throw(msgData[MSGE_PAK_NOT_FOUND_SPEC] + ':' + node.name + '\n' + msgData[MSGI_PAK_NOT_FOUND_SPEC_1] + '\n' + pDep->fullStr() + '\n' + msgData[MSGI_PAK_NOT_FOUND_SPEC_2], id));
+							throw(dep_throw(msgData[MSGE_PAK_NOT_FOUND_SPEC] + ":\n\t" + node.name + '\n' + 
+							msgData[MSGI_PAK_NOT_FOUND_SPEC_1] + "\n\t" + pDep->fullStr() + '\n' + msgData[MSGI_PAK_NOT_FOUND_SPEC_2], id));
 					}
 					node.dep.emplace(newID);
 					depNode &depN = pakMap.emplace(newID, depNode(pDep->name)).first->second;
