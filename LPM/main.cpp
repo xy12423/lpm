@@ -223,12 +223,12 @@ errInfo update()
 	return errInfo();
 }
 
-errInfo upgrade(std::string name)
+errInfo upgrade(std::string name, bool force)
 {
 	package *pkg = find_package(name);
 	if (pkg == NULL)
 		return errInfo(msgData[MSGE_PAK_NOT_FOUND]);
-	return pkg->upgrade();
+	return pkg->upgrade(false, force);
 }
 
 errInfo upgrade()

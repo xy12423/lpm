@@ -17,7 +17,7 @@ void writeLocal();
 void loadDefaultLang();
 bool readLang();
 errInfo update();
-errInfo upgrade(std::string name);
+errInfo upgrade(std::string name, bool force = false);
 errInfo upgrade();
 void checkUpgrade(pakListTp &ret);
 bool check(std::string name);

@@ -113,10 +113,10 @@ void printInfo(package *pkg)
 	if (pkg == NULL)
 		return;
 	std::stringstream sstream;
-	form->textFName->SetValue(pkg->extInfo.fname);
+	form->textFName->SetValue(pkg->extInfo.getFNameW());
 	form->textName->SetValue(pkg->name);
-	form->textInfo->SetValue(pkg->extInfo.info);
-	form->textAuthor->SetValue(pkg->extInfo.author);
+	form->textInfo->SetValue(pkg->extInfo.getInfoW());
+	form->textAuthor->SetValue(pkg->extInfo.getAuthorW());
 	form->textVersion->SetValue(std::to_string(pkg->ver.major) + '.' + std::to_string(pkg->ver.minor) + '.' + std::to_string(pkg->ver.revision));
 	form->textDep->Clear();
 	std::for_each(pkg->depList.begin(), pkg->depList.end(), [&sstream](depInfo dpInf){
@@ -370,7 +370,7 @@ void mainFrame::refreshPakList()
 	bool enableSearch = !maskName.empty();
 	for (; itrPak != itrPakEnd;)
 	{
-		if ((getState((*itrPak)->getName()) & pakMask) != pakMask || (enableSearch && lcase((*itrPak)->getExtInfo().fname).find(lcase(maskName)) == std::string::npos))
+		if ((getState((*itrPak)->getName()) & pakMask) != pakMask || (enableSearch && lcase((*itrPak)->getExtInfo().getFName()).find(lcase(maskName)) == std::string::npos))
 		{
 			itrPak = pakList.erase(itrPak);
 			itrPakEnd = pakList.end();
@@ -381,7 +381,7 @@ void mainFrame::refreshPakList()
 	itrPak = pakList.begin();
 	listPak->Clear();
 	for (; itrPak != itrPakEnd; itrPak++)
-		listPak->AppendString((*itrPak)->getExtInfo().fname + '[' + (*itrPak)->getVer().toStr() + ']');
+		listPak->AppendString((*itrPak)->getExtInfo().getFNameW() + '[' + (*itrPak)->getVer().toStr() + ']');
 }
 
 void mainFrame::listSrc_ItemCheck(wxCommandEvent& event)
@@ -529,10 +529,12 @@ void mainFrame::buttonUpgPak_Click(wxCommandEvent& event)
 	if (pakList[sel]->needUpgrade())
 	{
 		infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << pakList[sel]->getName() << std::endl;
-		errInfo err = pakList[sel]->upgrade();
+		errInfo err = pakList[sel]->upgrade(false, checkForce->GetValue());
 		if (err.err)
 			infoStream << err.info << std::endl;
 	}
+
+	checkForce->SetValue(false);
 }
 
 void mainFrame::buttonUpgAll_Click(wxCommandEvent& event)

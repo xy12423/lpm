@@ -19,13 +19,17 @@ public:
 		info.assign(tmp.data(), tmp.length());
 	};
 
-	std::string getFName(){ wxCharBuffer tmp = wxConvUTF8.cWC2MB(fname.c_str()); return std::string(tmp.data(), tmp.length()); }
-	std::string getAuthor(){ wxCharBuffer tmp = wxConvUTF8.cWC2MB(author.c_str()); return std::string(tmp.data(), tmp.length()); }
-	std::string getInfo(){ wxCharBuffer tmp = wxConvUTF8.cWC2MB(info.c_str()); return std::string(tmp.data(), tmp.length()); }
+	std::string getFName() const{ wxCharBuffer tmp = wxConvUTF8.cWC2MB(fname.c_str()); return std::string(tmp.data(), tmp.length()); }
+	std::string getAuthor() const{ wxCharBuffer tmp = wxConvUTF8.cWC2MB(author.c_str()); return std::string(tmp.data(), tmp.length()); }
+	std::string getInfo() const{ wxCharBuffer tmp = wxConvUTF8.cWC2MB(info.c_str()); return std::string(tmp.data(), tmp.length()); }
 
-	std::string getFName_Local(){ wxCharBuffer tmp = wxConvLocal.cWC2MB(fname.c_str()); return std::string(tmp.data(), tmp.length()); }
-	std::string getAuthor_Local(){ wxCharBuffer tmp = wxConvLocal.cWC2MB(author.c_str()); return std::string(tmp.data(), tmp.length()); }
-	std::string getInfo_Local(){ wxCharBuffer tmp = wxConvLocal.cWC2MB(info.c_str()); return std::string(tmp.data(), tmp.length()); }
+	std::string getFName_Local() const{ wxCharBuffer tmp = wxConvLocal.cWC2MB(fname.c_str()); return std::string(tmp.data(), tmp.length()); }
+	std::string getAuthor_Local() const{ wxCharBuffer tmp = wxConvLocal.cWC2MB(author.c_str()); return std::string(tmp.data(), tmp.length()); }
+	std::string getInfo_Local() const{ wxCharBuffer tmp = wxConvLocal.cWC2MB(info.c_str()); return std::string(tmp.data(), tmp.length()); }
+
+	const std::wstring& getFNameW() const{ return fname; }
+	const std::wstring& getAuthorW() const{ return author; }
+	const std::wstring& getInfoW() const{ return info; }
 private:
 	std::wstring fname, author, info;
 };
@@ -85,14 +89,14 @@ public:
 		source(_source), name(_name), ver(_ver), depList(_depList), confList(_confList), extInfo(_extInfo)
 	{};
 
-	const std::string &getName(){ return name; };
-	const pakExtInfo &getExtInfo(){ return extInfo; };
-	version getVer(){ return ver; };
+	const std::string &getName() const{ return name; };
+	const pakExtInfo &getExtInfo() const{ return extInfo; };
+	version getVer() const{ return ver; };
 
 	//Check requirements then install them using instList
 	errInfo instFull(bool force = false);
 	//Try to upgrade the package
-	errInfo upgrade(bool checked = false);
+	errInfo upgrade(bool checked = false, bool force = false);
 
 	bool needUpgrade();
 	bool check();

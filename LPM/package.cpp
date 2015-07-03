@@ -571,7 +571,7 @@ bool package::needUpgrade()
 	return cur_version(name) < ver;
 }
 
-errInfo package::upgrade(bool checked)
+errInfo package::upgrade(bool checked, bool force)
 {
 	if (!is_installed(name))
 		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED] + ':' + name);
@@ -604,7 +604,7 @@ errInfo package::upgrade(bool checked)
 
 		try
 		{
-			checkDep(instL, depList);
+			checkDep(instL, depList, force);
 		}
 		catch (std::exception ex)
 		{

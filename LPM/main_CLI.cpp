@@ -271,7 +271,7 @@ int main(int argc, char* argv[])
 				}
 				else
 				{
-					errInfo err = upgrade(argv[argp]);
+					errInfo err = upgrade(argv[argp], force);
 					if (err.err)
 					{
 						cout << err.info << endl;
