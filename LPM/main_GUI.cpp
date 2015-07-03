@@ -191,7 +191,7 @@ mainFrame::mainFrame(const wxString& title)
 		wxPoint(281, _GUI_GAP - 2),
 		wxSize(223, 21)
 		);
-	checkForce = new wxCheckBox(staticPak, ID_CHECKINST,
+	checkForce = new wxCheckBox(staticPak, ID_CHECKFORCE,
 		guiStrData[TEXT_CHECKFORCE],
 		wxPoint(510, _GUI_GAP + 2),
 		wxSize(96, 16)
@@ -423,6 +423,8 @@ void mainFrame::buttonAddSrc_Click(wxCommandEvent& event)
 void mainFrame::buttonDelSrc_Click(wxCommandEvent& event)
 {
 	int srcIndex = listSrc->GetSelection();
+	if (srcIndex == -1)
+		return;
 	srcListTp::iterator pItr = sourceList.begin();
 	for (; srcIndex > 0; srcIndex--)
 		pItr++;

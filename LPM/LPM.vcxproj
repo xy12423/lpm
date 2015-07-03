@@ -162,7 +162,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="download.h" />
-    <ClInclude Include="errInfo.h" />
     <ClInclude Include="global.h" />
     <ClInclude Include="langn.h" />
     <ClInclude Include="main.h" />
@@ -175,7 +174,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="download.cpp" />
-    <ClCompile Include="errInfo.cpp" />
     <ClCompile Include="global.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="main_CLI.cpp" />

@@ -30,9 +30,6 @@
     <ClInclude Include="unzip.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="errInfo.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="main.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -63,9 +60,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="unzip.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="errInfo.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">

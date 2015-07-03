@@ -24,7 +24,7 @@ void printInfo(package *pkg)
 		return;
 	std::cout << "Name:" << pkg->extInfo.fname << std::endl;
 	std::cout << "Package:" << pkg->name << std::endl;
-	std::cout << "Description:" << pkg->extInfo.info << std::endl;
+	std::cout << "Description:\n" << pkg->extInfo.info << std::endl;
 	std::cout << "Author:" << pkg->extInfo.author << std::endl;
 	std::cout << "Version:" << pkg->ver.major << '.' << pkg->ver.minor << '.' << pkg->ver.revision << std::endl;
 	std::cout << "Required:";
