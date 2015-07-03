@@ -3,8 +3,6 @@
 #ifndef _H_SRC
 #define _H_SRC
 
-#include "errInfo.h"
-
 class source
 {
 public:

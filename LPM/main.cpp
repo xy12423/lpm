@@ -161,7 +161,7 @@ void writeSource()
 			foutCfg << (*pP)->name << std::endl;
 			foutCfg << (*pP)->ver.major << ' ' << (*pP)->ver.minor << ' ' << (*pP)->ver.revision << std::endl;
 			foutCfg << (*pP)->depList.size() << ' ' << (*pP)->confList.size() << std::endl;
-			foutCfg << (*pP)->extInfo.fname << std::endl << (*pP)->extInfo.author << std::endl << (*pP)->extInfo.info << std::endl;
+			foutCfg << (*pP)->extInfo.getFName() << std::endl << (*pP)->extInfo.getAuthor() << std::endl << (*pP)->extInfo.getInfo() << std::endl;
 
 			for (pD = (*pP)->depList.begin(), pDEnd = (*pP)->depList.end(); pD != pDEnd; pD++)
 			{

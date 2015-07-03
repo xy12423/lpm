@@ -22,10 +22,10 @@ void printInfo(package *pkg)
 {
 	if (pkg == NULL)
 		return;
-	std::cout << "Name:" << pkg->extInfo.fname << std::endl;
+	std::cout << "Name:" << pkg->extInfo.getFName_Local() << std::endl;
 	std::cout << "Package:" << pkg->name << std::endl;
-	std::cout << "Description:\n" << pkg->extInfo.info << std::endl;
-	std::cout << "Author:" << pkg->extInfo.author << std::endl;
+	std::cout << "Description:\n" << pkg->extInfo.getInfo_Local() << std::endl;
+	std::cout << "Author:" << pkg->extInfo.getAuthor_Local() << std::endl;
 	std::cout << "Version:" << pkg->ver.major << '.' << pkg->ver.minor << '.' << pkg->ver.revision << std::endl;
 	std::cout << "Required:";
 	std::for_each(pkg->depList.begin(), pkg->depList.end(), [](depInfo dpInf){
@@ -300,7 +300,7 @@ int main(int argc, char* argv[])
 					current_path(localPath);
 					int ret = system(scriptPath.string().c_str());
 					if (ret != 0)
-						cout << msgData[MSGE_RUNS] << num2str(ret) << endl;
+						cout << msgData[MSGE_RUNS] << to_string(ret) << endl;
 					else
 						cout << msgData[MSGI_DONE] << endl;
 					current_path(currentPath);

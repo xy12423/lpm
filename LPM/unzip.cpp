@@ -146,7 +146,7 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 						int err = inflateInit2(&zstream, -15);
 						if (err != Z_OK)
 						{
-							throw(errInfo(msgData[MSGE_UNZIP_INFLATEINIT] + num2str(err)));
+							throw(errInfo(msgData[MSGE_UNZIP_INFLATEINIT] + std::to_string(err)));
 						}
 						zstream.next_in = dataBuf;
 						zstream.avail_in = fileSize;
@@ -186,7 +186,7 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 											case Z_DATA_ERROR:
 												throw(errInfo(msgData[MSGE_UNZIP_BROKEN]));
 											default:
-												throw(errInfo(msgData[MSGE_UNZIP_INFLATEEND] + num2str(err)));
+												throw(errInfo(msgData[MSGE_UNZIP_INFLATEEND] + std::to_string(err)));
 										}
 									}
 								}
@@ -202,7 +202,7 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 									case Z_DATA_ERROR:
 										throw(errInfo(msgData[MSGE_UNZIP_BROKEN]));
 									default:
-										throw(errInfo(msgData[MSGE_UNZIP_INFLATE] + num2str(err)));
+										throw(errInfo(msgData[MSGE_UNZIP_INFLATE] + std::to_string(err)));
 								}
 							}
 						}
@@ -403,7 +403,7 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 						int err = inflateInit2(&zstream, -15);
 						if (err != Z_OK)
 						{
-							throw(errInfo(msgData[MSGE_UNZIP_INFLATEINIT] + num2str(err)));
+							throw(errInfo(msgData[MSGE_UNZIP_INFLATEINIT] + std::to_string(err)));
 						}
 						zstream.next_in = dataBuf;
 						zstream.avail_in = fileSize;
@@ -443,7 +443,7 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 											case Z_DATA_ERROR:
 												throw(errInfo(msgData[MSGE_UNZIP_BROKEN]));
 											default:
-												throw(errInfo(msgData[MSGE_UNZIP_INFLATEEND] + num2str(err)));
+												throw(errInfo(msgData[MSGE_UNZIP_INFLATEEND] + std::to_string(err)));
 										}
 									}
 								}
@@ -459,7 +459,7 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 									case Z_DATA_ERROR:
 										throw(errInfo(msgData[MSGE_UNZIP_BROKEN]));
 									default:
-										throw(errInfo(msgData[MSGE_UNZIP_INFLATE] + num2str(err)));
+										throw(errInfo(msgData[MSGE_UNZIP_INFLATE] + std::to_string(err)));
 								}
 							}
 						}

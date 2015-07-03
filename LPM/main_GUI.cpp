@@ -487,20 +487,17 @@ void mainFrame::listPak_SelectedIndexChanged(wxCommandEvent& event)
 void mainFrame::buttonAddPak_Click(wxCommandEvent& event)
 {
 	textOutput->Clear();
-	wxArrayInt sel;
-	listPak->GetCheckedItems(sel);
-	wxArrayInt::iterator pItr, pEnd = sel.end();
-	for (pItr = sel.begin(); pItr != pEnd; pItr++)
+	int sel = listPak->GetSelection();
+	if (sel == -1)
+		return;
+	if (is_installed(pakList[sel]->getName()))
+		infoStream << msgData[MSGE_PAK_INSTALLED] << ':' << pakList[sel]->getName() << std::endl;
+	else
 	{
-		if (is_installed(pakList[*pItr]->getName()))
-			infoStream << msgData[MSGE_PAK_INSTALLED] << ':' << pakList[*pItr]->getName() << std::endl;
-		else
-		{
-			infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << pakList[*pItr]->getName() << std::endl;
-			errInfo err = pakList[*pItr]->instFull(checkForce->GetValue());
-			if (err.err)
-				infoStream << err.info << std::endl;
-		}
+		infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << pakList[sel]->getName() << std::endl;
+		errInfo err = pakList[sel]->instFull(checkForce->GetValue());
+		if (err.err)
+			infoStream << err.info << std::endl;
 	}
 	if (checkInst->GetValue())
 		refreshPakList();
@@ -510,17 +507,13 @@ void mainFrame::buttonAddPak_Click(wxCommandEvent& event)
 void mainFrame::buttonDelPak_Click(wxCommandEvent& event)
 {
 	textOutput->Clear();
-	wxArrayInt sel;
-	listPak->GetCheckedItems(sel);
-	wxArrayInt::iterator pItr, pEnd = sel.end();
-	std::string name;
-	for (pItr = sel.begin(); pItr != pEnd; pItr++)
-	{
-		name = pakList[*pItr]->getName();
-		errInfo err = uninstall(name, false, (checkForce->GetValue() ? REMOVE_RECURSIVE : REMOVE_NORMAL));
-		if (err.err)
-			infoStream << err.info << std::endl;
-	}
+	int sel = listPak->GetSelection();
+	if (sel == -1)
+		return;
+	std::string name = pakList[sel]->getName();
+	errInfo err = uninstall(name, false, (checkForce->GetValue() ? REMOVE_RECURSIVE : REMOVE_NORMAL));
+	if (err.err)
+		infoStream << err.info << std::endl;
 	if (checkInst->GetValue())
 		refreshPakList();
 
@@ -530,18 +523,15 @@ void mainFrame::buttonDelPak_Click(wxCommandEvent& event)
 void mainFrame::buttonUpgPak_Click(wxCommandEvent& event)
 {
 	textOutput->Clear();
-	wxArrayInt sel;
-	listPak->GetCheckedItems(sel);
-	wxArrayInt::iterator pItr, pEnd = sel.end();
-	for (pItr = sel.begin(); pItr != pEnd; pItr++)
+	int sel = listPak->GetSelection();
+	if (sel == -1)
+		return;
+	if (pakList[sel]->needUpgrade())
 	{
-		if (pakList[*pItr]->needUpgrade())
-		{
-			infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << pakList[*pItr]->getName() << std::endl;
-			errInfo err = pakList[*pItr]->upgrade();
-			if (err.err)
-				infoStream << err.info << std::endl;
-		}
+		infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << pakList[sel]->getName() << std::endl;
+		errInfo err = pakList[sel]->upgrade();
+		if (err.err)
+			infoStream << err.info << std::endl;
 	}
 }
 

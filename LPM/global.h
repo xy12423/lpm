@@ -57,6 +57,6 @@ struct errInfo
 };
 
 char* str2cstr(std::string arg);
-std::string num2str(long long n);
+void processEscChar(std::string &str);
 
 #endif

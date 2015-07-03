@@ -286,9 +286,9 @@ errInfo package::inst()
 		fs::remove_all(tmpPath);
 
 		infOut.open((pakPath / FILENAME_INFO).string());
-		infOut << extInfo.fname << std::endl;
-		infOut << extInfo.info << std::endl;
-		infOut << extInfo.author << std::endl;
+		infOut << extInfo.getFName() << std::endl;
+		infOut << extInfo.getInfo() << std::endl;
+		infOut << extInfo.getAuthor() << std::endl;
 		infOut << ver.major << '.' << ver.minor << '.' << ver.revision << std::endl;
 		std::for_each(depList.begin(), depList.end(), [this, &infOut](depInfo dpInf){
 			infOut << dpInf.fullStr() << ';';
@@ -526,7 +526,7 @@ errInfo package::instList(pakIListTp &instList)
 						}
 					}
 				}
-				return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+				return errInfo(msgData[MSGE_RUNS] + std::to_string(ret));
 			}
 		}
 	}
@@ -574,7 +574,7 @@ bool package::needUpgrade()
 errInfo package::upgrade(bool checked)
 {
 	if (!is_installed(name))
-		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
+		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED] + ':' + name);
 
 	infoStream << msgData[MSGI_PAK_UPGRADING] << ':' << name << std::endl;
 
@@ -640,7 +640,7 @@ errInfo package::upgrade(bool checked)
 			infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
 			uninstall(name, false, REMOVE_FORCE);
 			recover_from_backup(name);
-			return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+			return errInfo(msgData[MSGE_RUNS] + std::to_string(ret));
 		}
 	}
 	else
@@ -662,7 +662,7 @@ errInfo package::upgrade(bool checked)
 			infoStream << msgData[MSGW_RUNS_ROLL_BACK_1] << ret << msgData[MSGW_RUNS_ROLL_BACK_2] << std::endl;
 			uninstall(name, false, REMOVE_FORCE);
 			recover_from_backup(name);
-			return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+			return errInfo(msgData[MSGE_RUNS] + std::to_string(ret));
 		}
 	}
 	return errInfo();
@@ -844,7 +844,7 @@ void uninst_list(const std::string &name, pakRListTp &removeList, pakRHashTp &re
 errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 {
 	if (!is_installed(name))
-		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
+		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED] + ':' + name);
 	fs::path pakPath = dataPath / name;
 
 	if (fs::exists(pakPath / FILENAME_BEDEP))
@@ -964,7 +964,7 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 			int ret = system(("PATH=\"" + pathPath.string() + ":$PATH\" ; bash \"" + scriptPath.string() + "\"").c_str());
 #endif
 			if (ret != 0)
-				return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+				return errInfo(msgData[MSGE_RUNS] + std::to_string(ret));
 			infoStream << msgData[MSGI_DONE] << std::endl;
 		}
 	}
@@ -980,7 +980,7 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 		int ret = system(("PATH=\"" + pathPath.string() + ":$PATH\" ; bash \"" + scriptPath.string() + "\"").c_str());
 #endif
 		if (ret != 0)
-			return errInfo(msgData[MSGE_RUNS] + num2str(ret));
+			return errInfo(msgData[MSGE_RUNS] + std::to_string(ret));
 		infoStream << msgData[MSGI_DONE] << std::endl;
 	}
 	fs::current_path(currentPath);
@@ -1020,7 +1020,7 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 errInfo backup(const std::string &name, bool force)
 {
 	if (!is_installed(name))
-		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED]);
+		return errInfo(msgData[MSGE_PAK_NOT_INSTALLED] + ':' + name);
 	fs::path pakPath = dataPath / name;
 	fs::path backupPath = dataPath / DIRNAME_BACKUP / name;
 	if (fs::exists(backupPath))

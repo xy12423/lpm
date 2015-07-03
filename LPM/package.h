@@ -3,14 +3,31 @@
 #ifndef _H_PKG
 #define _H_PKG
 
-#include "errInfo.h"
 #include "global.h"
 
-struct pakExtInfo
+class pakExtInfo
 {
+public:
 	pakExtInfo(){};
-	pakExtInfo(std::string &_fname, std::string &_author, std::string &_info){ fname = _fname; author = _author; info = _info; };
-	std::string fname, author, info;
+	pakExtInfo(const std::wstring &_fname, const  std::wstring &_author, const  std::wstring &_info) :fname(_fname), author(_author), info(_info){};
+	pakExtInfo(const std::string &_fname, const  std::string &_author, const std::string &_info){
+		wxWCharBuffer tmp = wxConvUTF8.cMB2WC(_fname.c_str());
+		fname.assign(tmp.data(), tmp.length());
+		tmp = wxConvUTF8.cMB2WC(_author.c_str());
+		author.assign(tmp.data(), tmp.length());
+		tmp = wxConvUTF8.cMB2WC(_info.c_str());
+		info.assign(tmp.data(), tmp.length());
+	};
+
+	std::string getFName(){ wxCharBuffer tmp = wxConvUTF8.cWC2MB(fname.c_str()); return std::string(tmp.data(), tmp.length()); }
+	std::string getAuthor(){ wxCharBuffer tmp = wxConvUTF8.cWC2MB(author.c_str()); return std::string(tmp.data(), tmp.length()); }
+	std::string getInfo(){ wxCharBuffer tmp = wxConvUTF8.cWC2MB(info.c_str()); return std::string(tmp.data(), tmp.length()); }
+
+	std::string getFName_Local(){ wxCharBuffer tmp = wxConvLocal.cWC2MB(fname.c_str()); return std::string(tmp.data(), tmp.length()); }
+	std::string getAuthor_Local(){ wxCharBuffer tmp = wxConvLocal.cWC2MB(author.c_str()); return std::string(tmp.data(), tmp.length()); }
+	std::string getInfo_Local(){ wxCharBuffer tmp = wxConvLocal.cWC2MB(info.c_str()); return std::string(tmp.data(), tmp.length()); }
+private:
+	std::wstring fname, author, info;
 };
 
 struct version
@@ -20,7 +37,7 @@ struct version
 	version(const std::string &str);
 	UINT major;
 	USHORT minor, revision;
-	std::string toStr(){ return num2str(major) + '.' + num2str(minor) + '.' + num2str(revision); };
+	std::string toStr(){ return std::to_string(major) + '.' + std::to_string(minor) + '.' + std::to_string(revision); };
 	friend inline bool operator>(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? false : a.revision > b.revision) : a.minor > b.minor) : a.major > b.major; };
 	friend inline bool operator>=(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? true : a.revision > b.revision) : a.minor > b.minor) : a.major > b.major; };
 	friend inline bool operator<(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? false : a.revision < b.revision) : a.minor < b.minor) : a.major < b.major; };

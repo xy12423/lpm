@@ -88,6 +88,8 @@ errInfo source::loadRemote()
 						confList.push_back('!' + name);
 					name.clear();
 
+					processEscChar(data[LINE_INFO]);
+
 					newPkgList.push_back(new package(add, data[LINE_NAME], ver, depList, confList, pakExtInfo(data[LINE_FNAME], data[LINE_AUTHOR], data[LINE_INFO])));
 
 					for (int i = 0; i < LINE_END; i++)

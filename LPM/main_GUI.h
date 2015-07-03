@@ -26,7 +26,7 @@ public:
 
 	wxStaticBox *staticPak;
 
-	wxCheckListBox *listPak;
+	wxListBox *listPak;
 	void listPak_SelectedIndexChanged(wxCommandEvent& event);
 
 	wxCheckBox *checkUpd, *checkInst, *checkForce;
