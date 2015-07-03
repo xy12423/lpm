@@ -48,7 +48,7 @@ wxString guiStrDataDefault[guiStrCount] = {
 	wxT("信息"),
 	wxT("名称"),
 	wxT("包名"),
-	wxT("信息"),
+	wxT("描述"),
 	wxT("作者"),
 	wxT("版本"),
 	wxT("依赖"),
@@ -60,10 +60,10 @@ wxString guiStrDataDefault[guiStrCount] = {
 	wxT("输出"),
 	wxT("输入源地址"),
 	wxT("添加源"),
-	wxT("Info"),
-	wxT("Error"),
-	wxT("Failed to load source info"),
-	wxT("Live Package Manager"),
+	wxT("信息"),
+	wxT("错误"),
+	wxT("无法读取源信息"),
+	wxT("Live Package Manager GUI"),
 };
 wxString guiStrData[guiStrCount];
 
@@ -89,7 +89,6 @@ void loadDefaultGUILang()
 
 bool readGUILang()
 {
-	namespace fs = boost::filesystem;
 	fs::path guiLangPath(langPath.string() + "-gui");
 	if (!fs::exists(guiLangPath) || fs::is_directory(guiLangPath))
 		return false;
@@ -167,7 +166,7 @@ mainFrame::mainFrame(const wxString& title)
 		wxSize(588, 340)
 		);
 
-	listPak = new wxCheckListBox(staticPak, ID_LISTPAK,
+	listPak = new wxListBox(staticPak, ID_LISTPAK,
 		wxPoint(6, _GUI_GAP),
 		wxSize(224, 292)
 		);
@@ -227,7 +226,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELFNAME],
 		wxPoint(6, _GUI_GAP),
-		wxSize(32, 16)
+		wxSize(50, 16)
 		);
 	textFName = new wxTextCtrl(staticInfo, ID_TEXTFNAME,
 		wxEmptyString,
@@ -238,7 +237,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELNAME],
 		wxPoint(6, _GUI_GAP + 27),
-		wxSize(32, 16)
+		wxSize(50, 16)
 		);
 	textName = new wxTextCtrl(staticInfo, ID_TEXTNAME,
 		wxEmptyString,
@@ -249,7 +248,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELINFO],
 		wxPoint(6, _GUI_GAP + 54),
-		wxSize(32, 16)
+		wxSize(50, 16)
 		);
 	textInfo = new wxTextCtrl(staticInfo, ID_TEXTINFO,
 		wxEmptyString,
@@ -260,7 +259,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELAUTHOR],
 		wxPoint(6, _GUI_GAP + 156),
-		wxSize(32, 16)
+		wxSize(50, 16)
 		);
 	textAuthor = new wxTextCtrl(staticInfo, ID_TEXTAUTHOR,
 		wxEmptyString,
@@ -271,7 +270,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELVERSION],
 		wxPoint(170, _GUI_GAP + 156),
-		wxSize(32, 16)
+		wxSize(50, 16)
 		);
 	textVersion = new wxTextCtrl(staticInfo, ID_TEXTVERSION,
 		wxEmptyString,
@@ -282,7 +281,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELDEP],
 		wxPoint(6, _GUI_GAP + 183),
-		wxSize(32, 16)
+		wxSize(50, 16)
 		);
 	textDep = new wxTextCtrl(staticInfo, ID_TEXTDEP,
 		wxEmptyString,
@@ -293,7 +292,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELCONF],
 		wxPoint(6, _GUI_GAP + 210),
-		wxSize(32, 16)
+		wxSize(50, 16)
 		);
 	textConf = new wxTextCtrl(staticInfo, ID_TEXTCONF,
 		wxEmptyString,
@@ -352,7 +351,8 @@ mainFrame::mainFrame(const wxString& title)
 		wxSize(588, 17)
 		);
 
-	std::cout.rdbuf(textOutput);
+	textStrm = new textStream(textOutput);
+	std::cout.rdbuf(textStrm);
 	prCallbackP = reportProgress;
 	refreshPakList();
 }
@@ -605,7 +605,7 @@ bool MyApp::OnInit()
 
 		if (!newLocal.empty())
 			localPath = newLocal;
-		localPath = system_complete(localPath);
+		localPath = fs::system_complete(localPath);
 		if (!newData.empty())
 			dataPath = newData;
 		if (!newPath.empty())
@@ -627,6 +627,11 @@ bool MyApp::OnInit()
 			throw(0);
 		}
 		readLocal();
+		if (!lock())
+		{
+			wxMessageBox(msgData[MSGE_LOCK], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
+			throw(0);
+		}
 
 		form = new mainFrame(guiStrData[TITLE_LPM]);
 		form->Show();

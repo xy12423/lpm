@@ -204,6 +204,8 @@ bool readLang()
 		if (fin.eof())
 			return false;
 		std::getline(fin, msgData[i]);
+		wxCharBuffer tmp = wxConvLocal.cWC2MB(wxConvUTF8.cMB2WC(msgData[i].c_str()));
+		msgData[i] = std::string(tmp.data(), tmp.length());
 	}
 	fin.close();
 	return true;

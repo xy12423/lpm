@@ -3,6 +3,28 @@
 #if (!defined _H_MAIN_GUI) && (defined _LPM_GUI)
 #define _H_MAIN_GUI
 
+class textStream
+	: public std::streambuf
+{
+public:
+	textStream(wxTextCtrl *_text){ text = _text; }
+
+protected:
+	int_type overflow(int_type c)
+	{
+		buf.push_back(c);
+		if (c == '\n')
+		{
+			text->AppendText(buf);
+			buf.clear();
+		}
+		return c;
+	}
+private:
+	wxTextCtrl *text;
+	std::string buf;
+};
+
 class mainFrame : public wxFrame
 {
 public:
@@ -60,6 +82,8 @@ public:
 
 	friend void printInfo(package *pkg);
 	friend void reportProgress(double progress);
+
+	textStream *textStrm;
 
 	wxDECLARE_EVENT_TABLE();
 };

@@ -52,12 +52,12 @@ bool printInfoFromFile(const std::string &name)
 	std::string line;
 
 	std::getline(infoIn, line);
-	std::cout << "Name:" << line << std::endl;
+	std::cout << "Name:" << wxConvLocal.cWC2MB(wxConvUTF8.cMB2WC(line.c_str())) << std::endl;
 	std::cout << "Package:" << name << std::endl;
 	std::getline(infoIn, line);
-	std::cout << "Description:" << line << std::endl;
+	std::cout << "Description:" << wxConvLocal.cWC2MB(wxConvUTF8.cMB2WC(line.c_str())) << std::endl;
 	std::getline(infoIn, line);
-	std::cout << "Author:" << line << std::endl;
+	std::cout << "Author:" << wxConvLocal.cWC2MB(wxConvUTF8.cMB2WC(line.c_str())) << std::endl;
 	std::getline(infoIn, line);
 	std::cout << "Version:" << line << std::endl;
 	std::getline(infoIn, line);
