@@ -27,8 +27,8 @@ wxEND_EVENT_TABLE()
 
 #ifdef __WXMSW__
 #define _GUI_GAP 20
-#define _GUI_SIZE_X 640
-#define _GUI_SIZE_Y 640
+#define _GUI_SIZE_X 626
+#define _GUI_SIZE_Y 636
 #else
 #define _GUI_GAP 0
 #define _GUI_SIZE_X 620
@@ -36,19 +36,28 @@ wxEND_EVENT_TABLE()
 #endif
 
 wxString guiStrDataDefault[guiStrCount] = {
-	wxT("源"),
-	wxT("添加"),
-	wxT("删除"),
-	wxT("更新"),
-	wxT("包"),
-	wxT("只显示可更新"),
-	wxT("只显示已安装"),
+	wxT("软件包"),
+	wxT("可更新的"),
+	wxT("已安装的"),
+	wxT("强制执行"),
 	wxT("搜索"),
-	wxT("添加"),
-	wxT("删除"),
-	wxT("更新"),
-	wxT("全部更新"),
+	wxT("安装"),
+	wxT("移除"),
+	wxT("升级"),
+	wxT("升级全部"),
 	wxT("信息"),
+	wxT("名称"),
+	wxT("包名"),
+	wxT("信息"),
+	wxT("作者"),
+	wxT("版本"),
+	wxT("依赖"),
+	wxT("冲突"),
+	wxT("软件源"),
+	wxT("+"),
+	wxT("-"),
+	wxT("更新"),
+	wxT("输出"),
 	wxT("输入源地址"),
 	wxT("添加源"),
 	wxT("ERROR"),
@@ -103,28 +112,19 @@ void printInfo(package *pkg)
 	if (pkg == NULL)
 		return;
 	std::stringstream sstream;
-	sstream << "Name:" << pkg->extInfo.fname << std::endl;
-	sstream << "Package:" << pkg->name << std::endl;
-	sstream << "Description:" << pkg->extInfo.info << std::endl;
-	sstream << "Author:" << pkg->extInfo.author << std::endl;
-	sstream << "Version:" << pkg->ver.major << '.' << pkg->ver.minor << '.' << pkg->ver.revision << std::endl;
-	sstream << "Required:";
+	form->textFName->SetValue(pkg->extInfo.fname);
+	form->textName->SetValue(pkg->name);
+	form->textInfo->SetValue(pkg->extInfo.info);
+	form->textAuthor->SetValue(pkg->extInfo.author);
+	form->textVersion->SetValue(std::to_string(pkg->ver.major) + '.' + std::to_string(pkg->ver.minor) + '.' + std::to_string(pkg->ver.revision));
+	form->textDep->Clear();
 	std::for_each(pkg->depList.begin(), pkg->depList.end(), [&sstream](depInfo dpInf){
-		sstream << dpInf.fullStr() << ';';
+		form->textDep->AppendText(dpInf.fullStr());
 	});
-	sstream << std::endl << "Conflict:";
+	form->textConf->Clear();
 	std::for_each(pkg->confList.begin(), pkg->confList.end(), [&sstream](depInfo dpInf){
-		sstream << dpInf.fullStr() << ';';
+		form->textConf->AppendText(dpInf.fullStr());
 	});
-	sstream << std::endl;
-	sstream << "Is installed:";
-	if (is_installed(pkg->name))
-		sstream << "Y";
-	else
-		sstream << "N";
-	sstream << std::endl;
-	sstream << std::endl;
-	form->labelInfo->SetLabelText(sstream.str());
 }
 
 int lastProgress = -1;
@@ -157,18 +157,161 @@ mainFrame::mainFrame(const wxString& title)
 {
 	Center();
 	panel = new wxPanel(this);
+
+	wxStaticText *label;
+
+	staticPak = new wxStaticBox(panel, ID_STATICPAK,
+		guiStrData[TEXT_STATICPAK],
+		wxPoint(12, 12),
+		wxSize(588, 340)
+		);
+
+	listPak = new wxCheckListBox(staticPak, ID_LISTPAK,
+		wxPoint(6, _GUI_GAP),
+		wxSize(224, 292)
+		);
+	checkUpd = new wxCheckBox(staticPak, ID_CHECKUPD,
+		guiStrData[TEXT_CHECKUPD],
+		wxPoint(6, _GUI_GAP + 298),
+		wxSize(96, 16)
+		);
+	checkInst = new wxCheckBox(staticPak, ID_CHECKINST,
+		guiStrData[TEXT_CHECKINST],
+		wxPoint(112, _GUI_GAP + 298),
+		wxSize(96, 16)
+		);
+	label = new wxStaticText(staticPak, wxID_ANY,
+		guiStrData[TEXT_LABELSEARCH],
+		wxPoint(246, _GUI_GAP),
+		wxSize(32, 16)
+		);
+	textSearch = new wxTextCtrl(staticPak, ID_TEXTSEARCH,
+		wxEmptyString,
+		wxPoint(281, _GUI_GAP - 2),
+		wxSize(223, 21)
+		);
+	checkForce = new wxCheckBox(staticPak, ID_CHECKINST,
+		guiStrData[TEXT_CHECKFORCE],
+		wxPoint(510, _GUI_GAP + 2),
+		wxSize(96, 16)
+		);
 	
+	buttonAddPak = new wxButton(staticPak, ID_BUTTONADDPAK,
+		guiStrData[TEXT_BUTTONADDPAK],
+		wxPoint(248, _GUI_GAP + 290),
+		wxSize(79, 24)
+		);
+	buttonRemPak = new wxButton(staticPak, ID_BUTTONDELPAK,
+		guiStrData[TEXT_BUTTONDELPAK],
+		wxPoint(333, _GUI_GAP + 290),
+		wxSize(79, 24)
+		);
+	buttonUpgPak = new wxButton(staticPak, ID_BUTTONUPGPAK,
+		guiStrData[TEXT_BUTTONUPGPAK],
+		wxPoint(418, _GUI_GAP + 290),
+		wxSize(79, 24)
+		);
+	buttonUpgAll = new wxButton(staticPak, ID_BUTTONUPGALL,
+		guiStrData[TEXT_BUTTONUPGALL],
+		wxPoint(503, _GUI_GAP + 290),
+		wxSize(79, 24)
+		);
+
+	staticInfo = new wxStaticBox(staticPak, ID_STATICINFO,
+		guiStrData[TEXT_STATICINFO],
+		wxPoint(248, _GUI_GAP + 27),
+		wxSize(334, 257)
+		);
+
+	label = new wxStaticText(staticInfo, wxID_ANY,
+		guiStrData[TEXT_LABELFNAME],
+		wxPoint(6, _GUI_GAP),
+		wxSize(32, 16)
+		);
+	textFName = new wxTextCtrl(staticInfo, ID_TEXTFNAME,
+		wxEmptyString,
+		wxPoint(56, _GUI_GAP),
+		wxSize(272, 21),
+		wxTE_READONLY
+		);
+	label = new wxStaticText(staticInfo, wxID_ANY,
+		guiStrData[TEXT_LABELNAME],
+		wxPoint(6, _GUI_GAP + 27),
+		wxSize(32, 16)
+		);
+	textName = new wxTextCtrl(staticInfo, ID_TEXTNAME,
+		wxEmptyString,
+		wxPoint(56, _GUI_GAP + 27),
+		wxSize(272, 21),
+		wxTE_READONLY
+		);
+	label = new wxStaticText(staticInfo, wxID_ANY,
+		guiStrData[TEXT_LABELINFO],
+		wxPoint(6, _GUI_GAP + 54),
+		wxSize(32, 16)
+		);
+	textInfo = new wxTextCtrl(staticInfo, ID_TEXTINFO,
+		wxEmptyString,
+		wxPoint(56, _GUI_GAP + 54),
+		wxSize(272, 96),
+		wxTE_MULTILINE | wxTE_READONLY
+		);
+	label = new wxStaticText(staticInfo, wxID_ANY,
+		guiStrData[TEXT_LABELAUTHOR],
+		wxPoint(6, _GUI_GAP + 156),
+		wxSize(32, 16)
+		);
+	textAuthor = new wxTextCtrl(staticInfo, ID_TEXTAUTHOR,
+		wxEmptyString,
+		wxPoint(56, _GUI_GAP + 156),
+		wxSize(108, 21),
+		wxTE_READONLY
+		);
+	label = new wxStaticText(staticInfo, wxID_ANY,
+		guiStrData[TEXT_LABELVERSION],
+		wxPoint(170, _GUI_GAP + 156),
+		wxSize(32, 16)
+		);
+	textVersion = new wxTextCtrl(staticInfo, ID_TEXTVERSION,
+		wxEmptyString,
+		wxPoint(220, _GUI_GAP + 156),
+		wxSize(108, 21),
+		wxTE_READONLY
+		);
+	label = new wxStaticText(staticInfo, wxID_ANY,
+		guiStrData[TEXT_LABELDEP],
+		wxPoint(6, _GUI_GAP + 183),
+		wxSize(32, 16)
+		);
+	textDep = new wxTextCtrl(staticInfo, ID_TEXTDEP,
+		wxEmptyString,
+		wxPoint(56, _GUI_GAP + 183),
+		wxSize(272, 21),
+		wxTE_READONLY
+		);
+	label = new wxStaticText(staticInfo, wxID_ANY,
+		guiStrData[TEXT_LABELCONF],
+		wxPoint(6, _GUI_GAP + 210),
+		wxSize(32, 16)
+		);
+	textConf = new wxTextCtrl(staticInfo, ID_TEXTCONF,
+		wxEmptyString,
+		wxPoint(56, _GUI_GAP + 210),
+		wxSize(272, 21),
+		wxTE_READONLY
+		);
+
 	staticSrc = new wxStaticBox(panel, ID_STATICSRC,
 		guiStrData[TEXT_STATICSRC],
-		wxPoint(12, 12),
-		wxSize(224, 417)
+		wxPoint(12, 358),
+		wxSize(236, 204)
 		);
 
 	wxArrayString srcList;
 	getSrcNameList(srcList);
 	listSrc = new wxCheckListBox(staticSrc, ID_LISTSRC,
 		wxPoint(6, _GUI_GAP),
-		wxSize(212, 364),
+		wxSize(224, 148),
 		srcList
 		);
 	int count = sourceList.size();
@@ -176,95 +319,39 @@ mainFrame::mainFrame(const wxString& title)
 		listSrc->Check(i);
 	buttonAddSrc = new wxButton(staticSrc, ID_BUTTONADDSRC,
 		guiStrData[TEXT_BUTTONADDSRC],
-		wxPoint(6, 367 + _GUI_GAP),
-		wxSize(66, 24)
+		wxPoint(6, 154 + _GUI_GAP),
+		wxSize(35, 24)
 		);
 	buttonDelSrc = new wxButton(staticSrc, ID_BUTTONDELSRC,
 		guiStrData[TEXT_BUTTONDELSRC],
-		wxPoint(78, 367 + _GUI_GAP),
-		wxSize(66, 24)
+		wxPoint(195, 154 + _GUI_GAP),
+		wxSize(35, 24)
 		);
 	buttonUpdSrc = new wxButton(staticSrc, ID_BUTTONUPDSRC,
 		guiStrData[TEXT_BUTTONUPDSRC],
-		wxPoint(150, 367 + _GUI_GAP),
-		wxSize(66, 24)
+		wxPoint(47, 154 + _GUI_GAP),
+		wxSize(142, 24)
 		);
 
-	staticPak = new wxStaticBox(panel, ID_STATICPAK,
-		guiStrData[TEXT_STATICPAK],
-		wxPoint(240, 12),
-		wxSize(372, 417)
+	staticOutput = new wxStaticBox(panel, ID_STATICOUTPUT,
+		guiStrData[TEXT_STATICOUTPUT],
+		wxPoint(254, 358),
+		wxSize(346, 204)
 		);
-
-	checkUpd = new wxCheckBox(staticPak, ID_CHECKUPD,
-		guiStrData[TEXT_CHECKUPD],
-		wxPoint(6, _GUI_GAP),
-		wxSize(96, 16)
-		);
-	checkInst = new wxCheckBox(staticPak, ID_CHECKINST,
-		guiStrData[TEXT_CHECKINST],
-		wxPoint(108, _GUI_GAP),
-		wxSize(96, 16)
-		);
-	labelSearch = new wxStaticText(staticPak, ID_LABELSEARCH,
-		guiStrData[TEXT_LABELSEARCH],
-		wxPoint(210, _GUI_GAP),
-		wxSize(32, 16)
-		);
-	textSearch = new wxTextCtrl(staticPak, ID_TEXTSEARCH,
-		wxEmptyString,
-		wxPoint(245, _GUI_GAP - 2),
-		wxSize(119, 21)
-		);
-
-	listPak = new wxCheckListBox(staticPak, ID_LISTPAK,
-		wxPoint(6, _GUI_GAP + 22),
-		wxSize(358, 196)
-		);
-	buttonAddPak = new wxButton(staticPak, ID_BUTTONADDPAK,
-		guiStrData[TEXT_BUTTONADDPAK],
-		wxPoint(6, _GUI_GAP + 229),
-		wxSize(85, 24)
-		);
-	buttonRemPak = new wxButton(staticPak, ID_BUTTONDELPAK,
-		guiStrData[TEXT_BUTTONDELPAK],
-		wxPoint(97, _GUI_GAP + 229),
-		wxSize(85, 24)
-		);
-	buttonUpgPak = new wxButton(staticPak, ID_BUTTONUPGPAK,
-		guiStrData[TEXT_BUTTONUPGPAK],
-		wxPoint(188, _GUI_GAP + 229),
-		wxSize(85, 24)
-		);
-	buttonUpgAll = new wxButton(staticPak, ID_BUTTONUPGALL,
-		guiStrData[TEXT_BUTTONUPGALL],
-		wxPoint(279, _GUI_GAP + 229),
-		wxSize(85, 24)
-		);
-	labelInfo = new wxStaticText(staticPak, ID_LABELINFO,
-		wxEmptyString,
-		wxPoint(6, _GUI_GAP + 259),
-		wxSize(358, 132)
-		);
-
-	staticInfo = new wxStaticBox(panel, ID_STATICINFO,
-		guiStrData[TEXT_STATICINFO],
-		wxPoint(12, 435),
-		wxSize(600, 154)
-		);
-	textInfo = new wxTextCtrl(staticInfo, ID_TEXTINFO,
+	textOutput = new wxTextCtrl(staticOutput, ID_TEXTOUTPUT,
 		wxEmptyString,
 		wxPoint(6, _GUI_GAP),
-		wxSize(586, 105),
+		wxSize(334, 178),
 		wxTE_MULTILINE | wxTE_READONLY
 		);
-	gaugeProgress = new wxGauge(staticInfo, ID_GAUGEPROGRESS,
+
+	gaugeProgress = new wxGauge(panel, ID_GAUGEPROGRESS,
 		100,
-		wxPoint(6, _GUI_GAP + 111),
-		wxSize(586, 17)
+		wxPoint(12, _GUI_GAP + 548),
+		wxSize(588, 17)
 		);
 
-	std::cout.rdbuf(textInfo);
+	std::cout.rdbuf(textOutput);
 	prCallbackP = reportProgress;
 	refreshPakList();
 }
@@ -346,7 +433,7 @@ void mainFrame::buttonDelSrc_Click(wxCommandEvent& event)
 
 void mainFrame::buttonUpdSrc_Click(wxCommandEvent& event)
 {
-	textInfo->Clear();
+	textOutput->Clear();
 	update();
 	refreshPakList();
 	writeSource();
@@ -396,7 +483,7 @@ void mainFrame::listPak_SelectedIndexChanged(wxCommandEvent& event)
 
 void mainFrame::buttonAddPak_Click(wxCommandEvent& event)
 {
-	textInfo->Clear();
+	textOutput->Clear();
 	wxArrayInt sel;
 	listPak->GetCheckedItems(sel);
 	wxArrayInt::iterator pItr, pEnd = sel.end();
@@ -407,18 +494,19 @@ void mainFrame::buttonAddPak_Click(wxCommandEvent& event)
 		else
 		{
 			infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << pakList[*pItr]->getName() << std::endl;
-			errInfo err = pakList[*pItr]->instFull();
+			errInfo err = pakList[*pItr]->instFull(checkForce->GetValue());
 			if (err.err)
 				infoStream << err.info << std::endl;
 		}
 	}
 	if (checkInst->GetValue())
 		refreshPakList();
+	checkForce->SetValue(false);
 }
 
 void mainFrame::buttonDelPak_Click(wxCommandEvent& event)
 {
-	textInfo->Clear();
+	textOutput->Clear();
 	wxArrayInt sel;
 	listPak->GetCheckedItems(sel);
 	wxArrayInt::iterator pItr, pEnd = sel.end();
@@ -426,17 +514,19 @@ void mainFrame::buttonDelPak_Click(wxCommandEvent& event)
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 	{
 		name = pakList[*pItr]->getName();
-		errInfo err = uninstall(name);
+		errInfo err = uninstall(name, false, (checkForce->GetValue() ? REMOVE_RECURSIVE : REMOVE_NORMAL));
 		if (err.err)
 			infoStream << err.info << std::endl;
 	}
 	if (checkInst->GetValue())
 		refreshPakList();
+
+	checkForce->SetValue(false);
 }
 
 void mainFrame::buttonUpgPak_Click(wxCommandEvent& event)
 {
-	textInfo->Clear();
+	textOutput->Clear();
 	wxArrayInt sel;
 	listPak->GetCheckedItems(sel);
 	wxArrayInt::iterator pItr, pEnd = sel.end();
@@ -454,7 +544,7 @@ void mainFrame::buttonUpgPak_Click(wxCommandEvent& event)
 
 void mainFrame::buttonUpgAll_Click(wxCommandEvent& event)
 {
-	textInfo->Clear();
+	textOutput->Clear();
 	pakListTp::const_iterator itrPak = pakList.cbegin(), itrPakEnd = pakList.cend();
 	for (; itrPak != itrPakEnd; itrPak++)
 	{

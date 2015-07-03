@@ -14,10 +14,5 @@ char* str2cstr(std::string arg)
 
 std::string num2str(long long n)
 {
-	static std::stringstream sstr;
-	std::string ret;
-	sstr.clear();
-	sstr << n;
-	sstr >> ret;
-	return ret;
+	return std::to_string(n);
 }
