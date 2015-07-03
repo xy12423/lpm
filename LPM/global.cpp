@@ -42,6 +42,8 @@ std::string msgDataDefault[msgCount] = {
 	"I:The package requirement and confliction are listed below:",
 	"I:You may can use 'lpm --force COMMAND' to continue.",
 	"I:Package stack trace:",
+	"I:Using --lpmdir:",
+	"I:Using --local:",
 	"E:Incorrect pack info from source",
 	"E:Script exited with code ",
 	"E:Overwriting",

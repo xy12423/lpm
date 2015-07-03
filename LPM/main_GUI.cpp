@@ -56,11 +56,12 @@ wxString guiStrDataDefault[guiStrCount] = {
 	wxT("软件源"),
 	wxT("+"),
 	wxT("-"),
-	wxT("更新"),
+	wxT("检查软件更新"),
 	wxT("输出"),
 	wxT("输入源地址"),
 	wxT("添加源"),
-	wxT("ERROR"),
+	wxT("Info"),
+	wxT("Error"),
 	wxT("Failed to load source info"),
 	wxT("Live Package Manager"),
 };
@@ -566,7 +567,7 @@ bool MyApp::OnInit()
 	{
 		int argp = 1;
 		std::string cmd;
-		std::string newLocal, newData;
+		std::string newPath, newLocal, newData;
 		while (argp < argc)
 		{
 			cmd = argv[argp];
@@ -579,7 +580,7 @@ bool MyApp::OnInit()
 				{
 					cmd.erase(0, 1);
 					if (cmd.substr(0, 7) == "lpmdir=")
-						boost::filesystem::current_path(cmd.substr(7));
+						newPath = cmd.substr(7);
 					else if (cmd.substr(0, 6) == "local=")
 						newLocal = cmd.substr(6);
 					else if (cmd.substr(0, 5) == "data=")
@@ -594,20 +595,36 @@ bool MyApp::OnInit()
 			argp++;
 		}
 
-		if (readConfig() == false)
+		fs::path oldPath = fs::current_path();	//Save current path
+		if (!newPath.empty())
+			fs::current_path(newPath);	//Switch to new path to read config
+
+		if (readConfig())
+			checkPath();
+		else
+		{
 			init();
-		if (readLang() == false)
-			loadDefaultLang();
+			checkPath();
+		}
+		if (!newPath.empty())	//Switch back to old path to get absolute path of local path
+			current_path(oldPath);
+
 		if (!newLocal.empty())
 			localPath = newLocal;
+		localPath = system_complete(localPath);
 		if (!newData.empty())
 			dataPath = newData;
-		if (!lock())
-		{
-			wxMessageBox(msgData[MSGE_LOCK], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
-			throw(0);
-		}
-		checkPath();
+		if (!newPath.empty())
+			fs::current_path(newPath);
+
+		if (!readLang())
+			loadDefaultLang();
+
+		if (!newPath.empty())
+			wxMessageBox(msgData[MSGI_USING_LPMDIR] + newPath, guiStrData[TEXT_INFO], wxOK | wxICON_INFORMATION);
+		if (!newLocal.empty())
+			wxMessageBox(msgData[MSGI_USING_LOCAL] + newLocal, guiStrData[TEXT_INFO], wxOK | wxICON_INFORMATION);
+
 		if (readGUILang() == false)
 			loadDefaultGUILang();
 		if (readSource() == false)

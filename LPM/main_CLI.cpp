@@ -213,11 +213,17 @@ int main(int argc, char* argv[])
 
 			if (!readLang())
 				loadDefaultLang();
+
+			if (!newPath.empty())
+				cout << msgData[MSGI_USING_LPMDIR] << newPath << endl;
+			if (!newLocal.empty())
+				cout << msgData[MSGI_USING_LOCAL] << newLocal << endl;
+
 			readSource();
 			readLocal();
 			if (!lock())
 			{
-				std::cout << msgData[MSGE_LOCK] << std::endl;
+				cout << msgData[MSGE_LOCK] << endl;
 				throw(0);
 			}
 			locked = true;
