@@ -3,6 +3,12 @@
 #ifndef _H_GLOBAL
 #define _H_GLOBAL
 
+typedef unsigned short int USHORT;
+typedef unsigned int UINT;
+typedef unsigned long ULONG;
+typedef unsigned long long ULONGLONG;
+typedef unsigned char BYTE;
+
 extern boost::filesystem::path localPath, dataPath, langPath;
 extern std::ostream &infoStream;
 
@@ -38,12 +44,6 @@ const std::string SCRIPT_PURGE = "clear.sh";
 const std::string SCRIPT_REMOVE = "remove.sh";
 #endif
 const UINT DIR_ATTRIBUTE = 0x10;
-
-typedef unsigned short int USHORT;
-typedef unsigned int UINT;
-typedef unsigned long ULONG;
-typedef unsigned long long ULONGLONG;
-typedef unsigned char BYTE;
 
 typedef std::vector<BYTE> dataBuf;
 

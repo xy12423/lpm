@@ -24,7 +24,9 @@ void printInfo(package *pkg)
 		return;
 	std::cout << "Name:" << pkg->extInfo.getFName_Local() << std::endl;
 	std::cout << "Package:" << pkg->name << std::endl;
-	std::cout << "Description:\n" << pkg->extInfo.getInfo_Local() << std::endl;
+	std::string desc = pkg->extInfo.getInfo_Local();
+	processEscChar(desc);
+	std::cout << "Description:\n" << desc << std::endl;
 	std::cout << "Author:" << pkg->extInfo.getAuthor_Local() << std::endl;
 	std::cout << "Version:" << pkg->ver.major << '.' << pkg->ver.minor << '.' << pkg->ver.revision << std::endl;
 	std::cout << "Required:";
@@ -55,7 +57,8 @@ bool printInfoFromFile(const std::string &name)
 	std::cout << "Name:" << wxConvLocal.cWC2MB(wxConvUTF8.cMB2WC(line.c_str())) << std::endl;
 	std::cout << "Package:" << name << std::endl;
 	std::getline(infoIn, line);
-	std::cout << "Description:" << wxConvLocal.cWC2MB(wxConvUTF8.cMB2WC(line.c_str())) << std::endl;
+	processEscChar(line);
+	std::cout << "Description:\n" << wxConvLocal.cWC2MB(wxConvUTF8.cMB2WC(line.c_str())) << std::endl;
 	std::getline(infoIn, line);
 	std::cout << "Author:" << wxConvLocal.cWC2MB(wxConvUTF8.cMB2WC(line.c_str())) << std::endl;
 	std::getline(infoIn, line);

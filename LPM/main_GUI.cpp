@@ -114,7 +114,9 @@ void printInfo(package *pkg)
 	std::stringstream sstream;
 	form->textFName->SetValue(pkg->extInfo.getFNameW());
 	form->textName->SetValue(pkg->name);
-	form->textInfo->SetValue(pkg->extInfo.getInfoW());
+	std::string desc(pkg->extInfo.getInfo());
+	processEscChar(desc);
+	form->textInfo->SetValue(wxConvUTF8.cMB2WC(desc.c_str()));
 	form->textAuthor->SetValue(pkg->extInfo.getAuthorW());
 	form->textVersion->SetValue(std::to_string(pkg->ver.major) + '.' + std::to_string(pkg->ver.minor) + '.' + std::to_string(pkg->ver.revision));
 	form->textDep->Clear();
