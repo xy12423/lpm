@@ -171,7 +171,7 @@ void trace_back(depMapTp &pakMap, pakTListTp &que, pakIDHashTp &queHash, std::li
 	}
 }
 
-void package::checkDep(pakIListTp &instList, depListTp &extraDep, bool force)
+void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool force)
 {
 	//Check requirement:init
 	depMapTp pakMap;
@@ -480,7 +480,9 @@ void package::checkDep(pakIListTp &instList, depListTp &extraDep, bool force)
 	catch (dep_throw err)
 	{
 		std::list<pakTListTp> traceQue;
-		trace_back(pakMap, pakTListTp(), pakIDHashTp(), traceQue, err.id, true);
+		pakTListTp traceStack;
+		pakIDHashTp traceHash;
+		trace_back(pakMap, traceStack, traceHash, traceQue, err.id, true);
 		std::string traceMessage(msgData[MSGI_TRACE_INFO]);
 		std::for_each(traceQue.begin(), traceQue.end(), [&traceMessage, &pakMap](const pakTListTp &list){
 			traceMessage.push_back('\n');

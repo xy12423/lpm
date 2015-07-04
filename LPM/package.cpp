@@ -5,6 +5,8 @@
 #include "unzip.h"
 #include "download.h"
 
+depListTp emptyDepList;
+
 version::version(const std::string &str)
 {
 	major = minor = revision = 0;
@@ -155,39 +157,6 @@ bool depInfo::check()
 	if ((!is_installed(name)) ^ (con == NONE))
 		return false;
 	return check(cur_version(name));
-}
-
-inline depInfo operator~(const depInfo &a)
-{
-	depInfo b = a;
-	switch (a.con)
-	{
-		case depInfo::BIGGER:
-			b.con = depInfo::LESEQU;
-			break;
-		case depInfo::BIGEQU:
-			b.con = depInfo::LESS;
-			break;
-		case depInfo::LESS:
-			b.con = depInfo::BIGEQU;
-			break;
-		case depInfo::LESEQU:
-			b.con = depInfo::BIGGER;
-			break;
-		case depInfo::EQU:
-			b.con = depInfo::NEQU;
-			break;
-		case depInfo::NEQU:
-			b.con = depInfo::EQU;
-			break;
-		case depInfo::ALL:
-			b.con = depInfo::NONE;
-			break;
-		case depInfo::NONE:
-			b.con = depInfo::ALL;
-			break;
-	}
-	return b;
 }
 
 void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &logOut, bool nbackup)
@@ -541,7 +510,7 @@ errInfo package::instFull(bool force)
 	pakIListTp instL;
 	try
 	{
-		checkDep(instL, depListTp(), force);
+		checkDep(instL, emptyDepList, force);
 	}
 	catch (std::exception ex)
 	{
@@ -672,7 +641,8 @@ bool package::check()
 {
 	try
 	{
-		checkDep(pakIListTp(), depListTp());
+		pakIListTp willBeIgnored;
+		checkDep(willBeIgnored, emptyDepList);
 	}
 	catch (std::string err)
 	{
@@ -859,7 +829,8 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 		else if (level == REMOVE_RECURSIVE)
 		{
 			pakRListTp removeQue;
-			uninst_list(name, removeQue, pakRHashTp());
+			pakRHashTp removeHash;
+			uninst_list(name, removeQue, removeHash);
 
 			if (!removeQue.empty())
 			{
@@ -879,8 +850,9 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 		else if (level < REMOVE_FORCE)
 		{
 			infoStream << msgData[MSGW_PAK_BE_DEP] << std::endl;
-			std::list<std::string> depList;
-			uninst_list(name, depList, pakRHashTp());
+			pakRListTp depList;
+			pakRHashTp depHash;
+			uninst_list(name, depList, depHash);
 			while (!depList.empty())
 			{
 				infoStream << "\t" << depList.front() << std::endl;

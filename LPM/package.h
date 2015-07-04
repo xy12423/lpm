@@ -66,7 +66,10 @@ struct depInfo
 	bool check(version _ver);
 	bool check();
 
-	friend inline depInfo operator~(const depInfo &a);
+	inline depInfo operator~(){
+		static const depInfo::verCon transTable[] = { depInfo::NONE, depInfo::LESEQU, depInfo::LESS, depInfo::BIGEQU, depInfo::BIGGER, depInfo::NEQU, depInfo::EQU, depInfo::ALL };
+		return depInfo(name, ver, transTable[con], isDep);
+	};
 };
 typedef std::list<depInfo> depListTp;
 
@@ -109,7 +112,7 @@ private:
 	//Install package without checking requirements
 	errInfo inst();
 	//Check if requirements are OK
-	void checkDep(pakIListTp &instList, depListTp &extraDep, bool force = false);
+	void checkDep(pakIListTp &instList, const depListTp &extraDep, bool force = false);
 	//Run post-installation script
 	int instScript(bool upgrade = false);
 

@@ -349,7 +349,7 @@ mainFrame::mainFrame(const wxString& title)
 
 	gaugeProgress = new wxGauge(panel, ID_GAUGEPROGRESS,
 		100,
-		wxPoint(12, _GUI_GAP + 548),
+		wxPoint(12, 568),
 		wxSize(588, 17)
 		);
 
