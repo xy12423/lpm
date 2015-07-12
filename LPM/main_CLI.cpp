@@ -15,7 +15,7 @@ void reportProgress(double progress)
 		std::cout << static_cast<int>(progress) << "%    \r";
 		lastProgress = static_cast<int>(progress);
 	}
-	return ;
+	return;
 }
 
 void printInfo(package *pkg)
@@ -126,10 +126,10 @@ void printUsage()
 	cout << "        release                         Try to release the management lock\n";
 	cout << "                                         of LPM. (Usually use in abnormal\n";
 	cout << "                                         situation, such as a crash.)\n\n\n";
-	cout << "Live Package Manager v1.3\n";
+	cout << "Live Package Manager v1.2\n";
 	cout << "    Made by xy12423. Licensed in GPLv3,\n";
 	cout << "    Copyleft xy12423 & Little Busters! Live Project.\n";
-	cout << "    Source code available at http://github.com/xy12423/lpm" << endl;
+	cout << "    Source code available at https://github.com/LittleBustersLive/lpm" << endl;
 }
 
 int main(int argc, char* argv[])
@@ -179,7 +179,7 @@ int main(int argc, char* argv[])
 			}
 			argp++;
 		}
-		
+
 		if (cmd == "init")
 		{
 			if (!newPath.empty())
@@ -494,9 +494,9 @@ int main(int argc, char* argv[])
 	}
 	catch (...)
 	{
-		
+
 	}
-	
+
 	if (locked)
 		unlock();
 	return 0;
