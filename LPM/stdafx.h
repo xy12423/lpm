@@ -13,59 +13,61 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <algorithm>
+#include <memory>
+#include <exception>
 
 #include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 #include <curl/curl.h>
 #include <zlib.h>
 
-#ifdef _LPM_GUI
-#	include <wx/platform.h>
-#	include <wx/wxprec.h>
-#	ifndef WX_PRECOMP
-#		include <wx/wx.h>
-#	endif
-#	ifdef _MSC_VER
-#		ifdef _DEBUG
-#			pragma comment (lib, "wxbase30ud.lib")
-#			pragma comment (lib, "wxbase30ud_xml.lib")
-#			pragma comment (lib, "wxmsw30ud_adv.lib")
-#			pragma comment (lib, "wxmsw30ud_aui.lib")
-#			pragma comment (lib, "wxmsw30ud_core.lib")
-#			pragma comment (lib, "wxmsw30ud_gl.lib")
-#			pragma comment (lib, "wxmsw30ud_html.lib")
-#			pragma comment (lib, "wxmsw30ud_media.lib")
-#			pragma comment (lib, "wxmsw30ud_propgrid.lib")
-#			pragma comment (lib, "wxmsw30ud_qa.lib")
-#			pragma comment (lib, "wxmsw30ud_ribbon.lib")
-#			pragma comment (lib, "wxmsw30ud_richtext.lib")
-#			pragma comment (lib, "wxmsw30ud_stc.lib")
-#			pragma comment (lib, "wxmsw30ud_xrc.lib")
-#			pragma comment (lib, "wxscintillad.lib")
-#			pragma comment (lib, "wxbase30ud.lib")
-#			pragma comment (lib, "wxtiffd.lib")
-#			pragma comment (lib, "wxjpegd.lib")
-#			pragma comment (lib, "wxpngd.lib")
-#		else
-#			pragma comment (lib, "wxbase30u.lib")
-#			pragma comment (lib, "wxbase30u_xml.lib")
-#			pragma comment (lib, "wxmsw30u_adv.lib")
-#			pragma comment (lib, "wxmsw30u_aui.lib")
-#			pragma comment (lib, "wxmsw30u_core.lib")
-#			pragma comment (lib, "wxmsw30u_gl.lib")
-#			pragma comment (lib, "wxmsw30u_html.lib")
-#			pragma comment (lib, "wxmsw30u_media.lib")
-#			pragma comment (lib, "wxmsw30u_propgrid.lib")
-#			pragma comment (lib, "wxmsw30u_qa.lib")
-#			pragma comment (lib, "wxmsw30u_ribbon.lib")
-#			pragma comment (lib, "wxmsw30u_richtext.lib")
-#			pragma comment (lib, "wxmsw30u_stc.lib")
-#			pragma comment (lib, "wxmsw30u_xrc.lib")
-#			pragma comment (lib, "wxscintilla.lib")
-#			pragma comment (lib, "wxbase30u.lib")
-#			pragma comment (lib, "wxtiff.lib")
-#			pragma comment (lib, "wxjpeg.lib")
-#			pragma comment (lib, "wxpng.lib")
-#		endif
+#include <wx/platform.h>
+#include <wx/wxprec.h>
+#ifndef WX_PRECOMP
+#	include <wx/wx.h>
+#endif
+#ifdef _MSC_VER
+#	ifdef _DEBUG
+#		pragma comment (lib, "wxbase30ud.lib")
+#		pragma comment (lib, "wxbase30ud_xml.lib")
+#		pragma comment (lib, "wxmsw30ud_adv.lib")
+#		pragma comment (lib, "wxmsw30ud_aui.lib")
+#		pragma comment (lib, "wxmsw30ud_core.lib")
+#		pragma comment (lib, "wxmsw30ud_gl.lib")
+#		pragma comment (lib, "wxmsw30ud_html.lib")
+#		pragma comment (lib, "wxmsw30ud_media.lib")
+#		pragma comment (lib, "wxmsw30ud_propgrid.lib")
+#		pragma comment (lib, "wxmsw30ud_qa.lib")
+#		pragma comment (lib, "wxmsw30ud_ribbon.lib")
+#		pragma comment (lib, "wxmsw30ud_richtext.lib")
+#		pragma comment (lib, "wxmsw30ud_stc.lib")
+#		pragma comment (lib, "wxmsw30ud_xrc.lib")
+#		pragma comment (lib, "wxscintillad.lib")
+#		pragma comment (lib, "wxbase30ud.lib")
+#		pragma comment (lib, "wxtiffd.lib")
+#		pragma comment (lib, "wxjpegd.lib")
+#		pragma comment (lib, "wxpngd.lib")
+#	else
+#		pragma comment (lib, "wxbase30u.lib")
+#		pragma comment (lib, "wxbase30u_xml.lib")
+#		pragma comment (lib, "wxmsw30u_adv.lib")
+#		pragma comment (lib, "wxmsw30u_aui.lib")
+#		pragma comment (lib, "wxmsw30u_core.lib")
+#		pragma comment (lib, "wxmsw30u_gl.lib")
+#		pragma comment (lib, "wxmsw30u_html.lib")
+#		pragma comment (lib, "wxmsw30u_media.lib")
+#		pragma comment (lib, "wxmsw30u_propgrid.lib")
+#		pragma comment (lib, "wxmsw30u_qa.lib")
+#		pragma comment (lib, "wxmsw30u_ribbon.lib")
+#		pragma comment (lib, "wxmsw30u_richtext.lib")
+#		pragma comment (lib, "wxmsw30u_stc.lib")
+#		pragma comment (lib, "wxmsw30u_xrc.lib")
+#		pragma comment (lib, "wxscintilla.lib")
+#		pragma comment (lib, "wxbase30u.lib")
+#		pragma comment (lib, "wxtiff.lib")
+#		pragma comment (lib, "wxjpeg.lib")
+#		pragma comment (lib, "wxpng.lib")
 #	endif
 #endif
 

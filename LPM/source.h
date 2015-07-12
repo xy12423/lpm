@@ -3,20 +3,24 @@
 #ifndef _H_SRC
 #define _H_SRC
 
-#include "errInfo.h"
-
-typedef std::vector<package*> pakListTp;
-
 class source
 {
 public:
 	source(std::string _add){ add = _add; if (add.back() == '/') add.pop_back(); };
-	~source(){ std::for_each(pkgList.begin(), pkgList.end(), [this](package* arg){ delete arg; }); };
+	~source(){ std::for_each(pakList.begin(), pakList.end(), [this](package* arg){ delete arg; }); };
+
 	std::string getAdd(){ return add; };
+
+	//Load source info from remote server
 	errInfo loadRemote();
-	void loadLocal(pakListTp &_pkgList);
+	//Load source info from local
+	void loadLocal(pakListTp &_pakList);
+	//Find package in source
 	package* find_package(std::string name);
-	errInfo upgradeAll();
+	//Check upgrade in source and add them to ret
+	void checkUpgrade(pakListTp &ret);
+	//Upgrade all package in source
+	void upgradeAll();
 
 	friend void writeSource();
 #ifdef _LPM_GUI
@@ -28,8 +32,8 @@ public:
 #endif
 private:
 	std::string add;
-	pakListTp pkgList;
-	std::unordered_map<std::string, int> pkgMap;
+	pakListTp pakList;
+	std::unordered_map<std::string, int> pakMap;
 };
 
 typedef std::vector<source*> srcListTp;

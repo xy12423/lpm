@@ -16,16 +16,16 @@ enum src_lineN{
 	LINE_END
 };
 
-void source::loadLocal(pakListTp &_pkgList)
+void source::loadLocal(pakListTp &_pakList)
 {
-	pkgMap.clear(); 
-	std::for_each(pkgList.begin(), pkgList.end(), [this](package* arg){
+	pakMap.clear(); 
+	std::for_each(pakList.begin(), pakList.end(), [this](package* arg){
 		delete arg;
 	});
-	pkgList.clear(); 
-	std::for_each(_pkgList.begin(), _pkgList.end(), [this](package* arg){ 
-		pkgMap.emplace(arg->getName(), pkgList.size()); 
-		pkgList.push_back(arg); 
+	pakList.clear();
+	std::for_each(_pakList.begin(), _pakList.end(), [this](package* arg){
+		pakMap.emplace(arg->getName(), pakList.size());
+		pakList.push_back(arg);
 	});
 }
 
@@ -64,28 +64,28 @@ errInfo source::loadRemote()
 					{
 						if (*p2 == ';')
 						{
-							depList.push_back(name);
+							depList.push_back('&' + name);
 							name.clear();
 						}
 						else
 							name.push_back(*p2);
 					}
 					if (!name.empty())
-						depList.push_back(name);
+						depList.push_back('&' + name);
 					name.clear();
 
 					for (p2 = data[LINE_CONF].cbegin(), pEnd2 = data[LINE_CONF].cend(); p2 != pEnd2; p2++)
 					{
 						if (*p2 == ';')
 						{
-							confList.push_back(name);
+							confList.push_back('!' + name);
 							name.clear();
 						}
 						else
 							name.push_back(*p2);
 					}
 					if (!name.empty())
-						confList.push_back(name);
+						confList.push_back('!' + name);
 					name.clear();
 
 					newPkgList.push_back(new package(add, data[LINE_NAME], ver, depList, confList, pakExtInfo(data[LINE_FNAME], data[LINE_AUTHOR], data[LINE_INFO])));
@@ -112,23 +112,30 @@ errInfo source::loadRemote()
 
 package* source::find_package(std::string name)
 {
-	std::unordered_map<std::string, int>::iterator p = pkgMap.find(name);
-	if (p == pkgMap.end())
+	std::unordered_map<std::string, int>::iterator p = pakMap.find(name);
+	if (p == pakMap.end())
 		return NULL;
-	return pkgList[p->second];
+	return pakList[p->second];
 }
 
-errInfo source::upgradeAll()
+void source::checkUpgrade(pakListTp &ret)
 {
-	pakListTp::const_iterator p = pkgList.cbegin(), pEnd = pkgList.cend();
+	pakListTp::const_iterator p = pakList.cbegin(), pEnd = pakList.cend();
+	for (; p != pEnd; p++)
+		if (is_installed((*p)->getName()) && (*p)->needUpgrade())
+			ret.push_back(*p);
+}
+
+void source::upgradeAll()
+{
+	pakListTp::const_iterator p = pakList.cbegin(), pEnd = pakList.cend();
 	for (; p != pEnd; p++)
 	{
 		if (is_installed((*p)->getName()) && (*p)->needUpgrade())
 		{
-			errInfo err = (*p)->upgrade(true);
+			errInfo err = (*p)->upgrade();
 			if (err.err)
-				return err;
+				infoStream << err.info << std::endl;
 		}
 	}
-	return errInfo();
 }

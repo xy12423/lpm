@@ -1,10 +1,11 @@
 #include "stdafx.h"
 #include "main.h"
-using namespace boost::filesystem;
+
+const std::string FILENAME_SOURCE = "$source";
 
 bool readConfig()
 {
-	if (!exists(".config"))
+	if (!fs::exists(".config"))
 	{
 		return false;
 	}
@@ -52,6 +53,13 @@ void checkPath()
 		remove(dataPath / DIRNAME_NATIVE);
 		create_directory(dataPath / DIRNAME_NATIVE);
 	}
+	if (!exists(dataPath / DIRNAME_BACKUP))
+		create_directory(dataPath / DIRNAME_BACKUP);
+	else if (!is_directory(dataPath / DIRNAME_BACKUP))
+	{
+		remove(dataPath / DIRNAME_BACKUP);
+		create_directory(dataPath / DIRNAME_BACKUP);
+	}
 	if (!exists(dataPath / DIRNAME_UPGRADE))
 		create_directory(dataPath / DIRNAME_UPGRADE);
 	else if (!is_directory(dataPath / DIRNAME_UPGRADE))
@@ -59,15 +67,29 @@ void checkPath()
 		remove(dataPath / DIRNAME_UPGRADE);
 		create_directory(dataPath / DIRNAME_UPGRADE);
 	}
+	if (!exists(dataPath / DIRNAME_PATH))
+		create_directory(dataPath / DIRNAME_PATH);
+	else if (!is_directory(dataPath / DIRNAME_PATH))
+	{
+		remove(dataPath / DIRNAME_PATH);
+		create_directory(dataPath / DIRNAME_PATH);
+	}
+	if (!exists(dataPath / FILENAME_SOURCE))
+		writeSource();
+	else if (!is_directory(dataPath / DIRNAME_PATH))
+	{
+		remove(dataPath / DIRNAME_PATH);
+		writeSource();
+	}
 }
 
 bool readSource()
 {
-	if (!exists(".source"))
+	if (!exists(dataPath / FILENAME_SOURCE))
 	{
 		return false;
 	}
-	std::ifstream finCfg(".source");
+	std::ifstream finCfg((dataPath / FILENAME_SOURCE).string());
 	std::string tmpPath, eatCRLF;
 	int sourceCount;
 	finCfg >> sourceCount;
@@ -124,34 +146,44 @@ bool readSource()
 
 void writeSource()
 {
-	std::ofstream foutCfg(".source");
+	std::ofstream foutCfg((dataPath / FILENAME_SOURCE).string());
 	foutCfg << sourceList.size() << std::endl;
 	srcListTp::const_iterator p, pEnd = sourceList.cend();
 	pakListTp::const_iterator pP, pPEnd;
-	depListTp::const_iterator pD, pDEnd;
+	depListTp::iterator pD, pDEnd;
 	for (p = sourceList.cbegin(); p != pEnd; p++)
 	{
 		foutCfg << (*p)->add << std::endl;
-		foutCfg << (*p)->pkgList.size() << std::endl;
+		foutCfg << (*p)->pakList.size() << std::endl;
 
-		for (pP = (*p)->pkgList.cbegin(), pPEnd = (*p)->pkgList.cend(); pP != pPEnd; pP++)
+		for (pP = (*p)->pakList.cbegin(), pPEnd = (*p)->pakList.cend(); pP != pPEnd; pP++)
 		{
 			foutCfg << (*pP)->name << std::endl;
 			foutCfg << (*pP)->ver.major << ' ' << (*pP)->ver.minor << ' ' << (*pP)->ver.revision << std::endl;
 			foutCfg << (*pP)->depList.size() << ' ' << (*pP)->confList.size() << std::endl;
-			foutCfg << (*pP)->extInfo.fname << std::endl << (*pP)->extInfo.author << std::endl << (*pP)->extInfo.info << std::endl;
+			foutCfg << (*pP)->extInfo.getFName() << std::endl << (*pP)->extInfo.getAuthor() << std::endl << (*pP)->extInfo.getInfo() << std::endl;
 
-			for (pD = (*pP)->depList.cbegin(), pDEnd = (*pP)->depList.cend(); pD != pDEnd; pD++)
+			for (pD = (*pP)->depList.begin(), pDEnd = (*pP)->depList.end(); pD != pDEnd; pD++)
 			{
-				foutCfg << *pD << std::endl;
+				foutCfg << pD->fullStr() << std::endl;
 			}
-			for (pD = (*pP)->confList.cbegin(), pDEnd = (*pP)->confList.cend(); pD != pDEnd; pD++)
+			for (pD = (*pP)->confList.begin(), pDEnd = (*pP)->confList.end(); pD != pDEnd; pD++)
 			{
-				foutCfg << *pD << std::endl;
+				foutCfg << pD->fullStr() << std::endl;
 			}
 		}
 	}
 	foutCfg.close();
+}
+
+bool readLocal()
+{
+	return true;
+}
+
+void writeLocal()
+{
+	
 }
 
 void loadDefaultLang()
@@ -172,6 +204,8 @@ bool readLang()
 		if (fin.eof())
 			return false;
 		std::getline(fin, msgData[i]);
+		wxCharBuffer tmp = wxConvLocal.cWC2MB(wxConvUTF8.cMB2WC(msgData[i].c_str()));
+		msgData[i] = std::string(tmp.data(), tmp.length());
 	}
 	fin.close();
 	return true;
@@ -191,12 +225,12 @@ errInfo update()
 	return errInfo();
 }
 
-errInfo upgrade(std::string name)
+errInfo upgrade(std::string name, bool force)
 {
 	package *pkg = find_package(name);
 	if (pkg == NULL)
 		return errInfo(msgData[MSGE_PAK_NOT_FOUND]);
-	return pkg->upgrade();
+	return pkg->upgrade(false, force);
 }
 
 errInfo upgrade()
@@ -208,6 +242,16 @@ errInfo upgrade()
 		(*pSrc)->upgradeAll();
 	}
 	return errInfo();
+}
+
+void checkUpgrade(pakListTp &ret)
+{
+	srcListTp::const_iterator pSrc = sourceList.begin(), pSrcEnd = sourceList.end();
+	errInfo err;
+	for (; pSrc != pSrcEnd; pSrc++)
+	{
+		(*pSrc)->checkUpgrade(ret);
+	}
 }
 
 bool check(std::string name)
@@ -240,6 +284,24 @@ void init()
 	localPath = "./local";
 	dataPath = "./data";
 	langPath = "./lpm-lang";
+	checkPath();
 	writeConfig();
 	writeSource();
+}
+
+bool lock()
+{
+	fs::path lockPath = localPath / FILENAME_LOCK;
+	if (fs::exists(lockPath))
+		return false;
+	std::ofstream lockOut(lockPath.string());
+	lockOut.close();
+	return true;
+}
+
+void unlock()
+{
+	fs::path lockPath = localPath / FILENAME_LOCK;
+	if (fs::exists(lockPath))
+		remove(lockPath);
 }
