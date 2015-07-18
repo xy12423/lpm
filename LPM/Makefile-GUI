@@ -10,19 +10,19 @@ cppflag = -c -O2 $(wx_includes) -D_FILE_OFFSET_BITS=64 -D__WXGTK__ -D_LPM_GUI -p
 lflag = -L/usr/local/ssl/lib -L ~/boost/stage/lib -L/usr/local/lib -pthread $(wx_libs) -lgthread-2.0 -lX11 -lXxf86vm -lSM -lgtk-3 -lgdk-3 -latk-1.0 -lgio-2.0 -lpangocairo-1.0 -lgdk_pixbuf-2.0 -lcairo-gobject -lpango-1.0 -lcairo -lgobject-2.0 -lglib-2.0 -lpng -lexpat -lboost_filesystem-mt-s -lboost_system-mt-s -lcurl -lssl -lcrypto -lz -ldl -lm
 lpm : $(objects)
 	g++ $(objects) $(lflag) -o LPM_GUI
-global.o : stdafx.h langn.h global.h global.cpp
-	g++ global.cpp $(cppflag) -o global.o
-package.o : $(unihead) package.h source.h unzip.h download.h package_core.h package.cpp
-	g++ package.cpp $(cppflag) -o package.o
-package_core.o : $(unihead) package.h package_core.h package_core.cpp
-	g++ package_core.cpp $(cppflag) -o package_core.o
-source.o : $(unihead) package.h source.h download.h source.cpp
-	g++ source.cpp $(cppflag) -o source.o
-download.o : $(unihead) download.h download.cpp
-	g++ download.cpp $(cppflag) -o download.o
-unzip.o : $(unihead) unzip.h unzip.cpp
-	g++ unzip.cpp $(cppflag) -o unzip.o
-main.o : $(unihead) package.h source.h main.h main.cpp
-	g++ main.cpp $(cppflag) -o main.o
-main_GUI.o : $(unihead) package.h source.h unzip.h main.h main_GUI.h main_GUI.cpp
-	g++ main_GUI.cpp $(cppflag) -o main_GUI.o
+global.o : global.cpp stdafx.h langn.h global.h
+	g++ $< $(cppflag) -o $@
+package.o : package.cpp $(unihead) package.h source.h unzip.h download.h package_core.h
+	g++ $< $(cppflag) -o $@
+package_core.o : package_core.cpp $(unihead) package.h package_core.h
+	g++ $< $(cppflag) -o $@
+source.o : source.cpp $(unihead) package.h source.h download.h
+	g++ $< $(cppflag) -o $@
+download.o : download.cpp $(unihead) download.h
+	g++ $< $(cppflag) -o $@
+unzip.o : unzip.cpp $(unihead) unzip.h
+	g++ $< $(cppflag) -o $@
+main.o : main.cpp $(unihead) package.h source.h main.h
+	g++ $< $(cppflag) -o $@
+main_GUI.o : main_GUI.cpp $(unihead) package.h source.h unzip.h main.h main_GUI.h
+	g++ $< $(cppflag) -o $@
