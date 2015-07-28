@@ -1,3 +1,20 @@
+/*
+Live Package Manager, Package Manager for LBLive
+Copyright (C) <2015>  <xy12423>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "stdafx.h"
 #include "unzip.h"
 
@@ -31,7 +48,7 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 	if (prCallbackP != NULL)
 	{
 		dataBuf::const_iterator dataPtr = dataBegin;
-		(*prCallbackP)(0);
+		(*prCallbackP)(0, 0);
 		while (dataBegin != dataEnd)
 		{
 			UINT head = 0;
@@ -100,11 +117,11 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 							if ((i & 0xFF) == 0)
 							{
 								progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
-								(*prCallbackP)(progress);
+								(*prCallbackP)(progress, sizeInflated);
 							}
 						}
 						progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
-						(*prCallbackP)(progress);
+						(*prCallbackP)(progress, sizeInflated);
 					}
 					else
 					{
@@ -168,8 +185,8 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 								if (prCallbackP != NULL)
 								{
 									sizeInflated += inflatedSize;
-									progress = static_cast<double>(sizeInflated)* 100 / sizeAll;
-									(*prCallbackP)(progress);
+									progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
+									(*prCallbackP)(progress, sizeInflated);
 								}
 								if (err == Z_STREAM_END || (err == Z_OK && zstream.avail_in == 0))
 								{
@@ -206,7 +223,6 @@ errInfo unzip(dataBuf::const_iterator dataBegin, dataBuf::const_iterator dataEnd
 								}
 							}
 						}
-						(*prCallbackP)(100);
 					}
 					catch (errInfo ex)
 					{
@@ -253,7 +269,7 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 	double progress = 0;
 	if (prCallbackP != NULL)
 	{
-		(*prCallbackP)(0);
+		(*prCallbackP)(0, 0);
 		while (!fin.eof())
 		{
 			UINT head = 0;
@@ -378,7 +394,7 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 					if (prCallbackP != NULL)	//Need report
 					{
 						progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
-						(*prCallbackP)(progress);
+						(*prCallbackP)(progress, sizeInflated);
 					}
 					break;
 				}
@@ -425,8 +441,8 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 								if (prCallbackP != NULL)
 								{
 									sizeInflated += inflatedSize;
-									progress = static_cast<double>(sizeInflated)* 100 / sizeAll;
-									(*prCallbackP)(progress);
+									progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
+									(*prCallbackP)(progress, sizeInflated);
 								}
 								if (err == Z_STREAM_END || (err == Z_OK && zstream.avail_in == 0))
 								{
@@ -463,7 +479,6 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 								}
 							}
 						}
-						(*prCallbackP)(100);
 					}
 					catch (errInfo ex)
 					{

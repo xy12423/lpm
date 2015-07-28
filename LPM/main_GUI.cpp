@@ -1,4 +1,21 @@
-﻿#include "stdafx.h"
+﻿/*
+Live Package Manager, Package Manager for LBLive
+Copyright (C) <2015>  <xy12423>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+#include "stdafx.h"
 
 #ifdef _LPM_GUI
 
@@ -130,7 +147,7 @@ void printInfo(package *pkg)
 }
 
 int lastProgress = -1;
-void reportProgress(double progress)
+void reportProgress(double progress, size_t size_downloaded)
 {
 	if (static_cast<int>(progress) != lastProgress)
 	{
@@ -368,7 +385,7 @@ void mainFrame::refreshPakList()
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 		getPakList(sourceList[*pItr], pakList);
 	pakListTp::iterator itrPak = pakList.begin(), itrPakEnd = pakList.end();
-	std::string maskName = textSearch->GetLineText(0);
+	std::string maskName(textSearch->GetLineText(0).ToStdString());
 	bool enableSearch = !maskName.empty();
 	for (; itrPak != itrPakEnd;)
 	{

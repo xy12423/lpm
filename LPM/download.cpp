@@ -1,7 +1,25 @@
+/*
+Live Package Manager, Package Manager for LBLive
+Copyright (C) <2015>  <xy12423>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "stdafx.h"
 #include "download.h"
 
-double sizeAll = 0, sizeDownloaded = 0;
+double sizeAll = 0;
+size_t sizeDownloaded = 0;
 size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp)
 {
 	dataBuf *myBuf = static_cast<dataBuf*>(userp);
@@ -14,7 +32,7 @@ size_t write_data(void *buffer, size_t size, size_t nmemb, void *userp)
 	}
 	sizeDownloaded += sizePart;
 	if (prCallbackP != NULL)
-		(*prCallbackP)(sizeDownloaded * 100 / sizeAll);
+		(*prCallbackP)(sizeDownloaded * 100 / sizeAll, sizeDownloaded);
 	return sizePart;
 }
 
@@ -26,7 +44,7 @@ size_t write_data_to_file(void *buffer, size_t size, size_t nmemb, void *userp)
 	fs->write(dataBuf, sizePart);
 	sizeDownloaded += sizePart;
 	if (prCallbackP != NULL)
-		(*prCallbackP)(sizeDownloaded * 100 / sizeAll);
+		(*prCallbackP)(sizeDownloaded * 100 / sizeAll, sizeDownloaded);
 	return sizePart;
 }
 
@@ -64,7 +82,7 @@ errInfo download(const std::string &add, dataBuf *buf)
 		}
 		curl_easy_setopt(handle, CURLOPT_HEADER, 0);
 		curl_easy_setopt(handle, CURLOPT_NOBODY, 0);
-		(*prCallbackP)(0);
+		(*prCallbackP)(0, 0);
 	}
 
 	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_data);
@@ -78,7 +96,7 @@ errInfo download(const std::string &add, dataBuf *buf)
 		return errInfo(msgData[MSGE_NETWORK] + errBuf.data());
 	}
 	if (prCallbackP != NULL)
-		(*prCallbackP)(100);
+		(*prCallbackP)(100, sizeAll);
 	curl_easy_cleanup(handle);
 	
 	infoStream << msgData[MSGI_DOWNLOADED] << std::endl;
@@ -114,7 +132,7 @@ errInfo download(const std::string &add, std::string path)
 		}
 		curl_easy_setopt(handle, CURLOPT_HEADER, 0);
 		curl_easy_setopt(handle, CURLOPT_NOBODY, 0);
-		(*prCallbackP)(0);
+		(*prCallbackP)(0, 0);
 	}
 
 	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, write_data_to_file);
@@ -129,7 +147,7 @@ errInfo download(const std::string &add, std::string path)
 		return errInfo(msgData[MSGI_DOWNLOADING] + errBuf.data());
 	}
 	if (prCallbackP != NULL)
-		(*prCallbackP)(100);
+		(*prCallbackP)(100, sizeAll);
 	curl_easy_cleanup(handle);
 
 	infoStream << msgData[MSGI_DOWNLOADED] << std::endl;
