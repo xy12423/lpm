@@ -57,7 +57,7 @@ public:
 		ID_STATICSRC,
 		ID_LISTSRC, ID_BUTTONADDSRC, ID_BUTTONDELSRC, ID_BUTTONUPDSRC,
 
-		ID_STATICOUTPUT, ID_TEXTOUTPUT, ID_GAUGEPROGRESS
+		ID_STATICOUTPUT, ID_TEXTOUTPUT, ID_GAUGEPROGRESS, ID_LABELSPEED
 	};
 	void refreshPakList();
 
@@ -96,6 +96,7 @@ public:
 	wxStaticBox *staticOutput;
 	wxTextCtrl *textOutput;
 	wxGauge *gaugeProgress;
+	wxStaticText *labelSpeed;
 
 	friend void printInfo(package *pkg);
 	friend void reportProgress(double progress);

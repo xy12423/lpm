@@ -25,12 +25,27 @@ using namespace boost::filesystem;
 using namespace std;
 
 int lastProgress = -1;
-clock_t lastClock = -1;
+size_t lastSizeDownloaded = 0;
+clock_t lastClock;
 void reportProgress(double progress, size_t size_downloaded)
 {
 	if (static_cast<int>(progress) != lastProgress)
 	{
+		double deltaClock = 0;
+		if (progress != 0)
+			deltaClock = static_cast<double>(clock() - lastClock) / CLOCKS_PER_SEC;
 		std::cout << static_cast<int>(progress) << "% ";
+		if (progress != 0)
+		{
+			if (deltaClock != 0)
+			{
+				int speed = (size_downloaded - lastSizeDownloaded) / deltaClock / 1024 * 10;
+				std::cout << speed / 10 << '.' << speed % 10 << "kB/s";
+				lastClock = clock();
+			}
+		}
+		std::cout << "          \r";
+		lastSizeDownloaded = size_downloaded;
 		lastProgress = static_cast<int>(progress);
 	}
 	return;

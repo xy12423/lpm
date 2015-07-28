@@ -147,11 +147,26 @@ void printInfo(package *pkg)
 }
 
 int lastProgress = -1;
+size_t lastSizeDownloaded = 0;
+clock_t lastClock;
 void reportProgress(double progress, size_t size_downloaded)
 {
 	if (static_cast<int>(progress) != lastProgress)
 	{
+		double deltaClock = 0;
+		if (progress != 0)
+			deltaClock = static_cast<double>(clock() - lastClock) / CLOCKS_PER_SEC;
 		form->gaugeProgress->SetValue(progress);
+		if (progress != 0)
+		{
+			if (deltaClock != 0)
+			{
+				int speed = (size_downloaded - lastSizeDownloaded) / deltaClock / 1024 * 10;
+				form->labelSpeed->SetLabel(std::to_wstring(speed / 10) + wxT(".") + std::to_wstring(speed % 10) + wxT("kB/s"));
+				lastClock = clock();
+			}
+		}
+		lastSizeDownloaded = size_downloaded;
 		lastProgress = static_cast<int>(progress);
 	}
 	return ;
@@ -367,7 +382,12 @@ mainFrame::mainFrame(const wxString& title)
 	gaugeProgress = new wxGauge(panel, ID_GAUGEPROGRESS,
 		100,
 		wxPoint(12, 568),
-		wxSize(588, 17)
+		wxSize(521, 21)
+		);
+	labelSpeed = new wxStaticText(panel, ID_LABELSPEED,
+		wxEmptyString,
+		wxPoint(539, 568),
+		wxSize(61, 21)
 		);
 
 	textStrm = new textStream(textOutput);

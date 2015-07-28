@@ -1,12 +1,3 @@
-#pragma once
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <cstring>
-#include <cctype>
-#include <climits>
-#include <cstdlib>
 /*
 Live Package Manager, Package Manager for LBLive
 Copyright (C) <2015>  <xy12423>
@@ -24,6 +15,16 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#pragma once
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cstring>
+#include <cctype>
+#include <climits>
+#include <cstdlib>
+#include <ctime>
 #include <string>
 #include <list>
 #include <vector>
