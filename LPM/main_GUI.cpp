@@ -59,6 +59,7 @@ wxString guiStrDataDefault[guiStrCount] = {
 	wxT("强制执行"),
 	wxT("搜索"),
 	wxT("安装"),
+	wxT("重新配置"),
 	wxT("移除"),
 	wxT("升级"),
 	wxT("升级全部"),
@@ -507,9 +508,15 @@ void mainFrame::checkUpd_CheckedChanged(wxCommandEvent& event)
 void mainFrame::checkInst_CheckedChanged(wxCommandEvent& event)
 {
 	if (event.IsChecked())
+	{
 		pakMask |= PAK_STATE_INSTALLED;
+		buttonAddPak->SetLabel(guiStrData[TEXT_BUTTONRSTPAK]);
+	}
 	else
+	{
 		pakMask &= (~PAK_STATE_INSTALLED);
+		buttonAddPak->SetLabel(guiStrData[TEXT_BUTTONADDPAK]);
+	}
 	refreshPakList();
 }
 
@@ -529,17 +536,52 @@ void mainFrame::buttonAddPak_Click(wxCommandEvent& event)
 	int sel = listPak->GetSelection();
 	if (sel == -1)
 		return;
-	if (is_installed(pakList[sel]->getName()))
-		infoStream << msgData[MSGE_PAK_INSTALLED] << ':' << pakList[sel]->getName() << std::endl;
+	const std::string &name = pakList[sel]->getName();
+	if (checkInst->GetValue())
+	{
+		fs::path pakPath = dataPath / name,
+			scriptPath = pakPath / SCRIPT_INST,
+			logPath = pakPath / FILENAME_INST;
+		std::ifstream infIn(logPath.string());
+		std::string instPathStr;
+		std::getline(infIn, instPathStr);
+		infIn.close();
+		fs::path instPath(instPathStr);
+
+		if (exists(scriptPath))
+		{
+			infoStream << msgData[MSGI_RUNS_PURGE] << std::endl;
+			int ret = run_script(scriptPath.string(), instPath);
+			if (ret != 0)
+				infoStream << msgData[MSGE_RUNS] << std::to_string(ret) << std::endl;
+			else
+			{
+				infoStream << msgData[MSGI_DONE] << std::endl;
+				scriptPath = pakPath / SCRIPT_INIT;
+				if (exists(scriptPath))
+				{
+					infoStream << msgData[MSGI_RUNS_INIT] << std::endl;
+					ret = run_script(scriptPath.string(), instPath);
+					if (ret != 0)
+						infoStream << msgData[MSGE_RUNS] << std::to_string(ret) << std::endl;
+					else
+						infoStream << msgData[MSGI_DONE] << std::endl;
+				}
+			}
+		}
+	}
 	else
 	{
-		infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << pakList[sel]->getName() << std::endl;
-		errInfo err = pakList[sel]->instFull(checkForce->GetValue());
-		if (err.err)
-			infoStream << err.info << std::endl;
+		if (is_installed(name))
+			infoStream << msgData[MSGE_PAK_INSTALLED] << ':' << name << std::endl;
+		else
+		{
+			infoStream << msgData[MSGI_PAK_INSTALLING] << ':' << name << std::endl;
+			errInfo err = pakList[sel]->instFull(checkForce->GetValue());
+			if (err.err)
+				infoStream << err.info << std::endl;
+		}
 	}
-	if (checkInst->GetValue())
-		refreshPakList();
 	checkForce->SetValue(false);
 }
 
