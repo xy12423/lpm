@@ -150,6 +150,7 @@ void printInfo(package *pkg)
 int lastProgress = -1;
 size_t lastSizeDownloaded = 0;
 clock_t lastClock;
+const unsigned int B_rate = 1024;
 void reportProgress(double progress, size_t size_downloaded)
 {
 	if (static_cast<int>(progress) != lastProgress)
@@ -162,8 +163,17 @@ void reportProgress(double progress, size_t size_downloaded)
 		{
 			if (deltaClock != 0)
 			{
-				int speed = (size_downloaded - lastSizeDownloaded) / deltaClock / 1024 * 10;
-				form->labelSpeed->SetLabel(std::to_wstring(speed / 10) + wxT(".") + std::to_wstring(speed % 10) + wxT("kB/s"));
+				double speed = (size_downloaded - lastSizeDownloaded) / deltaClock / B_rate;
+				if (speed > B_rate)
+				{
+					int speedByMB = static_cast<int>(speed / B_rate * 10);
+					form->labelSpeed->SetLabel(std::to_wstring(speedByMB / 10) + wxT(".") + std::to_wstring(speedByMB % 10) + wxT("MB/s"));
+				}
+				else
+				{
+					int speedByKB = static_cast<int>(speed * 10);
+					form->labelSpeed->SetLabel(std::to_wstring(speedByKB / 10) + wxT(".") + std::to_wstring(speedByKB % 10) + wxT("kB/s"));
+				}
 				lastClock = clock();
 			}
 		}
