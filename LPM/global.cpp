@@ -195,3 +195,19 @@ void processEscChar(std::string &str)
 		}
 	}
 }
+
+int run_script(fs::path scriptPath, fs::path runPath)
+{
+	fs::path currentPath = fs::current_path(),
+		pathPath = fs::system_complete(dataPath / DIRNAME_PATH);
+	scriptPath = fs::system_complete(scriptPath);
+	fs::current_path(runPath);
+#ifdef WIN32
+	int ret = system(("set \"PATH=" + pathPath.string() + ";%PATH%\" & \"" + scriptPath.string() + "\"").c_str());
+#endif
+#ifdef __linux__
+	int ret = system(("PATH=\"" + pathPath.string() + ":$PATH\" ; bash \"" + scriptPath.string() + "\"").c_str());
+#endif
+	fs::current_path(currentPath);
+	return ret;
+}

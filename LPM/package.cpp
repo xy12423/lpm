@@ -359,21 +359,11 @@ errInfo package::inst()
 int package::instScript(bool upgrade)
 {
 	fs::path pakPath = dataPath / name,
-		scriptPath = pakPath / SCRIPT_INST,
-		currentPath = fs::current_path(),
-		pathPath = fs::system_complete(dataPath / DIRNAME_PATH);
+		scriptPath = pakPath / SCRIPT_INST;
 	if (exists(scriptPath))
 	{
 		infoStream << msgData[MSGI_RUNS_INST] << ':' << name << std::endl;
-		scriptPath = fs::system_complete(scriptPath);
-		fs::current_path(localPath);
-#ifdef WIN32
-		int ret = system(("set \"PATH=" + pathPath.string() + ";%PATH%\" & \"" + scriptPath.string() + "\"").c_str());
-#endif
-#ifdef __linux__
-		int ret = system(("PATH=\"" + pathPath.string() + ":$PATH\" ; bash \"" + scriptPath.string() + "\"").c_str());
-#endif
-		fs::current_path(currentPath);
+		int ret = run_script(scriptPath, localPath);
 		if (ret != EXIT_SUCCESS)
 			return ret;
 		infoStream << msgData[MSGI_DONE] << std::endl;
@@ -384,15 +374,7 @@ int package::instScript(bool upgrade)
 		if (exists(scriptPath))
 		{
 			infoStream << msgData[MSGI_RUNS_INIT] << ':' << name << std::endl;
-			scriptPath = fs::system_complete(scriptPath);
-			fs::current_path(localPath);
-#ifdef WIN32
-			int ret = system(("set \"PATH=" + pathPath.string() + ";%PATH%\" & \"" + scriptPath.string() + "\"").c_str());
-#endif
-#ifdef __linux__
-			int ret = system(("PATH=\"" + pathPath.string() + ":$PATH\" ; bash \"" + scriptPath.string() + "\"").c_str());
-#endif
-			fs::current_path(currentPath);
+			int ret = run_script(scriptPath, localPath);
 			if (ret != EXIT_SUCCESS)
 				return ret;
 			infoStream << msgData[MSGI_DONE] << std::endl;
@@ -936,22 +918,14 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 	std::getline(infIn, tmpPathStr);
 	fs::path tmpPath, instPath(tmpPathStr);
 
-	fs::path scriptPath,
-		currentPath = fs::current_path(),
-		pathPath = fs::system_complete(dataPath / DIRNAME_PATH);
+	fs::path scriptPath;
 	if (!upgrade)
 	{
 		scriptPath = pakPath / SCRIPT_PURGE;
 		if (exists(scriptPath))
 		{
 			infoStream << msgData[MSGI_RUNS_PURGE] << std::endl;
-			fs::current_path(instPath);
-#ifdef WIN32
-			int ret = system(("set \"PATH=" + pathPath.string() + ";%PATH%\" & \"" + scriptPath.string() + "\"").c_str());
-#endif
-#ifdef __linux__
-			int ret = system(("PATH=\"" + pathPath.string() + ":$PATH\" ; bash \"" + scriptPath.string() + "\"").c_str());
-#endif
+			int ret = run_script(scriptPath, instPath);
 			if (ret != 0)
 				return errInfo(msgData[MSGE_RUNS] + std::to_string(ret));
 			infoStream << msgData[MSGI_DONE] << std::endl;
@@ -961,18 +935,11 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 	if (exists(scriptPath))
 	{
 		infoStream << msgData[MSGI_RUNS_REMOVE] << std::endl;
-		fs::current_path(instPath);
-#ifdef WIN32
-		int ret = system(("set \"PATH=" + pathPath.string() + ";%PATH%\" & \"" + scriptPath.string() + "\"").c_str());
-#endif
-#ifdef __linux__
-		int ret = system(("PATH=\"" + pathPath.string() + ":$PATH\" ; bash \"" + scriptPath.string() + "\"").c_str());
-#endif
+		int ret = run_script(scriptPath, instPath);
 		if (ret != 0)
 			return errInfo(msgData[MSGE_RUNS] + std::to_string(ret));
 		infoStream << msgData[MSGI_DONE] << std::endl;
 	}
-	fs::current_path(currentPath);
 
 	try
 	{

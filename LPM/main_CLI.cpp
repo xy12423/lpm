@@ -141,7 +141,7 @@ void printUsage()
 	cout << "        update                          Check for updates from source.\n";
 	cout << "        install <package name>          Install a specific package.\n";
 	cout << "        remove <package name>           Remove a specific package.\n";
-	cout << "        dataclear <package name>        Run initalize process of a package.\n";
+	cout << "        reconf <package name>        Run initalize process of a package.\n";
 	cout << "                                         Will clear package configuration\n";
 	cout << "                                         and reset package settings.\n\n";
 	cout << "        upgrade [package name]          Upgrade a specific package or all\n";
@@ -162,7 +162,7 @@ void printUsage()
 	cout << "Live Package Manager v1.2\n";
 	cout << "    Made by xy12423. Licensed in GPLv3,\n";
 	cout << "    Copyleft xy12423 & Little Busters! Live Project.\n";
-	cout << "    Source code available at https://github.com/LittleBustersLive/lpm" << endl;
+	cout << "    Source code available at https://github.com/xy12423/lpm" << endl;
 }
 
 int main(int argc, char* argv[])
@@ -315,7 +315,7 @@ int main(int argc, char* argv[])
 					}
 				}
 			}
-			else if (cmd == "dataclear")
+			else if (cmd == "reconf")
 			{
 				if (argc - argp < 1)
 				{
@@ -328,18 +328,36 @@ int main(int argc, char* argv[])
 					cout << msgData[MSGE_PAK_NOT_INSTALLED] << endl;
 					throw(0);
 				}
-				path scriptPath = dataPath / name / SCRIPT_PURGE;
+
+				path pakPath = dataPath / name,
+					scriptPath = pakPath / SCRIPT_INST,
+					logPath = pakPath / FILENAME_INST;
+				ifstream infIn(logPath.string());
+				string instPathStr;
+				getline(infIn, instPathStr);
+				infIn.close();
+				path instPath(instPathStr);
+
 				if (exists(scriptPath))
 				{
-					path currentPath = current_path();
 					cout << msgData[MSGI_RUNS_PURGE] << endl;
-					current_path(localPath);
-					int ret = system(scriptPath.string().c_str());
+					int ret = run_script(scriptPath.string(), instPath);
 					if (ret != 0)
 						cout << msgData[MSGE_RUNS] << to_string(ret) << endl;
 					else
+					{
 						cout << msgData[MSGI_DONE] << endl;
-					current_path(currentPath);
+						scriptPath = pakPath / SCRIPT_INIT;
+						if (exists(scriptPath))
+						{
+							cout << msgData[MSGI_RUNS_INIT] << endl;
+							ret = run_script(scriptPath.string(), instPath);
+							if (ret != 0)
+								cout << msgData[MSGE_RUNS] << to_string(ret) << endl;
+							else
+								cout << msgData[MSGI_DONE] << endl;
+						}
+					}
 				}
 			}
 			else if (cmd == "info")
