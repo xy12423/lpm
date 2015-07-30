@@ -91,15 +91,15 @@ namespace fs = boost::filesystem;
 
 #ifdef _MSC_VER
 #ifdef _DEBUG
-#pragma comment (lib, "libcurld.lib")
-#pragma comment (lib, "libeay32d.lib")
-#pragma comment (lib, "ssleay32d.lib")
-#pragma comment (lib, "zlibd.lib")
+#pragma comment (lib, "libcurld-mt.lib")
+#pragma comment (lib, "libeay32d-mt.lib")
+#pragma comment (lib, "ssleay32d-mt.lib")
+#pragma comment (lib, "zlibd-mt.lib")
 #else
-#pragma comment (lib, "libcurl.lib")
-#pragma comment (lib, "libeay32.lib")
-#pragma comment (lib, "ssleay32.lib")
-#pragma comment (lib, "zlib.lib")
+#pragma comment (lib, "libcurl-mt.lib")
+#pragma comment (lib, "libeay32-mt.lib")
+#pragma comment (lib, "ssleay32-mt.lib")
+#pragma comment (lib, "zlib-mt.lib")
 #endif
 #pragma comment (lib, "ws2_32.lib")
 #pragma comment (lib, "winmm.lib")
