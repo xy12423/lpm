@@ -680,27 +680,27 @@ bool MyApp::OnInit()
 			argp++;
 		}
 
-		fs::path oldPath = fs::current_path();	//Save current path
+		if (!newLocal.empty())
+			newLocal = fs::system_complete(newLocal).string();	//Get absolute path of new local path(if has)
 		if (!newPath.empty())
 			fs::current_path(newPath);	//Switch to new path to read config
 
 		if (readConfig())
+		{
+			localPath = fs::system_complete(localPath);
 			checkPath();
+		}
 		else
 		{
 			init();
+			localPath = fs::system_complete(localPath);
 			checkPath();
 		}
-		if (!newPath.empty())	//Switch back to old path to get absolute path of local path
-			current_path(oldPath);
 
 		if (!newLocal.empty())
 			localPath = newLocal;
-		localPath = fs::system_complete(localPath);
 		if (!newData.empty())
 			dataPath = newData;
-		if (!newPath.empty())
-			fs::current_path(newPath);
 
 		if (!readLang())
 			loadDefaultLang();
@@ -749,6 +749,7 @@ int MyApp::OnExit()
 			delete *itrSrc;
 		std::cout.rdbuf(coutBuf);
 
+		writeLocal();
 		unlock();
 	}
 	catch (std::exception ex)
