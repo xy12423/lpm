@@ -36,13 +36,13 @@ public:
 		info.assign(tmp.data(), tmp.length());
 	};
 
-	std::string getFName() const{ wxCharBuffer tmp = wxConvUTF8.cWC2MB(fname.c_str()); return std::string(tmp.data(), tmp.length()); }
-	std::string getAuthor() const{ wxCharBuffer tmp = wxConvUTF8.cWC2MB(author.c_str()); return std::string(tmp.data(), tmp.length()); }
-	std::string getInfo() const{ wxCharBuffer tmp = wxConvUTF8.cWC2MB(info.c_str()); return std::string(tmp.data(), tmp.length()); }
+	inline std::string getFName() const{ wxCharBuffer tmp = wxConvUTF8.cWC2MB(fname.c_str()); return std::string(tmp.data(), tmp.length()); }
+	inline std::string getAuthor() const{ wxCharBuffer tmp = wxConvUTF8.cWC2MB(author.c_str()); return std::string(tmp.data(), tmp.length()); }
+	inline std::string getInfo() const{ wxCharBuffer tmp = wxConvUTF8.cWC2MB(info.c_str()); return std::string(tmp.data(), tmp.length()); }
 
-	std::string getFName_Local() const{ wxCharBuffer tmp = wxConvLocal.cWC2MB(fname.c_str()); return std::string(tmp.data(), tmp.length()); }
-	std::string getAuthor_Local() const{ wxCharBuffer tmp = wxConvLocal.cWC2MB(author.c_str()); return std::string(tmp.data(), tmp.length()); }
-	std::string getInfo_Local() const{ wxCharBuffer tmp = wxConvLocal.cWC2MB(info.c_str()); return std::string(tmp.data(), tmp.length()); }
+	inline std::string getFName_Local() const{ wxCharBuffer tmp = wxConvLocal.cWC2MB(fname.c_str()); return std::string(tmp.data(), tmp.length()); }
+	inline std::string getAuthor_Local() const{ wxCharBuffer tmp = wxConvLocal.cWC2MB(author.c_str()); return std::string(tmp.data(), tmp.length()); }
+	inline std::string getInfo_Local() const{ wxCharBuffer tmp = wxConvLocal.cWC2MB(info.c_str()); return std::string(tmp.data(), tmp.length()); }
 
 	const std::wstring& getFNameW() const{ return fname; }
 	const std::wstring& getAuthorW() const{ return author; }

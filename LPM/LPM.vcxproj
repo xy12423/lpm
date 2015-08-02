@@ -159,9 +159,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="download.h" />
     <ClInclude Include="global.h" />
     <ClInclude Include="langn.h" />
