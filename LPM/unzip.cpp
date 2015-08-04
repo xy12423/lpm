@@ -89,7 +89,7 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 					delete[] nameBuf;
 					return errInfo(msgData[MSGE_UNZIP_BROKEN]);
 				}
-				name = std::string(nameBuf, nameLen);
+				name.assign(nameBuf, nameLen);
 				delete[] nameBuf;
 			}
 			skip(extLen + commentLen);
@@ -125,7 +125,7 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 				delete[] nameBuf;
 				return errInfo(msgData[MSGE_UNZIP_BROKEN]);
 			}
-			name = std::string(nameBuf, nameLen);
+			name.assign(nameBuf, nameLen);
 			delete[] nameBuf;
 		}
 		skip(extLen);

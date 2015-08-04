@@ -73,7 +73,6 @@ struct errInfo
 	std::string info;
 };
 
-char* str2cstr(std::string arg);
 void processEscChar(std::string &str);
 int run_script(fs::path scriptPath, fs::path runPath);
 

@@ -332,7 +332,7 @@ int main(int argc, char* argv[])
 					printUsage();
 					throw(0);
 				}
-				string name = std::string(argv[argp]);
+				string name(argv[argp]);
 				if (!is_installed(name))
 				{
 					cout << msgData[MSGE_PAK_NOT_INSTALLED] << endl;
@@ -377,7 +377,7 @@ int main(int argc, char* argv[])
 					printUsage();
 					throw(0);
 				}
-				string name = std::string(argv[argp]);
+				string name(argv[argp]);
 				if (is_installed(name))
 					printInfoFromFile(name);
 				else

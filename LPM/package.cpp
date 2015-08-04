@@ -963,7 +963,7 @@ errInfo uninstall(const std::string &name, bool upgrade, remove_level level)
 	}
 	catch (const char* err)
 	{
-		return errInfo(std::string(err));
+		return errInfo(err);
 	}
 	catch (...)
 	{
@@ -1021,7 +1021,7 @@ errInfo backup(const std::string &name, bool force)
 	}
 	catch (const char* err)
 	{
-		return errInfo(std::string(err));
+		return errInfo(err);
 	}
 	catch (...)
 	{

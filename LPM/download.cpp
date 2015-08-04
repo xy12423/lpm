@@ -58,8 +58,7 @@ errInfo download(const std::string &add, dataBuf *buf)
 	std::vector<char> errBuf;
 	errBuf.reserve(2048);
 	CURL *handle = curl_easy_init();
-	char *addCStr = str2cstr(add);
-	curl_easy_setopt(handle, CURLOPT_URL, addCStr);
+	curl_easy_setopt(handle, CURLOPT_URL, add.c_str());
 	curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errBuf.data());
 	CURLcode success;
 	infoStream << msgData[MSGI_CONNECTING] << std::endl;
@@ -108,8 +107,7 @@ errInfo download(const std::string &add, std::string path)
 	std::vector<char> errBuf;
 	errBuf.reserve(2048);
 	CURL *handle = curl_easy_init();
-	char *addCStr = str2cstr(add);
-	curl_easy_setopt(handle, CURLOPT_URL, addCStr);
+	curl_easy_setopt(handle, CURLOPT_URL, add.c_str());
 	curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, errBuf.data());
 	CURLcode success;
 	infoStream << msgData[MSGI_CONNECTING] << std::endl;
