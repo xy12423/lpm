@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "global.h"
 
+const UINT DIR_ATTRIBUTE = 0x10;
 errInfo unzip(std::string filePath, boost::filesystem::path path);
 
 #endif

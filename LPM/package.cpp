@@ -182,7 +182,18 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 	for (fs::directory_iterator p(tmpPath), pEnd; p != pEnd; p++)
 	{
 		fs::path sourcePath = p->path(), newRelaPath = relaPath / sourcePath.filename(), targetPath = localPath / newRelaPath;
-		if (fs::is_regular_file(sourcePath))
+		if (fs::is_directory(sourcePath))
+		{
+			if (!exists(targetPath))
+			{
+				fs::create_directory(targetPath);
+				install_copy(sourcePath, newRelaPath, logOut, nbackup);
+				logOut << newRelaPath.string() << std::endl;
+			}
+			else
+				install_copy(sourcePath, newRelaPath, logOut, nbackup);
+		}
+		else
 		{
 			if (exists(targetPath))
 			{
@@ -199,17 +210,6 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 			logOut << newRelaPath.string() << std::endl;
 			fs::copy_file(sourcePath, targetPath);
 			fs::remove(sourcePath);
-		}
-		else
-		{
-			if (!exists(targetPath))
-			{
-				fs::create_directory(targetPath);
-				install_copy(sourcePath, newRelaPath, logOut, nbackup);
-				logOut << newRelaPath.string() << std::endl;
-			}
-			else
-				install_copy(sourcePath, newRelaPath, logOut, nbackup);
 		}
 	}
 }

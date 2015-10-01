@@ -18,41 +18,61 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "stdafx.h"
 #include "unzip.h"
 
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
+
 #define skip(n)	fin.seekg(n, std::ios_base::cur);
 #define readUINT(var)	fin.read(reinterpret_cast<char*>(&(var)), 4);                    \
 						if (fin.eof())                                                   \
 							return errInfo(msgData[MSGE_UNZIP_BROKEN]);
-#define readBYTE(var)	fin.read(reinterpret_cast<char*>(&(var)), 2);                    \
+#define readUSHORT(var)	fin.read(reinterpret_cast<char*>(&(var)), 2);                    \
 						if (fin.eof())                                                   \
 							return errInfo(msgData[MSGE_UNZIP_BROKEN]);
 
+inline errInfo get_zlib_err(int err)
+{
+	switch (err)
+	{
+		case Z_MEM_ERROR:
+			return errInfo(msgData[MSGE_UNZIP_MEM_OVERFLOW]);
+		case Z_BUF_ERROR:
+			return errInfo(msgData[MSGE_UNZIP_BUF_OVERFLOW]);
+		case Z_DATA_ERROR:
+			return errInfo(msgData[MSGE_UNZIP_BROKEN]);
+		default:
+			return errInfo(msgData[MSGE_UNZIP_INFLATEEND] + std::to_string(err));
+	}
+}
+
+const int blockSize = 0x100000;
+
 errInfo unzip(std::string fPath, boost::filesystem::path path)
 {
-	UINT i;
 	std::ifstream fin(fPath, std::ios_base::in | std::ios_base::binary);
 	std::ofstream fout;
-	ULONGLONG sizeAll = 0, sizeInflated = 0;
+	uint64_t sizeAll = 0, sizeInflated = 0;
 	double progress = 0;
 	if (prCallbackP != NULL)
 	{
 		(*prCallbackP)(0, 0);
 		while (!fin.eof())
 		{
-			UINT head = 0;
+			uint32_t head = 0;
 			fin.read(reinterpret_cast<char*>(&head), 4);
 			if (fin.eof())
 				break;
 			if (head != 0x04034b50)
 				break;
-			skip(14);
-			UINT fileSize, fileOriginSize;
+			skip(10);
+			uint32_t fileSize, fileOriginSize;
 			readUINT(fileSize);
 			readUINT(fileOriginSize);
 			sizeAll += fileOriginSize;
-			USHORT nameLen, extLen;
-			readBYTE(nameLen);
-			readBYTE(extLen);
-			ULONGLONG skipLen = static_cast<ULONGLONG>(fileSize) + nameLen + extLen;
+			uint16_t nameLen, extLen;
+			readUSHORT(nameLen);
+			readUSHORT(extLen);
+			uint64_t skipLen = static_cast<uint64_t>(fileSize) + nameLen + extLen;
 			skip(skipLen);
 		}
 		fin.close();
@@ -60,211 +80,165 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 	}
 	while (!fin.eof())
 	{
-		UINT head = 0;
+		uint32_t head = 0;
 		fin.read(reinterpret_cast<char*>(&head), 4);
 		if (fin.eof())
 			break;
-		if (head == 0x08074b50)
+
+		switch (head)
 		{
-			skip(12);
-			continue;
-		}
-		else if (head == 0x02014b50)
-		{
-			skip(24);
-			USHORT nameLen, extLen, commentLen;
-			readBYTE(nameLen);
-			readBYTE(extLen);
-			readBYTE(commentLen);
-			skip(4);
-			UINT fileAttribute;
-			readUINT(fileAttribute);
-			skip(4);
-			std::string name;
+			case 0x08074b50:
+				skip(12);
+				break;
+			case 0x02014b50:
 			{
-				char *nameBuf = new char[nameLen];
-				fin.read(nameBuf, nameLen);
+				skip(24);
+				uint16_t name_size, ext_size, comment_size;
+				readUSHORT(name_size);
+				readUSHORT(ext_size);
+				readUSHORT(comment_size);
+				skip(4);
+				uint32_t file_attr;
+				readUINT(file_attr);
+				skip(4);
+				std::string name;
+				std::unique_ptr<char[]> name_buf = std::make_unique<char[]>(name_size);
+				fin.read(name_buf.get(), name_size);
 				if (fin.eof())
+					throw(0);
+				name.assign(name_buf.get(), name_size);
+				skip(ext_size + comment_size);
+
+				if (!(file_attr & DIR_ATTRIBUTE) && fs::is_directory(path / name))
 				{
-					delete[] nameBuf;
-					return errInfo(msgData[MSGE_UNZIP_BROKEN]);
+					fs::remove(path / name);
+					fout.open((path / name).string());
+					fout.close();
 				}
-				name.assign(nameBuf, nameLen);
-				delete[] nameBuf;
-			}
-			skip(extLen + commentLen);
 
-			if (!(fileAttribute & DIR_ATTRIBUTE) && fs::is_directory(path / name))
-			{
-				fs::remove(path / name);
-				fout.open((path / name).string());
-				fout.close();
+				break;
 			}
-
-			continue;
-		}
-		else if (head != 0x04034b50)
-			break;
-		skip(2);
-		USHORT flag = 0, compMethod = 0;
-		readBYTE(flag);
-		readBYTE(compMethod);
-		skip(8);
-		UINT fileSize, fileOriginSize;
-		readUINT(fileSize);
-		readUINT(fileOriginSize);
-		USHORT nameLen, extLen;
-		readBYTE(nameLen);
-		readBYTE(extLen);
-		std::string name;
-		{
-			char *nameBuf = new char[nameLen];
-			fin.read(nameBuf, nameLen);
-			if (fin.eof())
+			case 0x04034b50:
 			{
-				delete[] nameBuf;
-				return errInfo(msgData[MSGE_UNZIP_BROKEN]);
-			}
-			name.assign(nameBuf, nameLen);
-			delete[] nameBuf;
-		}
-		skip(extLen);
-		if (fileSize == 0)
-		{
-			boost::filesystem::create_directories(path / name);
-		}
-		else
-		{
-			boost::filesystem::path filePath = path / name;
-			fout.open(filePath.string(), std::ios::out | std::ios::binary);
+				skip(2);
+				uint16_t flag = 0, comp_method = 0;
+				readUSHORT(flag);
+				readUSHORT(comp_method);
+				skip(4);
+				uint32_t crc32_read, compressed_size, origin_size;
+				readUINT(crc32_read);
+				readUINT(compressed_size);
+				readUINT(origin_size);
+				USHORT name_size, ext_size;
+				readUSHORT(name_size);
+				readUSHORT(ext_size);
+				std::string name;
+				std::unique_ptr<char[]> name_buf = std::make_unique<char[]>(name_size);
+				fin.read(name_buf.get(), name_size);
+				if (fin.eof())
+					throw(0);
+				name.assign(name_buf.get(), name_size);
+				skip(ext_size);
 
-			switch (compMethod)
-			{
-				case 0:
+				if (origin_size == 0)
+					boost::filesystem::create_directories(path / name);
+				else
 				{
-					char* buf = new char[fileSize];
-					try
-					{
-						fin.read(buf, fileSize);
-						if (fin.eof())
-							return errInfo(msgData[MSGE_UNZIP_BROKEN]);
-						fout.write(buf, fileSize);
-						sizeInflated += fileSize;
-					}
-					catch (...)
-					{
-						delete[] buf;
-						throw;
-					}
-					delete[] buf;
-					if (prCallbackP != NULL)	//Need report
-					{
-						progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
-						(*prCallbackP)(progress, sizeInflated);
-					}
-					break;
-				}
-				case 8:
-					const int blockSize = 0x100000;
+					boost::filesystem::path filePath = path / name;
+					fout.open(filePath.string(), std::ios::out | std::ios::binary);
 
-					BYTE *dataBuf = new BYTE[fileSize];
-					BYTE *fileBuf = new BYTE[blockSize];
-
-					try
+					switch (comp_method)
 					{
-						fin.read(reinterpret_cast<char*>(dataBuf), fileSize);
-						if (fin.eof())
-							return errInfo(msgData[MSGE_UNZIP_BROKEN]);
-
-						z_stream zstream;
-						zstream.zalloc = static_cast<alloc_func>(Z_NULL);
-						zstream.zfree = static_cast<free_func>(Z_NULL);
-						zstream.opaque = 0;
-						zstream.next_in = NULL;
-						zstream.avail_in = 0;
-						int err = inflateInit2(&zstream, -15);
-						if (err != Z_OK)
+						case 0:
 						{
-							throw(errInfo(msgData[MSGE_UNZIP_INFLATEINIT] + std::to_string(err)));
-						}
-						zstream.next_in = dataBuf;
-						zstream.avail_in = fileSize;
-
-						while (true)
-						{
-							zstream.next_out = fileBuf;
-							zstream.avail_out = blockSize;
-							err = inflate(&zstream, Z_NO_FLUSH);
-							if (err == Z_OK || err == Z_STREAM_END)
+							std::unique_ptr<char[]> buf = std::make_unique<char[]>(compressed_size);
+							fin.read(buf.get(), compressed_size);
+							if (fin.eof())
+								throw(0);
+							fout.write(buf.get(), compressed_size);
+							sizeInflated += compressed_size;
+							if (prCallbackP != NULL)	//Need report
 							{
-								BYTE *ptr = fileBuf;
-								UINT inflatedSize = blockSize - zstream.avail_out;
-								for (i = 0; i < inflatedSize; i++)
+								progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
+								(*prCallbackP)(progress, sizeInflated);
+							}
+							break;
+						}
+						case 8:
+							std::unique_ptr<BYTE[]> in_buf = std::make_unique<BYTE[]>(blockSize);
+							std::unique_ptr<BYTE[]> out_buf = std::make_unique<BYTE[]>(blockSize);
+							uint32_t compressed_last = compressed_size;
+							uint32_t crc32_real = 0;
+
+							z_stream zstream;
+							zstream.zalloc = static_cast<alloc_func>(Z_NULL);
+							zstream.zfree = static_cast<free_func>(Z_NULL);
+							zstream.opaque = 0;
+							zstream.next_in = NULL;
+							zstream.avail_in = 0;
+							int err = inflateInit2(&zstream, -15);
+							if (err != Z_OK)
+								return errInfo(msgData[MSGE_UNZIP_INFLATEINIT] + std::to_string(err));
+
+							fin.read(reinterpret_cast<char*>(in_buf.get()), min(compressed_last, blockSize));
+							zstream.next_in = in_buf.get();
+							zstream.avail_in = fin.gcount();
+							compressed_last -= fin.gcount();
+
+							while (true)
+							{
+								zstream.next_out = out_buf.get();
+								zstream.avail_out = blockSize;
+								err = inflate(&zstream, Z_NO_FLUSH);
+								if (err == Z_OK || err == Z_STREAM_END)
 								{
-									fout.put(*ptr);
-									ptr++;
-								}
-								if (prCallbackP != NULL)
-								{
-									sizeInflated += inflatedSize;
-									progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
-									(*prCallbackP)(progress, sizeInflated);
-								}
-								if (err == Z_STREAM_END || (err == Z_OK && zstream.avail_in == 0))
-								{
-									if ((err = inflateEnd(&zstream)) == Z_OK)
-										break;
-									else
+									uint32_t inflatedSize = blockSize - zstream.avail_out;
+									fout.write(reinterpret_cast<char*>(out_buf.get()), inflatedSize);
+									crc32_real = crc32(crc32_real, out_buf.get(), inflatedSize);
+
+									if (prCallbackP != NULL)
 									{
-										switch (err)
-										{
-											case Z_MEM_ERROR:
-												throw(errInfo(msgData[MSGE_UNZIP_MEM_OVERFLOW]));
-											case Z_BUF_ERROR:
-												throw(errInfo(msgData[MSGE_UNZIP_BUF_OVERFLOW]));
-											case Z_DATA_ERROR:
-												throw(errInfo(msgData[MSGE_UNZIP_BROKEN]));
-											default:
-												throw(errInfo(msgData[MSGE_UNZIP_INFLATEEND] + std::to_string(err)));
-										}
+										sizeInflated += inflatedSize;
+										progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
+										(*prCallbackP)(progress, sizeInflated);
+									}
+
+									if (err == Z_STREAM_END)
+									{
+										if ((err = inflateEnd(&zstream)) == Z_OK)
+											break;
+										else
+											return get_zlib_err(err);
+									}
+									else if (zstream.avail_in == 0 && compressed_last != 0)
+									{
+										fin.read(reinterpret_cast<char*>(in_buf.get()), min(compressed_last, blockSize));
+										zstream.next_in = in_buf.get();
+										zstream.avail_in = fin.gcount();
+										compressed_last -= fin.gcount();
 									}
 								}
+								else
+									return get_zlib_err(err);
 							}
-							else
-							{
-								switch (err)
-								{
-									case Z_MEM_ERROR:
-										throw(errInfo(msgData[MSGE_UNZIP_MEM_OVERFLOW]));
-									case Z_BUF_ERROR:
-										throw(errInfo(msgData[MSGE_UNZIP_BUF_OVERFLOW]));
-									case Z_DATA_ERROR:
-										throw(errInfo(msgData[MSGE_UNZIP_BROKEN]));
-									default:
-										throw(errInfo(msgData[MSGE_UNZIP_INFLATE] + std::to_string(err)));
-								}
-							}
-						}
-					}
-					catch (errInfo ex)
-					{
-						delete[] dataBuf;
-						delete[] fileBuf;
-						return ex;
-					}
-					catch (...)
-					{
-						delete[] dataBuf;
-						delete[] fileBuf;
-						throw;
+							
+							if (crc32_read != crc32_real)
+								return errInfo(msgData[MSGE_UNZIP_BROKEN]);
+
+							break;
 					}
 
-					delete[] dataBuf;
-					delete[] fileBuf;
-					break;
+					fout.close();
+				}
+
+				if (flag & 0x4)
+					skip(12);
+
+				break;
 			}
-
-			fout.close();
+			default:
+				fin.setstate(fout.eofbit);
+				break;
 		}
 	}
 	fin.close();
