@@ -33,6 +33,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <memory>
 #include <exception>
+#include <utility>
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;

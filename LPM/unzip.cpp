@@ -151,16 +151,22 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 					{
 						case 0:
 						{
-							std::unique_ptr<char[]> buf = std::make_unique<char[]>(compressed_size);
-							fin.read(buf.get(), compressed_size);
-							if (fin.eof())
-								throw(0);
-							fout.write(buf.get(), compressed_size);
-							sizeInflated += compressed_size;
-							if (prCallbackP != NULL)	//Need report
+							std::unique_ptr<char[]> buf = std::make_unique<char[]>(blockSize);
+							uint32_t compressed_last = compressed_size;
+
+							while (compressed_last > 0)
 							{
-								progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
-								(*prCallbackP)(progress, sizeInflated);
+								fin.read(buf.get(), min(compressed_last, blockSize));
+								if (fin.eof())
+									throw(0);
+								fout.write(buf.get(), fin.gcount());
+								sizeInflated += fin.gcount();
+								compressed_last -= fin.gcount();
+								if (prCallbackP != NULL)	//Need report
+								{
+									progress = static_cast<double>(sizeInflated) * 100 / sizeAll;
+									(*prCallbackP)(progress, sizeInflated);
+								}
 							}
 							break;
 						}

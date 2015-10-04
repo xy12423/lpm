@@ -184,7 +184,7 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 		fs::path sourcePath = p->path(), newRelaPath = relaPath / sourcePath.filename(), targetPath = localPath / newRelaPath;
 		if (fs::is_directory(sourcePath))
 		{
-			if (!exists(targetPath))
+			if (!fs::exists(targetPath))
 			{
 				fs::create_directory(targetPath);
 				install_copy(sourcePath, newRelaPath, logOut, nbackup);
@@ -195,13 +195,13 @@ void install_copy(const fs::path &tmpPath, fs::path relaPath, std::ofstream &log
 		}
 		else
 		{
-			if (exists(targetPath))
+			if (fs::exists(targetPath))
 			{
 				if (!nbackup)
 				{
-					if (!exists(nativePath / relaPath))
+					if (!fs::exists(nativePath / relaPath))
 						fs::create_directories(nativePath / relaPath);
-					if (exists(nativePath / newRelaPath))
+					if (fs::exists(nativePath / newRelaPath))
 						throw(msgData[MSGE_OVERWRITE]);
 					fs::copy_file(targetPath, nativePath / newRelaPath);
 				}
@@ -253,11 +253,11 @@ errInfo package::inst()
 			fs::path pathPath = dataPath / DIRNAME_PATH;
 			for (fs::directory_iterator p(tmpPath / DIRNAME_PATH), pEnd; p != pEnd; p++)
 			{
-				if (!fs::exists(pathPath / p->path().filename()))
-					fs::copy(p->path(), pathPath / p->path().filename());
-				else
+				if (fs::exists(pathPath / p->path().filename()))
 					throw(msgData[MSGE_OVERWRITE]);
 			}
+			for (fs::directory_iterator p(tmpPath / DIRNAME_PATH), pEnd; p != pEnd; p++)
+				fs::copy(p->path(), pathPath / p->path().filename());
 			fs::remove_all(tmpPath / DIRNAME_PATH);
 		}
 

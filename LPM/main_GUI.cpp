@@ -129,7 +129,6 @@ void printInfo(package *pkg)
 {
 	if (pkg == NULL)
 		return;
-	std::stringstream sstream;
 	form->textFName->SetValue(pkg->extInfo.getFNameW());
 	form->textName->SetValue(pkg->name);
 	std::string desc(pkg->extInfo.getInfo());
@@ -138,12 +137,12 @@ void printInfo(package *pkg)
 	form->textAuthor->SetValue(pkg->extInfo.getAuthorW());
 	form->textVersion->SetValue(std::to_string(pkg->ver.major) + '.' + std::to_string(pkg->ver.minor) + '.' + std::to_string(pkg->ver.revision));
 	form->textDep->Clear();
-	std::for_each(pkg->depList.begin(), pkg->depList.end(), [&sstream](depInfo dpInf){
-		form->textDep->AppendText(dpInf.fullStr());
+	std::for_each(pkg->depList.begin(), pkg->depList.end(), [](depInfo dpInf){
+		form->textDep->AppendText(dpInf.fullStr() + ";");
 	});
 	form->textConf->Clear();
-	std::for_each(pkg->confList.begin(), pkg->confList.end(), [&sstream](depInfo dpInf){
-		form->textConf->AppendText(dpInf.fullStr());
+	std::for_each(pkg->confList.begin(), pkg->confList.end(), [](depInfo dpInf){
+		form->textConf->AppendText(dpInf.fullStr() + ";");
 	});
 }
 
@@ -218,17 +217,17 @@ mainFrame::mainFrame(const wxString& title)
 	checkUpd = new wxCheckBox(staticPak, ID_CHECKUPD,
 		guiStrData[TEXT_CHECKUPD],
 		wxPoint(6, _GUI_GAP + 298),
-		wxSize(96, 16)
+		wxSize(96, 21)
 		);
 	checkInst = new wxCheckBox(staticPak, ID_CHECKINST,
 		guiStrData[TEXT_CHECKINST],
 		wxPoint(112, _GUI_GAP + 298),
-		wxSize(96, 16)
+		wxSize(96, 21)
 		);
 	label = new wxStaticText(staticPak, wxID_ANY,
 		guiStrData[TEXT_LABELSEARCH],
 		wxPoint(246, _GUI_GAP),
-		wxSize(32, 16)
+		wxSize(32, 21)
 		);
 	textSearch = new wxTextCtrl(staticPak, ID_TEXTSEARCH,
 		wxEmptyString,
@@ -238,7 +237,7 @@ mainFrame::mainFrame(const wxString& title)
 	checkForce = new wxCheckBox(staticPak, ID_CHECKFORCE,
 		guiStrData[TEXT_CHECKFORCE],
 		wxPoint(510, _GUI_GAP + 2),
-		wxSize(96, 16)
+		wxSize(96, 21)
 		);
 	
 	buttonAddPak = new wxButton(staticPak, ID_BUTTONADDPAK,
@@ -271,7 +270,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELFNAME],
 		wxPoint(6, _GUI_GAP),
-		wxSize(50, 16)
+		wxSize(50, 21)
 		);
 	textFName = new wxTextCtrl(staticInfo, ID_TEXTFNAME,
 		wxEmptyString,
@@ -282,7 +281,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELNAME],
 		wxPoint(6, _GUI_GAP + 27),
-		wxSize(50, 16)
+		wxSize(50, 21)
 		);
 	textName = new wxTextCtrl(staticInfo, ID_TEXTNAME,
 		wxEmptyString,
@@ -293,7 +292,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELINFO],
 		wxPoint(6, _GUI_GAP + 54),
-		wxSize(50, 16)
+		wxSize(50, 21)
 		);
 	textInfo = new wxTextCtrl(staticInfo, ID_TEXTINFO,
 		wxEmptyString,
@@ -304,7 +303,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELAUTHOR],
 		wxPoint(6, _GUI_GAP + 156),
-		wxSize(50, 16)
+		wxSize(50, 21)
 		);
 	textAuthor = new wxTextCtrl(staticInfo, ID_TEXTAUTHOR,
 		wxEmptyString,
@@ -315,7 +314,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELVERSION],
 		wxPoint(170, _GUI_GAP + 156),
-		wxSize(50, 16)
+		wxSize(50, 21)
 		);
 	textVersion = new wxTextCtrl(staticInfo, ID_TEXTVERSION,
 		wxEmptyString,
@@ -326,7 +325,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELDEP],
 		wxPoint(6, _GUI_GAP + 183),
-		wxSize(50, 16)
+		wxSize(50, 21)
 		);
 	textDep = new wxTextCtrl(staticInfo, ID_TEXTDEP,
 		wxEmptyString,
@@ -337,7 +336,7 @@ mainFrame::mainFrame(const wxString& title)
 	label = new wxStaticText(staticInfo, wxID_ANY,
 		guiStrData[TEXT_LABELCONF],
 		wxPoint(6, _GUI_GAP + 210),
-		wxSize(50, 16)
+		wxSize(50, 21)
 		);
 	textConf = new wxTextCtrl(staticInfo, ID_TEXTCONF,
 		wxEmptyString,

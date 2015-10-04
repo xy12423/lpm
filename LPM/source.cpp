@@ -76,34 +76,33 @@ errInfo source::loadRemote()
 					pakExtInfo extInfo;
 					depListTp depList, confList;
 
-					std::string name;
-					for (p2 = data[LINE_DEP].cbegin(), pEnd2 = data[LINE_DEP].cend(); p2 != pEnd2; p2++)
-					{
-						if (*p2 == ';')
-						{
-							depList.push_back('&' + name);
-							name.clear();
-						}
-						else
-							name.push_back(*p2);
-					}
+					std::string name = std::move(data[LINE_DEP]);
 					if (!name.empty())
-						depList.push_back('&' + name);
-					name.clear();
+					{
+						if (name.back() != ';')
+							name.push_back(';');
+						size_t pos1 = 0, pos2 = name.find(';');
+						while (pos2 != std::string::npos)
+						{
+							depList.push_back('&' + name.substr(pos1, pos2 - pos1));
+							pos1 = pos2 + 1;
+							pos2 = name.find(';', pos1);
+						}
+					}
 
-					for (p2 = data[LINE_CONF].cbegin(), pEnd2 = data[LINE_CONF].cend(); p2 != pEnd2; p2++)
-					{
-						if (*p2 == ';')
-						{
-							confList.push_back('!' + name);
-							name.clear();
-						}
-						else
-							name.push_back(*p2);
-					}
+					name = std::move(data[LINE_CONF]);
 					if (!name.empty())
-						confList.push_back('!' + name);
-					name.clear();
+					{
+						if (name.back() != ';')
+							name.push_back(';');
+						size_t pos1 = 0, pos2 = name.find(';');
+						while (pos2 != std::string::npos)
+						{
+							confList.push_back('!' + name.substr(pos1, pos2 - pos1));
+							pos1 = pos2 + 1;
+							pos2 = name.find(';', pos1);
+						}
+					}
 
 					newPkgList.push_back(new package(add, data[LINE_NAME], ver, depList, confList, pakExtInfo(data[LINE_FNAME], data[LINE_AUTHOR], data[LINE_INFO])));
 
