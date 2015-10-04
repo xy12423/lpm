@@ -414,12 +414,18 @@ void mainFrame::refreshPakList()
 	wxArrayInt::iterator pItr, pEnd = sel.end();
 	for (pItr = sel.begin(); pItr != pEnd; pItr++)
 		getPakList(sourceList[*pItr], pakList);
-	pakListTp::iterator itrPak = pakList.begin(), itrPakEnd = pakList.end();
-	std::string maskName(textSearch->GetLineText(0).ToStdString());
+
+	std::string maskName(textSearch->GetValue().ToStdString());
+	maskName = lcase(maskName);
 	bool enableSearch = !maskName.empty();
+	version emptyVersion;
+
+	pakListTp::iterator itrPak = pakList.begin(), itrPakEnd = pakList.end();
 	for (; itrPak != itrPakEnd;)
 	{
-		if ((getState((*itrPak)->getName()) & pakMask) != pakMask || (enableSearch && lcase((*itrPak)->getExtInfo().getFName()).find(lcase(maskName)) == std::string::npos))
+		if ((getState((*itrPak)->getName()) & pakMask) != pakMask ||
+			(enableSearch && lcase((*itrPak)->getExtInfo().getFName()).find(maskName) == std::string::npos) ||
+			((*itrPak)->getVer() == emptyVersion))
 		{
 			itrPak = pakList.erase(itrPak);
 			itrPakEnd = pakList.end();

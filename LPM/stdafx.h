@@ -17,19 +17,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <cstring>
 #include <cctype>
 #include <climits>
+#include <cstdint>
 #include <cstdlib>
 #include <ctime>
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include <string>
 #include <list>
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
+
 #include <algorithm>
 #include <memory>
 #include <exception>

@@ -20,11 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef _H_GLOBAL
 #define _H_GLOBAL
 
-typedef unsigned short int USHORT;
-typedef unsigned int UINT;
-typedef unsigned long ULONG;
-typedef unsigned long long ULONGLONG;
-typedef unsigned char BYTE;
+typedef uint8_t BYTE;
 
 extern boost::filesystem::path localPath, dataPath, langPath;
 extern std::ostream &infoStream;

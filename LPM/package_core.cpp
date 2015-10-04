@@ -287,10 +287,10 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 		while (!pakQue.empty())
 		{
 			int id = pakQue.front();
-			depNode &node = pakMap.at(id);
+			depNode &cur_node = pakMap.at(id);
 
-			pDep = node.pak->confList.begin();
-			pDepEnd = node.pak->confList.end();
+			pDep = cur_node.pak->confList.begin();
+			pDepEnd = cur_node.pak->confList.end();
 			for (; pDep != pDepEnd; pDep++)
 			{
 				int confID;
@@ -303,9 +303,9 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 					confN.bedep_conf.emplace(id);
 					if (id != confID)
 					{
-						if (node.ancestor.find(confID) == node.ancestor.end())
+						if (cur_node.ancestor.find(confID) == cur_node.ancestor.end())
 							add_ancestor(pakMap, pakHash, confID, id);
-						node.dep.emplace(confID);
+						cur_node.dep.emplace(confID);
 					}
 				}
 				else	//Add the package to the map
@@ -313,12 +313,12 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 					int newID = nextID;
 					nextID++;
 					confID = newID;
-					node.dep.emplace(newID);
+					cur_node.dep.emplace(newID);
 					depNode &confN = pakMap.emplace(newID, depNode(pDep->name)).first->second;
 					pakHash.emplace(pDep->name, newID);
 					confN.con.emplace(id, ~(*pDep));
 					confN.bedep_conf.emplace(id);
-					std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&confN](const std::pair<int, int>& p){
+					std::for_each(cur_node.ancestor.cbegin(), cur_node.ancestor.cend(), [&confN](const std::pair<int, int>& p){
 						confN.ancestor[p.first] += p.second;
 					});
 					confN.ancestor[id]++;
@@ -330,20 +330,20 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 					package *pak = find_package(confN.name, confN.con, false, tmpRemoveList);	//Try to find a correct package
 					if (pak == NULL)
 					{
-						if (!confN.bedep_dep.empty() || node.ancestor.find(confID) != node.ancestor.end())
+						if (!confN.bedep_dep.empty() || cur_node.ancestor.find(confID) != cur_node.ancestor.end())
 							throw(dep_throw(msgData[MSGE_DEP_CONF] + ':' + confN.name, confID));
 						if (force)
 						{
 							force_remove(pakMap, pakHash, removeList, removeHash, pDep->name, id, nextID);
-							if (node.pak == NULL)
+							if (cur_node.pak == NULL)
 								break;
 						}
 						else
 						{
-							if (node.pak->name == pDep->name)
+							if (cur_node.pak->name == pDep->name)
 								throw(dep_throw(msgData[MSGE_DEP_CONF] + ':' + pDep->name, id));
 							else
-								throw(dep_throw(msgData[MSGE_CONF] + ':' + node.pak->name + ":" + pDep->fullStr(), id));
+								throw(dep_throw(msgData[MSGE_CONF] + ':' + cur_node.pak->name + ":" + pDep->fullStr(), id));
 						}
 					}
 					confN.pak = pak;
@@ -358,18 +358,18 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 					depNode &confN = pakMap.at(confID);
 					if (confN.pak != NULL && pDep->check(confN.pak->ver))	//Conflict with installing package
 					{
-						if (node.ancestor.find(confID) != node.ancestor.end())	//Loop in map
-							throw(dep_throw(msgData[MSGE_DEP] + ':' + node.pak->name + ":" + pDep->fullStr(), id));
+						if (cur_node.ancestor.find(confID) != cur_node.ancestor.end())	//Loop in map
+							throw(dep_throw(msgData[MSGE_DEP] + ':' + cur_node.pak->name + ":" + pDep->fullStr(), id));
 						clean_dep(pakMap, pakHash, confID);
 						package *pak = find_package(confN.name, confN.con, false, tmpRemoveList);
 						if (pak == NULL)
 						{
-							if (!confN.bedep_dep.empty() || node.ancestor.find(confID) != node.ancestor.end())
+							if (!confN.bedep_dep.empty() || cur_node.ancestor.find(confID) != cur_node.ancestor.end())
 								throw(dep_throw(msgData[MSGE_DEP_CONF] + ':' + confN.name, confID));
 							if (force)
 							{
 								force_remove(pakMap, pakHash, removeList, removeHash, pDep->name, id, nextID);
-								if (node.pak == NULL)
+								if (cur_node.pak == NULL)
 									break;
 							}
 							else
@@ -395,15 +395,15 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 					}
 				}
 			}
-			if (node.pak == NULL)
+			if (cur_node.pak == NULL)
 			{
-				node.processed = true;
+				cur_node.processed = true;
 				pakQue.pop_front();
 				continue;
 			}
 
-			pDep = node.pak->depList.begin();
-			pDepEnd = node.pak->depList.end();
+			pDep = cur_node.pak->depList.begin();
+			pDepEnd = cur_node.pak->depList.end();
 			for (; pDep != pDepEnd; pDep++)
 			{
 				int depID;
@@ -414,15 +414,15 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 					depNode &depN = pakMap.at(depID);
 					depN.bedep_dep.emplace(id);
 					depN.con.emplace(id, *pDep);
-					if (node.ancestor.find(depID) == node.ancestor.end())
+					if (cur_node.ancestor.find(depID) == cur_node.ancestor.end())
 						add_ancestor(pakMap, pakHash, depID, id);
-					node.dep.emplace(depID);
+					cur_node.dep.emplace(depID);
 					if (removeHash.find(pDep->name) != removeHash.end())
 						throw(dep_throw(msgData[MSGE_DEP_CONF] + ':' + pDep->name, depID));
 					if ((depN.pak == NULL && !pDep->check()) || (depN.pak != NULL && !pDep->check(depN.pak->ver)))	//Checking failed
 					{
-						if (node.ancestor.find(itrHash->second) != node.ancestor.end())	//Loop in map
-							throw(dep_throw(msgData[MSGE_DEP] + ':' + node.pak->name + ":" + pDep->fullStr(), id));
+						if (cur_node.ancestor.find(itrHash->second) != cur_node.ancestor.end())	//Loop in map
+							throw(dep_throw(msgData[MSGE_DEP] + ':' + cur_node.pak->name + ":" + pDep->fullStr(), id));
 						clean_dep(pakMap, pakHash, depID);
 						package *pak = find_package(pDep->name, depN.con, force, tmpRemoveList);
 						if (pak == NULL)
@@ -442,11 +442,11 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 						{
 							std::for_each(tmpRemoveList.begin(), tmpRemoveList.end(), [&](int pakID){
 								depNode &confN = pakMap.at(pakID);
-								if (!confN.bedep_dep.empty() || node.ancestor.find(pakID) != node.ancestor.end())
+								if (!confN.bedep_dep.empty() || cur_node.ancestor.find(pakID) != cur_node.ancestor.end())
 									throw(dep_throw(msgData[MSGE_DEP_CONF] + ':' + confN.name, pakID));
 								force_remove(pakMap, pakHash, removeList, removeHash, confN.name, id, nextID);
-								if (node.pak == NULL)
-									throw(dep_throw(msgData[MSGE_DEP_CONF] + ':' + node.name, id));
+								if (cur_node.pak == NULL)
+									throw(dep_throw(msgData[MSGE_DEP_CONF] + ':' + cur_node.name, id));
 							});
 						}
 						depN.pak = pak;
@@ -469,16 +469,16 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 					{
 						pak = find_package(pDep->name, *pDep);
 						if (pak == NULL)
-							throw(dep_throw(msgData[MSGE_PAK_NOT_FOUND_SPEC] + ":\n\t" + node.name + '\n' + 
+							throw(dep_throw(msgData[MSGE_PAK_NOT_FOUND_SPEC] + ":\n\t" + cur_node.name + '\n' +
 							msgData[MSGI_PAK_NOT_FOUND_SPEC_1] + "\n\t" + pDep->fullStr() + '\n' + msgData[MSGI_PAK_NOT_FOUND_SPEC_2], id));
 					}
-					node.dep.emplace(newID);
+					cur_node.dep.emplace(newID);
 					depNode &depN = pakMap.emplace(newID, depNode(pDep->name)).first->second;
 					depN.pak = pak;
 					depN.bedep_dep.emplace(id);
 					pakHash.emplace(pDep->name, newID);
 					depN.con.emplace(id, *pDep);
-					std::for_each(node.ancestor.cbegin(), node.ancestor.cend(), [&depN](const std::pair<int, int> p){
+					std::for_each(cur_node.ancestor.cbegin(), cur_node.ancestor.cend(), [&depN](const std::pair<int, int> p){
 						depN.ancestor[p.first] += p.second;
 					});
 					depN.ancestor[id]++;
@@ -491,7 +491,7 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 			}
 
 			pakQue.pop_front();
-			node.processed = true;
+			cur_node.processed = true;
 		}
 	}
 	catch (dep_throw err)

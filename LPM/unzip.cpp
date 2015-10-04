@@ -129,7 +129,7 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 				readUINT(crc32_read);
 				readUINT(compressed_size);
 				readUINT(origin_size);
-				USHORT name_size, ext_size;
+				uint16_t name_size, ext_size;
 				readUSHORT(name_size);
 				readUSHORT(ext_size);
 				std::string name;

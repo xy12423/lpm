@@ -23,11 +23,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "download.h"
 
 depListTp emptyDepList;
+#undef max
 
 version::version(const std::string &str)
 {
 	major = minor = revision = 0;
-	int tmp[3] = { 0, 0, 0 };
+	uint64_t tmp[3] = { 0, 0, 0 };
 	std::string::const_iterator p = str.cbegin(), pEnd = str.cend();
 	for (int i = 0; i < 3; i++)
 	{
@@ -43,7 +44,12 @@ version::version(const std::string &str)
 				major = minor = revision = 0;
 				return;
 			}
-			tmp[i] = tmp[i] * 10 + static_cast<UINT>((*p) - '0');
+			tmp[i] = tmp[i] * 10 + static_cast<uint32_t>((*p) - '0');
+			if ((i == 0 && tmp[i] > std::numeric_limits<uint32_t>::max()) || (i > 0 && tmp[i] > std::numeric_limits<uint16_t>::max()))
+			{
+				major = minor = revision = 0;
+				return;
+			}
 		}
 	}
 	major = tmp[0]; minor = tmp[1]; revision = tmp[2];

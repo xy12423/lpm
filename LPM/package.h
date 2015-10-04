@@ -54,10 +54,10 @@ private:
 struct version
 {
 	version(){ major = 0; minor = 0; revision = 0; };
-	version(UINT _major, USHORT _minor, USHORT _revision){ major = _major; minor = _minor; revision = _revision; };
+	version(uint32_t _major, uint16_t _minor, uint16_t _revision){ major = _major; minor = _minor; revision = _revision; };
 	version(const std::string &str);
-	UINT major;
-	USHORT minor, revision;
+	uint32_t major;
+	uint16_t minor, revision;
 	std::string toStr(){ return std::to_string(major) + '.' + std::to_string(minor) + '.' + std::to_string(revision); };
 	friend inline bool operator>(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? false : a.revision > b.revision) : a.minor > b.minor) : a.major > b.major; };
 	friend inline bool operator>=(const version &a, const version &b){ return a.major == b.major ? (a.minor == b.minor ? (a.revision == b.revision ? true : a.revision > b.revision) : a.minor > b.minor) : a.major > b.major; };
