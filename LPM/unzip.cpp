@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 						if (fin.eof())                                                   \
 							return errInfo(msgData[MSGE_UNZIP_BROKEN]);
 
-inline errInfo get_zlib_err(int err)
+inline errInfo get_zlib_err(int err, msgID default_msg_id)
 {
 	switch (err)
 	{
@@ -41,7 +41,7 @@ inline errInfo get_zlib_err(int err)
 		case Z_DATA_ERROR:
 			return errInfo(msgData[MSGE_UNZIP_BROKEN]);
 		default:
-			return errInfo(msgData[MSGE_UNZIP_INFLATEEND] + std::to_string(err));
+			return errInfo(msgData[default_msg_id] + std::to_string(err));
 	}
 }
 
@@ -214,7 +214,7 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 										if ((err = inflateEnd(&zstream)) == Z_OK)
 											break;
 										else
-											return get_zlib_err(err);
+											return get_zlib_err(err, MSGE_UNZIP_INFLATEEND);
 									}
 									else if (zstream.avail_in == 0 && compressed_last != 0)
 									{
@@ -225,7 +225,7 @@ errInfo unzip(std::string fPath, boost::filesystem::path path)
 									}
 								}
 								else
-									return get_zlib_err(err);
+									return get_zlib_err(err, MSGE_UNZIP_INFLATE);
 							}
 							
 							if (crc32_read != crc32_real)

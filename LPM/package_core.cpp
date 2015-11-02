@@ -506,7 +506,7 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 			std::for_each(list.begin(), list.end(), [&traceMessage, &pakMap](dep_trace item){
 				traceMessage.push_back('\t');
 				traceMessage.push_back(item.isDep ? '^' : '#');
-				traceMessage.append(pakMap.at(item.id).name);
+				traceMessage.append(pakMap[item.id].name);
 				traceMessage.push_back('\n');
 			});
 		});
