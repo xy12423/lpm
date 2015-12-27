@@ -189,8 +189,11 @@ FakesAssemblies/
 GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
+
+# LPM Data files (generated while testing)
 /LPM/.config
 /LPM/.source
 /LPM/local
 /LPM/data
 
+*.opendb

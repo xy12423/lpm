@@ -342,7 +342,7 @@ int main(int argc, char* argv[])
 				path pakPath = dataPath / name,
 					scriptPath = pakPath / SCRIPT_INST,
 					logPath = pakPath / FILENAME_INST;
-				ifstream infIn(logPath.string());
+				std::ifstream infIn(logPath.string());
 				string instPathStr;
 				getline(infIn, instPathStr);
 				infIn.close();
