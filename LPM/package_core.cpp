@@ -494,7 +494,7 @@ void package::checkDep(pakIListTp &instList, const depListTp &extraDep, bool for
 			cur_node.processed = true;
 		}
 	}
-	catch (dep_throw err)
+	catch (dep_throw &err)
 	{
 		std::list<pakTListTp> traceQue;
 		pakTListTp traceStack;

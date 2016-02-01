@@ -328,7 +328,7 @@ errInfo package::inst()
 	{
 		errInTry = errInfo(err);
 	}
-	catch (std::exception ex)
+	catch (std::exception& ex)
 	{
 		errInTry = errInfo(ex.what());
 	}
@@ -445,7 +445,7 @@ errInfo package::instList(pakIListTp &instList)
 			}
 		}
 	}
-	catch (std::exception ex)
+	catch (std::exception& ex)
 	{
 		errInTry = errInfo(msgData[MSGE_STD] + ex.what());
 	}
@@ -517,7 +517,7 @@ errInfo package::instFull(bool force)
 	{
 		checkDep(instL, emptyDepList, force);
 	}
-	catch (std::exception ex)
+	catch (std::exception& ex)
 	{
 		return errInfo(msgData[MSGE_STD] + ex.what());
 	}
@@ -580,7 +580,7 @@ errInfo package::upgrade(bool checked, bool force)
 		{
 			checkDep(instL, depList, force);
 		}
-		catch (std::exception ex)
+		catch (std::exception& ex)
 		{
 			return errInfo(msgData[MSGE_STD] + ex.what());
 		}
@@ -1090,7 +1090,7 @@ errInfo recover_from_backup(const std::string &name)
 	{
 		err = ex;
 	}
-	catch (std::exception ex)
+	catch (std::exception& ex)
 	{
 		err = msgData[MSGE_STD] + ex.what();
 	}

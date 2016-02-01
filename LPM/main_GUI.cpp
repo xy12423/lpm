@@ -657,7 +657,8 @@ bool MyApp::OnInit()
 	{
 		int argp = 1;
 		std::string cmd;
-		std::string newPath, newLocal, newData;
+		std::string newPath, newLocal, newData, newLang;
+		bool force = false, as_target = false;
 		while (argp < argc)
 		{
 			cmd = argv[argp];
@@ -675,6 +676,12 @@ bool MyApp::OnInit()
 						newLocal = cmd.substr(6);
 					else if (cmd.substr(0, 5) == "data=")
 						newData = cmd.substr(5);
+					else if (cmd.substr(0, 5) == "lang=")
+						newLang = cmd.substr(5);
+					else if (cmd.substr(0, 5) == "force")
+						force = true;
+					else if (cmd.substr(0, 9) == "as-target")
+						as_target = true;
 					else
 						throw(0);
 					break;
@@ -685,39 +692,55 @@ bool MyApp::OnInit()
 			argp++;
 		}
 
-		if (!newLocal.empty())
-			newLocal = fs::system_complete(newLocal).string();	//Get absolute path of new local path(if has)
+		loadDefaultLang();
+		loadDefaultGUILang();
+
+		if (!as_target)
+		{
+			if (!newLocal.empty())
+				newLocal = fs::system_complete(newLocal).string();
+			if (!newData.empty())
+				newData = fs::system_complete(newData).string();
+			if (!newLang.empty())
+				newLang = fs::system_complete(newLang).string();
+		}
 		if (!newPath.empty())
-			fs::current_path(newPath);	//Switch to new path to read config
+			fs::current_path(newPath);
+		if (as_target)
+		{
+			if (!newLocal.empty())
+				newLocal = fs::system_complete(newLocal).string();
+			if (!newData.empty())
+				newData = fs::system_complete(newData).string();
+			if (!newLang.empty())
+				newLang = fs::system_complete(newLang).string();
+		}
 
 		if (readConfig())
-		{
 			localPath = fs::system_complete(localPath);
-			checkPath();
-		}
 		else
 		{
-			init();
-			localPath = fs::system_complete(localPath);
-			checkPath();
+			wxMessageBox(msgDataDefault[MSGE_NO_CONFIG], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
+			throw(0);
 		}
 
 		if (!newLocal.empty())
 			localPath = newLocal;
 		if (!newData.empty())
 			dataPath = newData;
+		if (!newLang.empty())
+			langPath = newLang;
 
-		if (!readLang())
-			loadDefaultLang();
+		checkPath();
+		readLang();
 
 		if (!newPath.empty())
 			wxMessageBox(msgData[MSGI_USING_LPMDIR] + newPath, guiStrData[TEXT_INFO], wxOK | wxICON_INFORMATION);
 		if (!newLocal.empty())
 			wxMessageBox(msgData[MSGI_USING_LOCAL] + newLocal, guiStrData[TEXT_INFO], wxOK | wxICON_INFORMATION);
 
-		if (readGUILang() == false)
-			loadDefaultGUILang();
-		if (readSource() == false)
+		readGUILang();
+		if (!readSource())
 		{
 			wxMessageBox(guiStrData[TEXTE_LOADSRC], guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
 			throw(0);
@@ -732,7 +755,7 @@ bool MyApp::OnInit()
 		form = new mainFrame(guiStrData[TITLE_LPM]);
 		form->Show();
 	}
-	catch (std::exception ex)
+	catch (std::exception& ex)
 	{
 		wxMessageBox(ex.what(), guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
 		return false;
@@ -757,7 +780,7 @@ int MyApp::OnExit()
 		writeLocal();
 		unlock();
 	}
-	catch (std::exception ex)
+	catch (std::exception& ex)
 	{
 		wxMessageBox(ex.what(), guiStrData[TEXT_ERROR], wxOK | wxICON_ERROR);
 		return EXIT_FAILURE;

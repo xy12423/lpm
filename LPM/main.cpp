@@ -296,11 +296,15 @@ int getState(std::string name)
 	return state;
 }
 
-void init()
+void set_default_path()
 {
 	localPath = "./local";
 	dataPath = "./data";
 	langPath = "./lpm-lang";
+}
+
+void init()
+{
 	checkPath();
 	writeConfig();
 	writeSource();

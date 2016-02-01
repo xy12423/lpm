@@ -99,11 +99,13 @@ namespace fs = boost::filesystem;
 #pragma comment (lib, "libcurld.lib")
 #pragma comment (lib, "libeay32d.lib")
 #pragma comment (lib, "ssleay32d.lib")
+#pragma comment (lib, "libssh2d.lib")
 #pragma comment (lib, "zlibd.lib")
 #else
 #pragma comment (lib, "libcurl.lib")
 #pragma comment (lib, "libeay32.lib")
 #pragma comment (lib, "ssleay32.lib")
+#pragma comment (lib, "libssh2.lib")
 #pragma comment (lib, "zlib.lib")
 #endif
 #pragma comment (lib, "ws2_32.lib")

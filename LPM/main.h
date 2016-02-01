@@ -39,6 +39,7 @@ errInfo upgrade();
 void checkUpgrade(pakListTp &ret);
 bool check(std::string name);
 int getState(std::string name);
+void set_default_path();
 void init();
 bool lock();
 void unlock();

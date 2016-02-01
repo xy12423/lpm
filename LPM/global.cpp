@@ -87,6 +87,7 @@ std::string msgDataDefault[msgCount] = {
 	"E:unzip:Buffer not enough",
 	"E:STD:",
 	"E:Failed to lock",
+	"E:Config not found",
 	"W:Conflict Package",
 	"W:Script exited with code ",
 	", rolling back",

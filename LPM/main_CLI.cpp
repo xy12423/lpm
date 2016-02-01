@@ -55,6 +55,7 @@ void reportProgress(double progress, size_t size_downloaded)
 			}
 		}
 		std::cout << "          \r";
+		std::cout.flush();
 		lastSizeDownloaded = size_downloaded;
 		lastProgress = static_cast<int>(progress);
 	}
@@ -136,29 +137,35 @@ void printAvailableShort(source *src, bool ignoreInstalled = true)
 void printUsage()
 {
 	cout << "Usage:\n\n";
-	cout << "    lpm [--lpmdir=TARGET_LPM] [--local=TARGET_LOCAL] [--force] COMMAND\n";
+	cout << "    lpm [--lpmdir=path] [--local=path] [--data=path] [--lang=path] [--as-target] [--force] COMMAND\n";
 	cout << "      \n";
 	cout << "      Options:\n";
-	cout << "        --lpmdir    Specific a target LPM deploy directory\n";
-	cout << "        --local     Specific where package should unpack to.\n";
-	cout << "        --force     Force continue, will remove all packages that noticed.\n";
+	cout << "        --lpmdir     Specific a target LPM deploy directory\n";
+	cout << "        --local      Specific where package should unpack to.\n";
+	cout << "        --data       Specific where LPM stores package data.\n";
+	cout << "        --lang       Specific where LPM reads localization file.\n";
+	cout << "        --as-target  LPM will use lpmdir as current path when\n";
+	cout << "                     converting local/data/lang path to absolute path\n";
+	cout << "                     if this option is specified.\n";
+	cout << "                     Will do nothing if lpmdir is not specified.\n\n";
+	cout << "        --force      Force continue, will remove all packages that noticed.\n";
 	cout << "                     Usually required when removing with dependency,\n";
 	cout << "                     installing or update with removing conflicted packages.\n\n";
-	cout << "        COMMAND     Specific things that LPM should to do.\n";
+	cout << "        COMMAND      Specific things that LPM should to do.\n";
 	cout << "      \n";
 	cout << "      Commands:\n";
 	cout << "        init                            Create inital configuration files.\n";
 	cout << "        update                          Check for updates from source.\n";
 	cout << "        install <package name>          Install a specific package.\n";
 	cout << "        remove <package name>           Remove a specific package.\n";
-	cout << "        reconf <package name>        Run initalize process of a package.\n";
-	cout << "                                         Will clear package configuration\n";
-	cout << "                                         and reset package settings.\n\n";
+	cout << "        reconf <package name>           Run initalize process of a package.\n";
+	cout << "                                        Will clear package configuration\n";
+	cout << "                                        and reset package settings.\n\n";
 	cout << "        upgrade [package name]          Upgrade a specific package or all\n";
-	cout << "                                         out-of-date packages.\n\n";
+	cout << "                                        out-of-date packages.\n\n";
 	cout << "        info <package name>             Display information of a package.\n";
 	cout << "        check <package name>            Check dependency of a specific\n";
-	cout << "                                         package.\n\n";
+	cout << "                                        package.\n\n";
 	cout << "        list                            List all packages that installed.\n";
 	cout << "        list-short                      List installed packages only in names.\n";
 	cout << "        available                       Show available packages in source.\n";
@@ -167,9 +174,9 @@ void printUsage()
 	cout << "        addsrc <source address>         Add a package installing source.\n";
 	cout << "        delsrc <source address>         Remove a package installing source.\n";
 	cout << "        release                         Try to release the management lock\n";
-	cout << "                                         of LPM. (Usually use in abnormal\n";
-	cout << "                                         situation, such as a crash.)\n\n\n";
-	cout << "Live Package Manager v1.2\n";
+	cout << "                                        of LPM. (Usually use in abnormal\n";
+	cout << "                                        situation, such as a crash.)\n\n\n";
+	cout << "Live Package Manager v1.3\n";
 	cout << "    Made by xy12423. Licensed in GPLv3,\n";
 	cout << "    Copyleft xy12423 & Little Busters! Live Project.\n";
 	cout << "    Source code available at https://github.com/xy12423/lpm" << endl;
@@ -188,8 +195,8 @@ int main(int argc, char* argv[])
 	{
 		int argp = 1;
 		string cmd;
-		string newPath, newLocal, newData;
-		bool force = false;
+		string newPath, newLocal, newData, newLang;
+		bool force = false, as_target = false;
 		while (argp < argc)
 		{
 			cmd = argv[argp];
@@ -207,8 +214,12 @@ int main(int argc, char* argv[])
 						newLocal = cmd.substr(6);
 					else if (cmd.substr(0, 5) == "data=")
 						newData = cmd.substr(5);
+					else if (cmd.substr(0, 5) == "lang=")
+						newLang = cmd.substr(5);
 					else if (cmd.substr(0, 5) == "force")
 						force = true;
+					else if (cmd.substr(0, 9) == "as-target")
+						as_target = true;
 					else
 					{
 						printUsage();
@@ -223,10 +234,19 @@ int main(int argc, char* argv[])
 			argp++;
 		}
 
+		loadDefaultLang();
+
 		if (cmd == "init")
 		{
 			if (!newPath.empty())
 				current_path(newPath);
+			set_default_path();
+			if (!newLocal.empty())
+				localPath = newLocal;
+			if (!newData.empty())
+				dataPath = newData;
+			if (!newLang.empty())
+				langPath = newLang;
 			init();
 		}
 		else if (cmd == "release")
@@ -235,30 +255,44 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			if (!newLocal.empty())
-				newLocal = fs::system_complete(newLocal).string();	//Get absolute path of new local path(if has)
+			if (!as_target)
+			{
+				if (!newLocal.empty())
+					newLocal = fs::system_complete(newLocal).string();
+				if (!newData.empty())
+					newData = fs::system_complete(newData).string();
+				if (!newLang.empty())
+					newLang = fs::system_complete(newLang).string();
+			}
 			if (!newPath.empty())
-				fs::current_path(newPath);	//Switch to new path to read config
+				fs::current_path(newPath);
+			if (as_target)
+			{
+				if (!newLocal.empty())
+					newLocal = fs::system_complete(newLocal).string();
+				if (!newData.empty())
+					newData = fs::system_complete(newData).string();
+				if (!newLang.empty())
+					newLang = fs::system_complete(newLang).string();
+			}
 
 			if (readConfig())
-			{
 				localPath = fs::system_complete(localPath);
-				checkPath();
-			}
 			else
 			{
-				init();
-				localPath = fs::system_complete(localPath);
-				checkPath();
+				cout << msgData[MSGE_NO_CONFIG] << endl;
+				throw(0);
 			}
 
 			if (!newLocal.empty())
 				localPath = newLocal;
 			if (!newData.empty())
 				dataPath = newData;
+			if (!newLang.empty())
+				langPath = newLang;
 
-			if (!readLang())
-				loadDefaultLang();
+			checkPath();
+			readLang();
 
 			if (!newPath.empty())
 				cout << msgData[MSGI_USING_LPMDIR] << newPath << endl;
